@@ -123,6 +123,10 @@ module.exports = Editor.Panel.define({
 
 
         //移动图片
+        preprocessIdenticalImagesBtn: '#preprocessIdenticalImagesBtn',// 预处理完全相同的图和预制体引用重新指向
+        lookPreprocessIdenticalImagesBtn: '#lookPreprocessIdenticalImagesBtn',// 查看预处理结果
+
+
         caseConflictKeepOld: '#caseConflictKeepOld',// 保留旧文件夹名
         caseConflictUseNew: '#caseConflictUseNew',// 使用新文件夹名
         //移动大图
@@ -662,6 +666,33 @@ module.exports = Editor.Panel.define({
                 (this.$.caseConflictUseNew as HTMLInputElement).checked = value === "1"?true:false;
             }
         });
+        Editor.Profile.getConfig('assetsindex','resourcesdeal_sameDirPrefabRegex').then((value:any)=>{
+            if(this.$.sameDirPrefabRegex) {
+                (this.$.sameDirPrefabRegex as HTMLInputElement).value = value || `preb[/\\](.*)[/\\](.*)\.prefab`;
+            }
+        });
+        Editor.Profile.getConfig('assetsindex','resourcesdeal_sameDirTargetPattern').then((value:any)=>{
+            if(this.$.sameDirTargetPattern) {
+                (this.$.sameDirTargetPattern as HTMLInputElement).value = value || "staticRes/$1/same/$2/";
+            }
+        });
+        Editor.Profile.getConfig('assetsindex','resourcesdeal_preimgWidthinput').then((value:any)=>{
+            if(this.$.preimgWidthinput) {
+                (this.$.preimgWidthinput as HTMLInputElement).value = value || "100";
+            }
+        });
+        Editor.Profile.getConfig('assetsindex','resourcesdeal_preimgHeightinput').then((value:any)=>{
+            if(this.$.preimgHeightinput) {
+                (this.$.preimgHeightinput as HTMLInputElement).value = value || "100";
+            }
+        });
+        Editor.Profile.getConfig('assetsindex','resourcesdeal_preImageThreshold').then((value:any)=>{
+            if(this.$.preImageThreshold) {
+                (this.$.preImageThreshold as HTMLInputElement).value = value || "10000";
+            }
+        });
+  
+
         // 绑定 Tab 点击事件
         if(this.$.tabs) {
             const tabs = this.$.tabs.querySelectorAll('.tab-button');
@@ -750,8 +781,11 @@ module.exports = Editor.Panel.define({
         this.$.setIgnorePatternBtn?.addEventListener('click', () => {
             functioncalignore( _dataCache.path2info);
         });
+        this.$.calculateIgnoreSameImage?.addEventListener('click', () => {
+            functioncalpreImage( _ignoreRemainingdataCache||_dataCache.path2info);
+        });
         this.$.calculateBg?.addEventListener('click', () => {
-            functioncalBg( _ignoreRemainingdataCache||_dataCache.path2info);
+            functioncalBg( _preImageRemainingdataCache||_ignoreRemainingdataCache||_dataCache.path2info);
         })
         
         this.$.calculateCommon?.addEventListener('click', () => {
@@ -775,6 +809,15 @@ module.exports = Editor.Panel.define({
             }
             // 简单 alert 弹窗
             this.showAlert(_ignoreCache);
+        });
+        this.$.lookPreImageResult?.addEventListener('click', () => {
+            //查看_preImageCache的内容
+            if(!_preImageCache) {
+                console.warn('请先计算预处理相同大图');
+                return;
+            }
+            // 使用 showAlert2 显示树形结构
+            this.showAlert2(_preImageCache);
         });
         this.$.lookBgResult?.addEventListener('click', () => {
             //查看_bgdataCache的内容
@@ -963,7 +1006,136 @@ module.exports = Editor.Panel.define({
             console.log('计算按大小引用次数文件夹图片数量完成,共:',num_sizeCountTotal,'剩余:',num_sizeCountRemaining)
         }
         const functioncalpreImage=(path2info)=>{
+            let _remainpath2info = deepClone(path2info);
+            _remainpath2info = Object.fromEntries(Object.entries(_remainpath2info).filter(([path, info]) => (info as any).count > 0));
+            console.log('点击了预处理相同大图设置按钮');
             
+            const preImageThreshold = parseInt((this.$.preImageThreshold as HTMLInputElement).value) || 10000;
+            Editor.Profile.setConfig('assetsindex','resourcesdeal_preimgWidthinput',(this.$.preimgWidthinput as HTMLInputElement).value);
+            Editor.Profile.setConfig('assetsindex','resourcesdeal_preimgHeightinput',(this.$.preimgHeightinput as HTMLInputElement).value);
+            Editor.Profile.setConfig('assetsindex','resourcesdeal_preImageThreshold',(this.$.preImageThreshold as HTMLInputElement).value);
+            
+            // 1. 筛选出尺寸大于阈值的图片
+            const largeImages = Object.fromEntries(
+                Object.entries(_remainpath2info).filter(([path, info]) => {
+                    const imageSize = (info as any).width * (info as any).height;
+                    return imageSize >= preImageThreshold;
+                })
+            );
+            
+            console.log(`找到 ${Object.keys(largeImages).length} 张大图（尺寸 >= ${preImageThreshold}）`);
+            
+            // 2. 按MD5分组找出重复的图片
+            const md5Groups: Record<string, string[]> = {};
+            Object.entries(largeImages).forEach(([path, info]) => {
+                const md5 = (info as any).md5;
+                if (md5) {
+                    if (!md5Groups[md5]) {
+                        md5Groups[md5] = [];
+                    }
+                    md5Groups[md5].push(path);
+                }
+            });
+            
+            // 3. 找出有重复的组（同一个MD5有多个文件）
+            const duplicateGroups: Record<string, string[]> = {};
+            Object.entries(md5Groups).forEach(([md5, paths]) => {
+                if (paths.length > 1) {
+                    duplicateGroups[md5] = paths;
+                }
+            });
+            
+            console.log(`找到 ${Object.keys(duplicateGroups).length} 组重复的大图`);
+            
+            // 4. 构建预处理缓存数据
+            _preImageCache = {
+                duplicateGroups: duplicateGroups,
+                keepImages: {}, // 每组保留的图片（取第一个）
+                removeImages: {}, // 每组需要删除的图片
+                summary: {
+                    totalGroups: Object.keys(duplicateGroups).length,
+                    totalDuplicateFiles: Object.values(duplicateGroups).reduce((sum, paths) => sum + paths.length - 1, 0),
+                    totalSavedSize: 0 // 后面计算
+                }
+            };
+            
+            // 5. 为每组选择保留的图片（选第一个）和要删除的图片
+            let totalSavedSize = 0;
+            Object.entries(duplicateGroups).forEach(([md5, paths]) => {
+                const keepImage = paths[0]; // 保留第一个
+                const removeImages = paths.slice(1); // 删除其他的
+                
+                _preImageCache.keepImages[md5] = {
+                    path: keepImage,
+                    info: largeImages[keepImage],
+                    originalReferences: _dataCache.spriteFrameMaps_name[keepImage] || []
+                };
+                
+                _preImageCache.removeImages[md5] = removeImages.map(path => ({
+                    path: path,
+                    info: largeImages[path],
+                    references: _dataCache.spriteFrameMaps_name[path] || []
+                }));
+                
+                // 计算节省的大小
+                const imageSize = (largeImages[keepImage] as any).size;
+                totalSavedSize += imageSize * (paths.length - 1);
+            });
+            
+            _preImageCache.summary.totalSavedSize = totalSavedSize;
+            
+            // 6. 更新 _spriteFrameMaps_nameCache，将所有重复图片的引用都指向保留的图片
+            if (!_spriteFrameMaps_nameCache) {
+                _spriteFrameMaps_nameCache = deepClone(_dataCache.spriteFrameMaps_name);
+            }
+            
+            Object.entries(duplicateGroups).forEach(([md5, paths]) => {
+                const keepImage = paths[0];
+                const removeImages = paths.slice(1);
+                
+                // 收集所有引用
+                let allReferences: string[] = [];
+                paths.forEach(path => {
+                    const refs = _spriteFrameMaps_nameCache[path] || [];
+                    allReferences = allReferences.concat(refs);
+                });
+                
+                // 去重并排序
+                allReferences = Array.from(new Set(allReferences)).sort();
+                
+                // 将所有引用都指向保留的图片
+                _spriteFrameMaps_nameCache[keepImage] = allReferences;
+                
+                // 删除要移除图片的引用记录
+                removeImages.forEach(path => {
+                    delete _spriteFrameMaps_nameCache[path];
+                });
+            });
+            
+            // 7. 计算剩余数据（去除重复的图片）
+            const duplicatePathsSet = new Set<string>();
+            Object.values(duplicateGroups).forEach(paths => {
+                // 除了第一个，其他都是重复的
+                for (let i = 1; i < paths.length; i++) {
+                    duplicatePathsSet.add(paths[i]);
+                }
+            });
+            
+            _preImageRemainingdataCache = Object.fromEntries(
+                Object.entries(_remainpath2info).filter(([path, info]) => {
+                    return !duplicatePathsSet.has(path);
+                })
+            );
+            
+            // 8. 更新UI显示
+            const duplicateCount = duplicatePathsSet.size;
+            const remainingCount = Object.keys(_preImageRemainingdataCache).length;
+            
+            (this.$.preImageTotal as HTMLInputElement).textContent = duplicateCount.toString();
+            (this.$.preImagesaving as HTMLInputElement).textContent = Object.keys(duplicateGroups).length.toString();
+            (this.$.preImageRemaining as HTMLInputElement).textContent = remainingCount.toString();
+            
+            console.log(`预处理相同大图完成: 重复图片 ${duplicateCount} 张, 保留组 ${Object.keys(duplicateGroups).length} 组, 剩余 ${remainingCount} 张, 节省空间 ${formatSize(totalSavedSize)}`);
         }
         this.$.processAll?.addEventListener('click', () => {
             Editor.Profile.setConfig('assetsindex','resourcesdeal_bgimgWidthinput',(this.$.bgimgWidthinput as HTMLInputElement).value);
@@ -975,6 +1147,9 @@ module.exports = Editor.Panel.define({
             Editor.Profile.setConfig('assetsindex','resourcesdeal_sizecountCountinput',(this.$.sizecountCountinput as HTMLInputElement).value);
             Editor.Profile.setConfig('assetsindex','resourcesdeal_sizeCountThreshold',(this.$.sizeCountThreshold as HTMLInputElement).value);
             Editor.Profile.setConfig('assetsindex','resourcesdeal_ignorePattern',(this.$.ignorePattern as HTMLInputElement).value);
+            Editor.Profile.setConfig('assetsindex','resourcesdeal_preimgWidthinput',(this.$.preimgWidthinput as HTMLInputElement).value);
+            Editor.Profile.setConfig('assetsindex','resourcesdeal_preimgHeightinput',(this.$.preimgHeightinput as HTMLInputElement).value);
+            Editor.Profile.setConfig('assetsindex','resourcesdeal_preImageThreshold',(this.$.preImageThreshold as HTMLInputElement).value);
 
 
             if(!_dataCache || !_dataCache.path2info) {
@@ -986,7 +1161,12 @@ module.exports = Editor.Panel.define({
                 console.warn('请先计算忽略跳过包含的内容');
                 return;
             }
-            functioncalBg( _ignoreRemainingdataCache);
+            functioncalpreImage( _ignoreRemainingdataCache);
+            if(!_preImageRemainingdataCache) {
+                console.warn('请先计算预处理相同大图');
+                return;
+            }
+            functioncalBg( _preImageRemainingdataCache);
             if(!_bgRemainingdataCache) {
                 console.warn('请先计算大图设置');
                 return;
@@ -1088,6 +1268,84 @@ module.exports = Editor.Panel.define({
         this.$.PreLookmoveSameDirImagesBtn?.addEventListener('click', () => {
             moveSameImage(true);
         });
+
+        this.$.preprocessIdenticalImagesBtn?.addEventListener('click', () => {
+            preChangeImagesAndPrefabs();
+        });
+        
+        function preChangeImagesAndPrefabs(){
+            if(!_preImageCache) {
+                console.warn('请先计算预处理相同大图');
+                Editor.Dialog.info('请先计算预处理相同大图', {title: '预处理提示', buttons: ['我知道了']});
+                return;
+            }
+            
+            // 检查是否有重复图片需要处理
+            if (!_preImageCache.duplicateGroups || Object.keys(_preImageCache.duplicateGroups).length === 0) {
+                console.log('没有重复的图片需要处理');
+                Editor.Dialog.info('没有重复的图片需要处理', {title: '预处理结果', buttons: ['我知道了']});
+                return;
+            }
+            
+            // 确认操作
+            const groupCount = Object.keys(_preImageCache.duplicateGroups).length;
+            const duplicateCount = _preImageCache.summary.totalDuplicateFiles;
+            const savedSizeStr = formatSize(_preImageCache.summary.totalSavedSize);
+            
+            const confirmMessage = `将要处理 ${groupCount} 组重复图片，删除 ${duplicateCount} 个重复文件，节省空间 ${savedSizeStr}。\n\n此操作将：\n1. 删除重复的图片文件\n2. 修改预制体文件中的引用指向\n3. 刷新资源数据库\n\n确定要继续吗？`;
+            
+            Editor.Dialog.warn(confirmMessage, {
+                title: '确认预处理操作',
+                buttons: ['确定', '取消']
+            }).then((result) => {
+                if (result.response === 0) { // 用户点击了确定
+                    console.log('开始执行预处理相同大图操作...');
+                    
+                    Editor.Message.request('assetsindex', 'dynamic-message', {
+                        method: 'preChangeImagesAndPrefabs',
+                        preImageCache: _preImageCache
+                    }).then((data)=>{
+                        console.log('预处理完成:', data);
+                        
+                        if (data.success) {
+                            const successMessage = data.message + 
+                                `\n\n详细信息：\n- 处理的预制体文件: ${data.processedFiles} 个\n- 删除的重复图片: ${data.deletedFiles} 个\n- 重复组数: ${data.totalGroups}`;
+                                
+                            Editor.Dialog.info(successMessage, {
+                                title: '预处理完成',
+                                buttons: ['我知道了']
+                            });
+                            
+                            // 清空预处理缓存，因为操作已完成
+                            _preImageCache = null;
+                            
+                            // 更新UI显示
+                            (this.$.preImageTotal as HTMLInputElement).textContent = '0';
+                            (this.$.preImagesaving as HTMLInputElement).textContent = '0';
+                            
+                        } else {
+                            Editor.Dialog.error(`预处理失败: ${data.message}`, {
+                                title: '预处理错误',
+                                buttons: ['我知道了']
+                            });
+                        }
+                        
+                        if (data.errors && data.errors.length > 0) {
+                            console.warn('预处理过程中的错误:', data.errors);
+                        }
+                        
+                    }).catch(err => {
+                        console.error('预处理请求失败:', err);
+                        Editor.Dialog.error(`预处理请求失败: ${err.message}`, {
+                            title: '预处理错误',
+                            buttons: ['我知道了']
+                        });
+                    });
+                } else {
+                    console.log('用户取消了预处理操作');
+                }
+            });
+        }
         // 移动大图按钮
         this.$.moveBgImagesBtn?.addEventListener('click', () => {
             moveBgImage();

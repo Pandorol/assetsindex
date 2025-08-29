@@ -4,6 +4,7 @@ import packageJSON from '../package.json';
 const fs = require('fs');
 const path = require('path');
 const fg = require('fast-glob');
+const crypto = require('crypto');
 
 /**
  * @en 
@@ -115,7 +116,8 @@ export const methods: { [key: string]: (...any: any) => any } = {
     handleDynamicMessage(args) {
         const methodMap: any = {
             "buildMapsData": buildMapsData,
-            "moveBgImages": moveBgImages
+            "moveBgImages": moveBgImages,
+            "preChangeImagesAndPrefabs": preChangeImagesAndPrefabs
         };
 
         if (methodMap[args.method]) {
@@ -125,6 +127,151 @@ export const methods: { [key: string]: (...any: any) => any } = {
         }
     }
 };
+async function preChangeImagesAndPrefabs(args: any) {
+    console.log('preChangeImagesAndPrefabs called with args:', args);
+    
+    const { preImageCache } = args;
+    
+    if (!preImageCache) {
+        throw new Error('preImageCache 参数是必需的');
+    }
+    
+    if (!preImageCache.duplicateGroups || Object.keys(preImageCache.duplicateGroups).length === 0) {
+        console.log('没有重复的图片需要处理');
+        return {
+            success: true,
+            processedFiles: 0,
+            deletedFiles: 0,
+            message: '没有重复的图片需要处理'
+        };
+    }
+    
+    const projectRoot = path.join(Editor.Project.path, 'assets');
+    let processedFiles = 0;
+    let deletedFiles = 0;
+    const errors: string[] = [];
+    
+    try {
+        // 1. 删除重复的图片文件
+        console.log('开始删除重复的图片文件...');
+        for (const [md5, removeList] of Object.entries(preImageCache.removeImages)) {
+            for (const item of removeList as any[]) {
+                const imgPath = item.path;
+                const dbPath = `db://assets/${imgPath}`;
+                
+                try {
+                    // 使用 asset-db API 删除文件
+                    await Editor.Message.request('asset-db', 'delete-asset', dbPath);
+                    console.log(`删除重复文件: ${imgPath}`);
+                    deletedFiles++;
+                } catch (e) {
+                    console.error(`删除文件失败: ${imgPath}`, e);
+                    errors.push(`删除文件失败: ${imgPath} - ${e.message}`);
+                }
+            }
+        }
+        
+        // 2. 修改预制体文件中的引用
+        console.log('开始修改预制体文件中的引用...');
+        Object.entries(preImageCache.duplicateGroups).forEach(([md5, paths]: [string, string[]]) => {
+            const keepImage = paths[0];
+            const removeImages = paths.slice(1);
+            
+            // 获取保留图片的 UUID
+            const keepImageInfo = preImageCache.keepImages[md5];
+            if (!keepImageInfo) {
+                console.warn(`未找到保留图片信息: ${md5}`);
+                return;
+            }
+            
+            const keepImageUuid = keepImageInfo.info.uuid;
+            
+            // 处理每个要删除的图片的引用
+            removeImages.forEach(removePath => {
+                const removeItem = preImageCache.removeImages[md5].find((item: any) => item.path === removePath);
+                if (!removeItem) return;
+                
+                const removeImageUuid = removeItem.info.uuid;
+                const references = removeItem.references;
+                
+                // 修改每个引用该图片的预制体文件
+                references.forEach((prefabPath: string) => {
+                    try {
+                        const prefabAbsPath = path.join(projectRoot, prefabPath);
+                        if (!fs.existsSync(prefabAbsPath)) {
+                            console.warn(`预制体文件不存在: ${prefabPath}`);
+                            return;
+                        }
+                        
+                        let content = fs.readFileSync(prefabAbsPath, 'utf8');
+                        let modified = false;
+                        
+                        // 替换 UUID 引用
+                        const originalContent = content;
+                        
+                        // 使用正则表达式替换所有对旧 UUID 的引用
+                        const uuidPattern = new RegExp(`"${removeImageUuid}"`, 'g');
+                        content = content.replace(uuidPattern, `"${keepImageUuid}"`);
+                        
+                        if (content !== originalContent) {
+                            fs.writeFileSync(prefabAbsPath, content, 'utf8');
+                            console.log(`更新预制体文件: ${prefabPath}, 将 ${removeImageUuid} 替换为 ${keepImageUuid}`);
+                            processedFiles++;
+                            modified = true;
+                        }
+                        
+                        if (!modified) {
+                            console.warn(`在预制体文件中未找到需要替换的 UUID: ${prefabPath}`);
+                        }
+                        
+                    } catch (e) {
+                        console.error(`处理预制体文件失败: ${prefabPath}`, e);
+                        errors.push(`处理预制体文件失败: ${prefabPath} - ${e.message}`);
+                    }
+                });
+            });
+        });
+        
+        // 3. 刷新资源数据库
+        console.log('刷新资源数据库...');
+        try {
+            await Editor.Message.send('asset-db', 'refresh-asset', 'db://assets');
+            console.log('资源数据库刷新完成');
+        } catch (e) {
+            console.warn('刷新资源数据库失败:', e);
+        }
+        
+        const summary = preImageCache.summary;
+        console.log(`预制体引用修改完成:`);
+        console.log(`- 处理的预制体文件: ${processedFiles} 个`);
+        console.log(`- 删除的重复图片: ${deletedFiles} 个`);
+        console.log(`- 重复组数: ${summary.totalGroups}`);
+        console.log(`- 节省空间: ${formatSize(summary.totalSavedSize)}`);
+        
+        return {
+            success: true,
+            processedFiles,
+            deletedFiles,
+            totalGroups: summary.totalGroups,
+            totalSavedSize: summary.totalSavedSize,
+            errors: errors.length > 0 ? errors : undefined,
+            message: `成功处理 ${processedFiles} 个预制体文件，删除 ${deletedFiles} 个重复图片，节省空间 ${formatSize(summary.totalSavedSize)}`
+        };
+        
+    } catch (e) {
+        console.error('预制体引用修改过程中出错:', e);
+        throw e;
+    }
+}
+
+// 辅助函数：格式化文件大小
+function formatSize(bytes: number): string {
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
 function buildMapsData(args: any) {
     // 在这里实现函数逻辑
     console.log('buildMapsData called with args:', args);
@@ -216,7 +363,7 @@ function buildMapsData(args: any) {
     const projectRoot =path.join(Editor.Project.path, 'assets') ; // dir 就是 assets 目录
     console.log('projectRoot:', projectRoot);
     const uuid2info: Record<string, { path: string, size: number }> = {};
-    const path2info: Record<string, { uuid: string, size: number,count: number,width: number,height: number }> = {};
+    const path2info: Record<string, { uuid: string, size: number,count: number,width: number,height: number,md5: string }> = {};
     const metaFiles = fg.sync('**/*.meta', {
         cwd: projectRoot,
         absolute: false,
@@ -247,11 +394,15 @@ function buildMapsData(args: any) {
 
                 // 计算对应贴图大小（如果有对应的导入文件）
                 let size = 0;
+                let md5 = '';
                 const texFile = abs.replace(/\.meta$/, ''); // 对应的源图
                 if (fs.existsSync(texFile)) {
                     try {
                         const stat = fs.statSync(texFile);
                         size = stat.size;
+                        // 计算文件MD5
+                        const buffer = fs.readFileSync(texFile);
+                        md5 = crypto.createHash('md5').update(buffer).digest('hex');
                     } catch(e) {
                         console.error('error:', texFile, e.message);
                     }
@@ -270,6 +421,7 @@ function buildMapsData(args: any) {
                     count: 0,
                     width,
                     height,
+                    md5,
                 };
             }
         }
