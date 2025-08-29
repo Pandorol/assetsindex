@@ -962,7 +962,7 @@ module.exports = Editor.Panel.define({
                 }
             });
             console.log(`找到 ${Object.keys(duplicateGroups).length} 组重复的大图`);
-            const totalDuplicateFiles = Object.values(duplicateGroups).reduce((sum, paths) => sum + paths.length - 1, 0), 
+            const totalDuplicateFiles = Object.values(duplicateGroups).reduce((sum, paths) => sum + paths.length - 1, 0);
             // 4. 构建预处理缓存数据
             _preImageCache = {
                 duplicateGroups: duplicateGroups,
