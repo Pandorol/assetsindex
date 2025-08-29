@@ -603,27 +603,8 @@ async function moveBgImages(args) {
             console.log(`执行移动: ${fileName}`);
             const result = await withTimeout(Editor.Message.request('asset-db', 'move-asset', src, dest), 15000 // 15秒超时
             );
-            console.log(`move-asset 返回结果: ${result}`);
-            // 检查移动结果 - 即使返回null也要验证目标文件是否存在
-            if (result === null) {
-                console.log(`验证移动结果: ${fileName}`);
-                // 验证目标文件是否存在
-                const destExists = await withTimeout(Editor.Message.request('asset-db', 'query-asset-info', dest), 5000 // 5秒超时
-                );
-                if (destExists) {
-                    console.log(`[${i + 1}/${operations.length}] 移动成功 (已验证): ${fileName}, 从 ${src} 到 ${dest}`);
-                    movedCount++;
-                }
-                else {
-                    console.error(`[${i + 1}/${operations.length}] 移动失败 (目标不存在): ${fileName}`);
-                    errorCount++;
-                    errors.push(`移动失败: ${imgPath} - 目标文件不存在`);
-                }
-            }
-            else {
-                console.log(`[${i + 1}/${operations.length}] 移动成功: ${fileName}, 从 ${src} 到 ${dest}`);
-                movedCount++;
-            }
+            // console.log(`move-asset 返回结果: ${result}`);
+            movedCount++;
         }
         catch (e) {
             console.error(`[${i + 1}/${operations.length}] 移动异常: ${fileName}`, e.message);
