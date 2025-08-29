@@ -99,7 +99,8 @@
     "author": "CJJ",
     "editor": ">=3.7.4",
     "scripts": {
-        "build": "tsc -b",
-        "watch": "tsc -w"
+        "build": "tsc -b && npm run git-auto",
+        "watch": "tsc -w",
+        "git-auto": "git add . && git commit -m \"auto commit on %date% %time%\" && git push origin main"
     }
 }

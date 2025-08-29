@@ -72,8 +72,8 @@ module.exports = Editor.Panel.define({
         preimgHeightinput: '#preimgHeightinput',// 输入框
         preImageThreshold: '#preImageThreshold',// 输入框
         calculateIgnoreSameImage: '#calculateIgnoreSameImage',// 设置按钮
-        preImageTotalSize: '#preImageTotalSize',// 计算结果
         preImageTotal: '#preImageTotal',// 计算结果
+        preImagesaving: '#preImagesaving',// 计算结果
         preImageRemaining: '#preImageRemaining',// 计算结果
         lookPreImageResult: '#lookPreImageResult',// 查看结果按钮
         //common

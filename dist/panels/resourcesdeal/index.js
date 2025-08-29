@@ -6,12 +6,14 @@ const fs = require('fs-extra');
 let _dataCache = null; // 缓存数据
 let _spriteFrameMaps_nameCache = null; // 缓存 spriteFrameMaps_name 数据,用来预计算的，处理后会跟_dataCache源数据不一样
 let _ignoreCache = null; // 忽略跳过包含的内容
+let _preImageCache = null; // 缓存 preImage 数据
 let _bgdataCache = null; // 缓存 bg 数据
 let _commondataCache = null; // 缓存 common 数据
 let _singledataCache = null; // 缓存 single 数据
 let _samedataCache = null; // 缓存 same 数据
 let _sizecountdataCache = null; // 缓存 sizecount 数据
 let _ignoreRemainingdataCache = null; // 计算 ignore 后剩余数据缓存
+let _preImageRemainingdataCache = null; // 计算 preImage 后剩余数据缓存
 let _bgRemainingdataCache = null; // 计算 bg 后剩余数据缓存
 let _commonRemainingdataCache = null; // 计算 common 后剩余数据缓存
 let _singleRemainingdataCache = null; // 计算 single 后剩余数据缓存
@@ -69,8 +71,8 @@ module.exports = Editor.Panel.define({
         preimgHeightinput: '#preimgHeightinput',
         preImageThreshold: '#preImageThreshold',
         calculateIgnoreSameImage: '#calculateIgnoreSameImage',
-        preImageTotalSize: '#preImageTotalSize',
         preImageTotal: '#preImageTotal',
+        preImagesaving: '#preImagesaving',
         preImageRemaining: '#preImageRemaining',
         lookPreImageResult: '#lookPreImageResult',
         //common
