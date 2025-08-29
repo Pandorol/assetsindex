@@ -748,15 +748,15 @@ module.exports = Editor.Panel.define({
                 }
             });
         }
-        this.$.bgimgWidthinput.addEventListener('input', this.updateThreshold.bind(this));
-        this.$.bgimgHeightinput.addEventListener('input', this.updateThreshold.bind(this));
+        this.$.bgimgWidthinput?.addEventListener('input', this.updateThreshold.bind(this));
+        this.$.bgimgHeightinput?.addEventListener('input', this.updateThreshold.bind(this));
         this.updateThreshold();
-        this.$.sizecountWidthinput.addEventListener('input', this.updatesizeCountThreshold.bind(this));
-        this.$.sizecountHeightinput.addEventListener('input', this.updatesizeCountThreshold.bind(this));
-        this.$.sizecountCountinput.addEventListener('input', this.updatesizeCountThreshold.bind(this));
+        this.$.sizecountWidthinput?.addEventListener('input', this.updatesizeCountThreshold.bind(this));
+        this.$.sizecountHeightinput?.addEventListener('input', this.updatesizeCountThreshold.bind(this));
+        this.$.sizecountCountinput?.addEventListener('input', this.updatesizeCountThreshold.bind(this));
         this.updatesizeCountThreshold();
-        this.$.preimgWidthinput.addEventListener('input', this.updatePreImageThreshold.bind(this));
-        this.$.preimgHeightinput.addEventListener('input', this.updatePreImageThreshold.bind(this));
+        this.$.preimgWidthinput?.addEventListener('input', this.updatePreImageThreshold.bind(this));
+        this.$.preimgHeightinput?.addEventListener('input', this.updatePreImageThreshold.bind(this));
         this.updatePreImageThreshold();
         // 初始化 Clusterize.js
         // 延迟 Clusterize 初始化

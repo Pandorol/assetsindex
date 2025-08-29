@@ -523,7 +523,7 @@ module.exports = Editor.Panel.define({
         }
     },
     ready() {
-        var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s, _t, _u, _v, _w, _x, _y, _z;
+        var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s, _t, _u, _v, _w, _x, _y, _z, _0, _1, _2, _3, _4, _5, _6;
         //ready的时候读取缓存的值赋值到输入框
         Editor.Profile.getConfig('assetsindex', 'resourcesdeal_input_directory').then((value) => {
             if (this.$.directoryInput) {
@@ -691,15 +691,15 @@ module.exports = Editor.Panel.define({
                 }
             });
         }
-        this.$.bgimgWidthinput.addEventListener('input', this.updateThreshold.bind(this));
-        this.$.bgimgHeightinput.addEventListener('input', this.updateThreshold.bind(this));
+        (_a = this.$.bgimgWidthinput) === null || _a === void 0 ? void 0 : _a.addEventListener('input', this.updateThreshold.bind(this));
+        (_b = this.$.bgimgHeightinput) === null || _b === void 0 ? void 0 : _b.addEventListener('input', this.updateThreshold.bind(this));
         this.updateThreshold();
-        this.$.sizecountWidthinput.addEventListener('input', this.updatesizeCountThreshold.bind(this));
-        this.$.sizecountHeightinput.addEventListener('input', this.updatesizeCountThreshold.bind(this));
-        this.$.sizecountCountinput.addEventListener('input', this.updatesizeCountThreshold.bind(this));
+        (_c = this.$.sizecountWidthinput) === null || _c === void 0 ? void 0 : _c.addEventListener('input', this.updatesizeCountThreshold.bind(this));
+        (_d = this.$.sizecountHeightinput) === null || _d === void 0 ? void 0 : _d.addEventListener('input', this.updatesizeCountThreshold.bind(this));
+        (_e = this.$.sizecountCountinput) === null || _e === void 0 ? void 0 : _e.addEventListener('input', this.updatesizeCountThreshold.bind(this));
         this.updatesizeCountThreshold();
-        this.$.preimgWidthinput.addEventListener('input', this.updatePreImageThreshold.bind(this));
-        this.$.preimgHeightinput.addEventListener('input', this.updatePreImageThreshold.bind(this));
+        (_f = this.$.preimgWidthinput) === null || _f === void 0 ? void 0 : _f.addEventListener('input', this.updatePreImageThreshold.bind(this));
+        (_g = this.$.preimgHeightinput) === null || _g === void 0 ? void 0 : _g.addEventListener('input', this.updatePreImageThreshold.bind(this));
         this.updatePreImageThreshold();
         // 初始化 Clusterize.js
         // 延迟 Clusterize 初始化
@@ -718,28 +718,28 @@ module.exports = Editor.Panel.define({
             });
         }, 1000); // 延迟 1000ms
         //忽略跳过包含xx的内容
-        (_a = this.$.setIgnorePatternBtn) === null || _a === void 0 ? void 0 : _a.addEventListener('click', () => {
+        (_h = this.$.setIgnorePatternBtn) === null || _h === void 0 ? void 0 : _h.addEventListener('click', () => {
             functioncalignore(_dataCache.path2info);
         });
-        (_b = this.$.calculateIgnoreSameImage) === null || _b === void 0 ? void 0 : _b.addEventListener('click', () => {
+        (_j = this.$.calculateIgnoreSameImage) === null || _j === void 0 ? void 0 : _j.addEventListener('click', () => {
             functioncalpreImage(_ignoreRemainingdataCache || _dataCache.path2info);
         });
-        (_c = this.$.calculateBg) === null || _c === void 0 ? void 0 : _c.addEventListener('click', () => {
+        (_k = this.$.calculateBg) === null || _k === void 0 ? void 0 : _k.addEventListener('click', () => {
             functioncalBg(_preImageRemainingdataCache || _ignoreRemainingdataCache || _dataCache.path2info);
         });
-        (_d = this.$.calculateCommon) === null || _d === void 0 ? void 0 : _d.addEventListener('click', () => {
+        (_l = this.$.calculateCommon) === null || _l === void 0 ? void 0 : _l.addEventListener('click', () => {
             functioncalCommon(_bgRemainingdataCache || _dataCache.path2info);
         });
-        (_e = this.$.calculateSingle) === null || _e === void 0 ? void 0 : _e.addEventListener('click', () => {
+        (_m = this.$.calculateSingle) === null || _m === void 0 ? void 0 : _m.addEventListener('click', () => {
             functioncalSingle(_commonRemainingdataCache || _dataCache.path2info);
         });
-        (_f = this.$.calculateSameDir) === null || _f === void 0 ? void 0 : _f.addEventListener('click', () => {
+        (_o = this.$.calculateSameDir) === null || _o === void 0 ? void 0 : _o.addEventListener('click', () => {
             functioncalSame(_singleRemainingdataCache || _dataCache.path2info);
         });
-        (_g = this.$.calculateSizeCount) === null || _g === void 0 ? void 0 : _g.addEventListener('click', () => {
+        (_p = this.$.calculateSizeCount) === null || _p === void 0 ? void 0 : _p.addEventListener('click', () => {
             functioncalSizeCount(_sameRemainingdataCache || _dataCache.path2info);
         });
-        (_h = this.$.lookIgnorePatternResult) === null || _h === void 0 ? void 0 : _h.addEventListener('click', () => {
+        (_q = this.$.lookIgnorePatternResult) === null || _q === void 0 ? void 0 : _q.addEventListener('click', () => {
             //查看_ignoreCache的内容
             if (!_ignoreCache) {
                 console.warn('请先计算忽略跳过包含的内容');
@@ -748,7 +748,7 @@ module.exports = Editor.Panel.define({
             // 简单 alert 弹窗
             this.showAlert(_ignoreCache);
         });
-        (_j = this.$.lookPreImageResultBtn) === null || _j === void 0 ? void 0 : _j.addEventListener('click', () => {
+        (_r = this.$.lookPreImageResultBtn) === null || _r === void 0 ? void 0 : _r.addEventListener('click', () => {
             //查看_preImageCache的内容
             if (!_preImageCache) {
                 console.warn('请先计算预处理相同大图');
@@ -757,7 +757,7 @@ module.exports = Editor.Panel.define({
             // 使用 showAlert2 显示树形结构
             this.showAlert2(_preImageCache);
         });
-        (_k = this.$.lookBgResult) === null || _k === void 0 ? void 0 : _k.addEventListener('click', () => {
+        (_s = this.$.lookBgResult) === null || _s === void 0 ? void 0 : _s.addEventListener('click', () => {
             //查看_bgdataCache的内容
             if (!_bgdataCache) {
                 console.warn('请先计算大图文件夹图片数量');
@@ -766,7 +766,7 @@ module.exports = Editor.Panel.define({
             // 简单 alert 弹窗
             this.showAlert(_bgdataCache);
         });
-        (_l = this.$.lookCommonResult) === null || _l === void 0 ? void 0 : _l.addEventListener('click', () => {
+        (_t = this.$.lookCommonResult) === null || _t === void 0 ? void 0 : _t.addEventListener('click', () => {
             //查看_commondataCache的内容
             if (!_commondataCache) {
                 console.warn('请先计算图集文件夹图片数量');
@@ -775,7 +775,7 @@ module.exports = Editor.Panel.define({
             // 简单 alert 弹窗
             this.showAlert(_commondataCache);
         });
-        (_m = this.$.lookSingleResult) === null || _m === void 0 ? void 0 : _m.addEventListener('click', () => {
+        (_u = this.$.lookSingleResult) === null || _u === void 0 ? void 0 : _u.addEventListener('click', () => {
             //查看_singledataCache的内容
             if (!_singledataCache) {
                 console.warn('请先计算单独文件夹图片数量');
@@ -784,7 +784,7 @@ module.exports = Editor.Panel.define({
             // 简单 alert 弹窗
             this.showAlert(_singledataCache);
         });
-        (_o = this.$.lookSameDirResult) === null || _o === void 0 ? void 0 : _o.addEventListener('click', () => {
+        (_v = this.$.lookSameDirResult) === null || _v === void 0 ? void 0 : _v.addEventListener('click', () => {
             //查看_samedataCache的内容
             if (!_samedataCache) {
                 console.warn('请先计算相同目录文件夹图片数量');
@@ -793,7 +793,7 @@ module.exports = Editor.Panel.define({
             // 简单 alert 弹窗
             this.showAlert(_samedataCache);
         });
-        (_p = this.$.lookSizeCountResult) === null || _p === void 0 ? void 0 : _p.addEventListener('click', () => {
+        (_w = this.$.lookSizeCountResult) === null || _w === void 0 ? void 0 : _w.addEventListener('click', () => {
             //查看_sizecountdataCache的内容
             if (!_sizecountdataCache) {
                 console.warn('请先计算按大小引用次数图片数量');
@@ -1035,7 +1035,7 @@ module.exports = Editor.Panel.define({
             this.$.preImageRemaining.textContent = remainingCount.toString();
             console.log(`预处理相同大图完成: 删除图片 ${totalDuplicateFiles} 张, 保留组 ${Object.keys(duplicateGroups).length} 组, 剩余 ${remainingCount} 张, 节省空间 ${formatSize(totalSavedSize)}`);
         };
-        (_q = this.$.processAll) === null || _q === void 0 ? void 0 : _q.addEventListener('click', () => {
+        (_x = this.$.processAll) === null || _x === void 0 ? void 0 : _x.addEventListener('click', () => {
             Editor.Profile.setConfig('assetsindex', 'resourcesdeal_bgimgWidthinput', this.$.bgimgWidthinput.value);
             Editor.Profile.setConfig('assetsindex', 'resourcesdeal_bgimgHeightinput', this.$.bgimgHeightinput.value);
             Editor.Profile.setConfig('assetsindex', 'resourcesdeal_largeImageThreshold', this.$.largeImageThreshold.value);
@@ -1136,19 +1136,19 @@ module.exports = Editor.Panel.define({
                 console.error(`渲染进程：移动失败`, err);
             });
         };
-        (_r = this.$.PreLookmoveBgImagesBtn) === null || _r === void 0 ? void 0 : _r.addEventListener('click', () => {
+        (_y = this.$.PreLookmoveBgImagesBtn) === null || _y === void 0 ? void 0 : _y.addEventListener('click', () => {
             moveBgImage(true);
         });
-        (_s = this.$.PreLookmoveCommonImagesBtn) === null || _s === void 0 ? void 0 : _s.addEventListener('click', () => {
+        (_z = this.$.PreLookmoveCommonImagesBtn) === null || _z === void 0 ? void 0 : _z.addEventListener('click', () => {
             moveCommonImage(true);
         });
-        (_t = this.$.PreLookmoveSingleImagesBtn) === null || _t === void 0 ? void 0 : _t.addEventListener('click', () => {
+        (_0 = this.$.PreLookmoveSingleImagesBtn) === null || _0 === void 0 ? void 0 : _0.addEventListener('click', () => {
             moveSingleImage(true);
         });
-        (_u = this.$.PreLookmoveSameDirImagesBtn) === null || _u === void 0 ? void 0 : _u.addEventListener('click', () => {
+        (_1 = this.$.PreLookmoveSameDirImagesBtn) === null || _1 === void 0 ? void 0 : _1.addEventListener('click', () => {
             moveSameImage(true);
         });
-        (_v = this.$.preprocessIdenticalImagesBtn) === null || _v === void 0 ? void 0 : _v.addEventListener('click', () => {
+        (_2 = this.$.preprocessIdenticalImagesBtn) === null || _2 === void 0 ? void 0 : _2.addEventListener('click', () => {
             preChangeImagesAndPrefabs();
         });
         const preChangeImagesAndPrefabs = () => {
@@ -1215,7 +1215,7 @@ module.exports = Editor.Panel.define({
             });
         };
         // 移动大图按钮
-        (_w = this.$.moveBgImagesBtn) === null || _w === void 0 ? void 0 : _w.addEventListener('click', () => {
+        (_3 = this.$.moveBgImagesBtn) === null || _3 === void 0 ? void 0 : _3.addEventListener('click', () => {
             moveBgImage();
         });
         const moveBgImage = (preLook = false) => {
@@ -1273,15 +1273,15 @@ module.exports = Editor.Panel.define({
             });
         };
         // 移动common图按钮
-        (_x = this.$.moveCommonImagesBtn) === null || _x === void 0 ? void 0 : _x.addEventListener('click', () => {
+        (_4 = this.$.moveCommonImagesBtn) === null || _4 === void 0 ? void 0 : _4.addEventListener('click', () => {
             moveCommonImage();
         });
         // 移动单独图按钮
-        (_y = this.$.moveSingleImagesBtn) === null || _y === void 0 ? void 0 : _y.addEventListener('click', () => {
+        (_5 = this.$.moveSingleImagesBtn) === null || _5 === void 0 ? void 0 : _5.addEventListener('click', () => {
             moveSingleImage();
         });
         // 移动相同目录图按钮
-        (_z = this.$.moveSameDirImagesBtn) === null || _z === void 0 ? void 0 : _z.addEventListener('click', () => {
+        (_6 = this.$.moveSameDirImagesBtn) === null || _6 === void 0 ? void 0 : _6.addEventListener('click', () => {
             moveSameImage();
         });
     },
