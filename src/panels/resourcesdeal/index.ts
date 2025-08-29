@@ -60,6 +60,15 @@ module.exports = Editor.Panel.define({
         contentArea: '#contentArea',
 
         //图集设置处理
+        //大图定义
+        defineLargeImageWidth: '#defineLargeImageWidth',
+        defineLargeImageHeight: '#defineLargeImageHeight',
+        defineLargeImageThreshold: '#defineLargeImageThreshold',
+        defineLargeImageByWidth: '#defineLargeImageByWidth',
+        defineLargeImageByHeight: '#defineLargeImageByHeight',
+        defineLargeImageByArea: '#defineLargeImageByArea',
+        defineLargeImageBtn: '#defineLargeImageBtn',
+
         //ignore
         ignorePattern: '#ignorePattern',// 输入框
         setIgnorePatternBtn: '#setIgnorePatternBtn',// 设置按钮
