@@ -3,22 +3,25 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const fs_extra_1 = require("fs-extra");
 const path_1 = require("path");
 const fs = require('fs-extra');
-let _dataCache = null; // 缓存数据
-let _spriteFrameMaps_nameCache = null; // 缓存 spriteFrameMaps_name 数据,用来预计算的，处理后会跟_dataCache源数据不一样
-let _ignoreCache = null; // 忽略跳过包含的内容
-let _preImageCache = null; // 缓存 preImage 数据
-let _bgdataCache = null; // 缓存 bg 数据
-let _commondataCache = null; // 缓存 common 数据
-let _singledataCache = null; // 缓存 single 数据
-let _samedataCache = null; // 缓存 same 数据
-let _sizecountdataCache = null; // 缓存 sizecount 数据
-let _ignoreRemainingdataCache = null; // 计算 ignore 后剩余数据缓存
-let _preImageRemainingdataCache = null; // 计算 preImage 后剩余数据缓存
-let _bgRemainingdataCache = null; // 计算 bg 后剩余数据缓存
-let _commonRemainingdataCache = null; // 计算 common 后剩余数据缓存
-let _singleRemainingdataCache = null; // 计算 single 后剩余数据缓存
-let _sameRemainingdataCache = null; // 计算 same 后剩余数据缓存
-let _sizecountRemainingdataCache = null; // 计算 sizecount 后剩余数据缓存
+// #region 全局数据缓存
+let _dataCache = null;
+let _spriteFrameMaps_nameCache = null;
+let _ignoreCache = null;
+let _preImageCache = null;
+let _bgdataCache = null;
+let _commondataCache = null;
+let _singledataCache = null;
+let _samedataCache = null;
+let _sizecountdataCache = null;
+let _ignoreRemainingdataCache = null;
+let _preImageRemainingdataCache = null;
+let _bgRemainingdataCache = null;
+let _commonRemainingdataCache = null;
+let _singleRemainingdataCache = null;
+let _sameRemainingdataCache = null;
+let _sizecountRemainingdataCache = null;
+// #endregion
+// #region 工具函数
 function formatSize(bytes) {
     if (bytes >= 1024 * 1024) {
         return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
@@ -30,11 +33,7 @@ function formatSize(bytes) {
 function deepClone(obj) {
     return JSON.parse(JSON.stringify(obj));
 }
-/**
- * @zh 如果希望兼容 3.3 之前的版本可以使用下方的代码
- * @en You can add the code below if you want compatibility with versions prior to 3.3
- */
-// Editor.Panel.define = Editor.Panel.define || function(options: any) { return options }
+// #endregion
 module.exports = Editor.Panel.define({
     listeners: {
         show() { console.log('show'); },
@@ -145,21 +144,17 @@ module.exports = Editor.Panel.define({
         sameDirPrefabRegex: '#sameDirPrefabRegex',
         sameDirTargetPattern: '#sameDirTargetPattern',
         moveSameDirImagesBtn: '#moveSameDirImagesBtn',
-        PreLookmoveSameDirImagesBtn: '#PreLookmoveSameDirImagesBtn', // 预查看需要移动的sameDir图片按钮
+        PreLookmoveSameDirImagesBtn: '#PreLookmoveSameDirImagesBtn',
     },
-    // 缓存数据
     methods: {
+        // #region 基础功能方法
         switchTab(tabId) {
-            // 获取所有 Tab 和内容
             const tabs = this.$.tabs.querySelectorAll('.tab-button');
             const panels = this.$.content.querySelectorAll('.tab-content');
-            // 隐藏所有 Tab 内容
             panels.forEach(panel => {
                 panel.style.display = 'none';
             });
-            // 移除所有 Tab 按钮的 active
             tabs.forEach(tab => tab.classList.remove('active'));
-            // 激活当前 Tab 按钮和内容
             const activeTab = this.$.tabs.querySelector(`.tab-button[data-tab="${tabId}"]`);
             const activePanel = this.$.content.querySelector(`#${tabId}`);
             activeTab === null || activeTab === void 0 ? void 0 : activeTab.classList.add('active');
@@ -167,41 +162,41 @@ module.exports = Editor.Panel.define({
                 activePanel.style.display = 'block';
             }
         },
+        // #endregion
+        // #region 阈值更新方法
         updateThreshold() {
             const w = parseInt(this.$.bgimgWidthinput.value) || 0;
             const h = parseInt(this.$.bgimgHeightinput.value) || 0;
             this.$.largeImageThreshold.value = w * h;
-            // console.log('大图阈值更新:', this.$.largeImageThreshold.value);
         },
         updatesizeCountThreshold() {
             const w = parseInt(this.$.sizecountWidthinput.value) || 0;
             const h = parseInt(this.$.sizecountHeightinput.value) || 0;
             const c = parseInt(this.$.sizecountCountinput.value) || 0;
             this.$.sizeCountThreshold.value = w * h * c;
-            // console.log('按大小引用次数阈值更新:', this.$.sizeCountThreshold.value);
         },
         updatePreImageThreshold() {
             const w = parseInt(this.$.preimgWidthinput.value) || 0;
             const h = parseInt(this.$.preimgHeightinput.value) || 0;
             this.$.preImageThreshold.value = w * h;
-            // console.log('预处理大图阈值更新:', this.$.preImageThreshold.value);
         },
+        // #endregion
+        // #region 数据处理方法
         buildMapsData(dir) {
             console.log('点击了构建基础数据按钮');
             Editor.Message.request('assetsindex', 'dynamic-message', { method: 'buildMapsData', dir: dir })
                 .then((data) => {
-                //这里使用数据{prefabMaps, spriteFrameMaps, prefabMaps_name, spriteFrameMaps_name}后两个
                 Editor.Dialog.info(`构建完成，数据缓存成功,路径:${data.out2}`, { title: '构建完成', buttons: ['我知道了'] });
-                _dataCache = data; // 缓存起来
+                _dataCache = data;
                 this.$.buildMapsDataResultContainer.style.visibility = 'visible';
-                // console.log('渲染进程：构建完成，数据缓存成功,路径:',data.out2);
                 this.$.buildMapsDataResultPath.value = data.out2;
                 Editor.Profile.setConfig('assetsindex', 'resourcesdeal_outputdata2_directory', data.out2);
             });
         },
+        // #endregion
+        // #region 表格渲染方法
         renderImageTable(spriteFrameMaps_name, path2info) {
             console.log('开始渲染图片表格，数据量:', Object.keys(spriteFrameMaps_name).length);
-            // 检查数据有效性
             if (!spriteFrameMaps_name || Object.keys(spriteFrameMaps_name).length === 0) {
                 console.warn('spriteFrameMaps_name 数据为空');
                 return;
@@ -218,11 +213,9 @@ module.exports = Editor.Panel.define({
             })
                 .sort((a, b) => {
                 if (a.count !== b.count)
-                    return a.count - b.count; // 先按引用次数
-                return a.size - b.size; // 再按大小
+                    return a.count - b.count;
+                return a.size - b.size;
             });
-            console.log('处理后的行数:', rows.length);
-            // 使用 Clusterize.js 渲染
             const rowStrings = rows.map(row => `
                 <tr>
                     <td>${row.img}</td>
@@ -231,14 +224,10 @@ module.exports = Editor.Panel.define({
                     <td>${row.prefabs.join('<br/>')}</td>
                 </tr>
             `);
-            // 更新 Clusterize
             if (this._clusterize) {
-                console.log('使用 Clusterize 更新数据，行数:', rowStrings.length);
                 this._clusterize.update(rowStrings);
             }
             else {
-                console.warn('Clusterize 未初始化，使用传统方式渲染');
-                // 回退到传统渲染方式
                 const tbody = this.$.imageTable.querySelector('tbody');
                 tbody.innerHTML = '';
                 rows.forEach(row => {
@@ -252,7 +241,7 @@ module.exports = Editor.Panel.define({
                     tbody.appendChild(tr);
                 });
             }
-            // 计算统计数据
+            // 统计数据
             const statsMap = {};
             rows.forEach(row => {
                 if (!statsMap[row.count])
@@ -260,12 +249,11 @@ module.exports = Editor.Panel.define({
                 statsMap[row.count].total += 1;
                 statsMap[row.count].size += row.size;
             });
-            // 渲染统计数据
             const statsDiv = this.$.imageStatsContent;
             statsDiv.innerHTML = '';
             for (const [count, info] of Object.entries(statsMap)) {
                 const div = document.createElement('div');
-                div.textContent = `${count} 次引用: ${info.total} 张图片, 总大小 ${formatSize(info.size)} KB`;
+                div.textContent = `${count} 次引用: ${info.total} 张图片, 总大小 ${formatSize(info.size)}`;
                 statsDiv.appendChild(div);
             }
             const unusedCount = Object.values(path2info).filter((info) => info.count === 0).length;
@@ -290,24 +278,16 @@ module.exports = Editor.Panel.define({
                 });
             });
         },
+        // #endregion
+        // #region 弹窗显示方法
         showAlert(msg) {
             const modal = document.createElement('div');
             modal.style.cssText = `
-                position: fixed;
-                top: 50px; left: 50px;
-                width: 500px;
-                height: 400px;
-                overflow: auto;
-                background: white;
-                border: 1px solid #333;
-                padding: 10px;
-                z-index: 9999;
-                color: black;       /* 设置字体为黑色 */
-                font-family: monospace; /* 可选，便于查看 JSON */
-                white-space: pre;       /* 保留换行缩进 */
+                position: fixed; top: 50px; left: 50px; width: 500px; height: 400px;
+                overflow: auto; background: white; border: 1px solid #333; padding: 10px;
+                z-index: 9999; color: black; font-family: monospace; white-space: pre;
             `;
             modal.textContent = JSON.stringify(msg, null, 2);
-            // 添加关闭按钮
             const closeBtn = document.createElement('button');
             closeBtn.textContent = '关闭';
             closeBtn.style.cssText = 'position: fixed; top: 50px; left: 575px;';
@@ -360,7 +340,7 @@ module.exports = Editor.Panel.define({
             // 递归创建树状结构
             const createTreeNode = (obj, key = '', level = 0, isRoot = false) => {
                 const container = document.createElement('div');
-                container.style.marginLeft = `${level * 4}px`; // 缩小缩进从20px到4px
+                container.style.marginLeft = `${level * 4}px`;
                 if (obj === null || obj === undefined) {
                     container.innerHTML = `<span style="color: #666;">${key}: <span style="color: #999;">null</span></span>`;
                     return container;
@@ -376,21 +356,18 @@ module.exports = Editor.Panel.define({
                 if (Array.isArray(obj)) {
                     const toggle = document.createElement('span');
                     toggle.style.cssText = 'cursor: pointer; user-select: none; color: #666; margin-right: 5px;';
-                    // 对于root节点，设置为不可点击的样式
                     if (isRoot) {
                         toggle.textContent = obj.length === 0 ? '' : '▼';
                         toggle.style.cursor = 'default';
                         toggle.style.color = '#999';
                     }
                     else {
-                        // 非root节点默认收起
                         toggle.textContent = obj.length === 0 ? '' : '▶';
                     }
                     const label = document.createElement('span');
                     label.style.color = '#666';
                     label.textContent = `${key}: Array[${obj.length}]`;
                     const childContainer = document.createElement('div');
-                    // root节点默认展开，其他节点默认收起
                     childContainer.style.display = (obj.length === 0) ? 'none' : (isRoot ? 'block' : 'none');
                     if (obj.length === 0) {
                         label.textContent += ' []';
@@ -400,7 +377,6 @@ module.exports = Editor.Panel.define({
                             childContainer.appendChild(createTreeNode(item, `[${index}]`, level + 1, false));
                         });
                     }
-                    // 只有非root节点且有内容才能点击
                     if (obj.length > 0 && !isRoot) {
                         toggle.addEventListener('click', () => {
                             const isExpanded = childContainer.style.display !== 'none';
@@ -417,21 +393,18 @@ module.exports = Editor.Panel.define({
                 const keys = Object.keys(obj);
                 const toggle = document.createElement('span');
                 toggle.style.cssText = 'cursor: pointer; user-select: none; color: #666; margin-right: 5px;';
-                // 对于root节点，设置为不可点击的样式
                 if (isRoot) {
                     toggle.textContent = keys.length === 0 ? '' : '▼';
                     toggle.style.cursor = 'default';
                     toggle.style.color = '#999';
                 }
                 else {
-                    // 非root节点默认收起
                     toggle.textContent = keys.length === 0 ? '' : '▶';
                 }
                 const label = document.createElement('span');
                 label.style.color = '#666';
                 label.textContent = `${key}: Object{${keys.length}}`;
                 const childContainer = document.createElement('div');
-                // root节点默认展开，其他节点默认收起
                 childContainer.style.display = (keys.length === 0) ? 'none' : (isRoot ? 'block' : 'none');
                 if (keys.length === 0) {
                     label.textContent += ' {}';
@@ -441,7 +414,6 @@ module.exports = Editor.Panel.define({
                         childContainer.appendChild(createTreeNode(obj[objKey], objKey, level + 1, false));
                     });
                 }
-                // 只有非root节点且有内容才能点击
                 if (keys.length > 0 && !isRoot) {
                     toggle.addEventListener('click', () => {
                         const isExpanded = childContainer.style.display !== 'none';
@@ -454,7 +426,7 @@ module.exports = Editor.Panel.define({
                 container.appendChild(childContainer);
                 return container;
             };
-            // 生成树状结构 - root节点设置为true
+            // 生成树状结构
             content.appendChild(createTreeNode(msg, 'root', 0, true));
             // 添加全部展开/收起功能
             const expandAll = header.querySelector('#expandAll');
@@ -467,7 +439,6 @@ module.exports = Editor.Panel.define({
                     container.style.display = 'block';
                 });
                 allToggles.forEach(toggle => {
-                    // 排除root节点的toggle（cursor: default）
                     if (toggle.textContent && toggle.textContent.trim() && toggle.style.cursor !== 'default') {
                         toggle.textContent = '▼';
                     }
@@ -477,7 +448,6 @@ module.exports = Editor.Panel.define({
                 const allContainers = content.querySelectorAll('div div');
                 const allToggles = content.querySelectorAll('span[style*="cursor: pointer"]');
                 allContainers.forEach((container, index) => {
-                    // 保持root节点的第一级子容器展开，其他的收起
                     const parentContainer = container.parentElement;
                     const isFirstLevel = parentContainer && parentContainer.style.marginLeft === '0px';
                     if (!isFirstLevel) {
@@ -485,10 +455,9 @@ module.exports = Editor.Panel.define({
                     }
                 });
                 allToggles.forEach(toggle => {
-                    // 排除root节点的toggle（cursor: default）
                     if (toggle.textContent && toggle.textContent.trim() && toggle.style.cursor !== 'default') {
                         const container = toggle.parentElement;
-                        const isFirstLevel = container && container.style.marginLeft === '4px'; // 第一级是4px
+                        const isFirstLevel = container && container.style.marginLeft === '4px';
                         if (!isFirstLevel) {
                             toggle.textContent = '▶';
                         }
@@ -528,292 +497,209 @@ module.exports = Editor.Panel.define({
                 isDragging = false;
                 header.style.cursor = 'default';
             });
-        }
-    },
-    ready() {
-        var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s, _t, _u, _v, _w, _x, _y, _z, _0, _1, _2, _3, _4, _5, _6;
-        //ready的时候读取缓存的值赋值到输入框
-        Editor.Profile.getConfig('assetsindex', 'resourcesdeal_input_directory').then((value) => {
-            if (this.$.directoryInput) {
-                this.$.directoryInput.value = value;
-            }
-        });
-        Editor.Profile.getConfig('assetsindex', 'resourcesdeal_outputdata2_directory').then((value) => {
-            this.$.buildMapsDataResultContainer.style.visibility = 'visible';
-            if (this.$.buildMapsDataResultPath) {
-                this.$.buildMapsDataResultPath.value = value;
-            }
-        });
-        Editor.Profile.getConfig('assetsindex', 'resourcesdeal_bgPrefabRegex').then((value) => {
-            if (this.$.bgPrefabRegex) {
-                this.$.bgPrefabRegex.value = value || `preb[/\\](.*)[/\\](.*)\.prefab`;
-            }
-        });
-        Editor.Profile.getConfig('assetsindex', 'resourcesdeal_bgTargetPattern').then((value) => {
-            if (this.$.bgTargetPattern) {
-                this.$.bgTargetPattern.value = value || "staticRes/$1/$2/";
-            }
-        });
-        Editor.Profile.getConfig('assetsindex', 'resourcesdeal_bgimgWidthinput').then((value) => {
-            if (this.$.bgimgWidthinput) {
-                this.$.bgimgWidthinput.value = value || "400";
-            }
-        });
-        Editor.Profile.getConfig('assetsindex', 'resourcesdeal_bgimgHeightinput').then((value) => {
-            if (this.$.bgimgHeightinput) {
-                this.$.bgimgHeightinput.value = value || "400";
-            }
-        });
-        Editor.Profile.getConfig('assetsindex', 'resourcesdeal_largeImageThreshold').then((value) => {
-            if (this.$.largeImageThreshold) {
-                this.$.largeImageThreshold.value = value || "160000";
-            }
-        });
-        Editor.Profile.getConfig('assetsindex', 'resourcesdeal_commonThreshold').then((value) => {
-            if (this.$.commonThreshold) {
-                this.$.commonThreshold.value = value || "10";
-            }
-        });
-        Editor.Profile.getConfig('assetsindex', 'resourcesdeal_sizecountWidthinput').then((value) => {
-            if (this.$.sizecountWidthinput) {
-                this.$.sizecountWidthinput.value = value || "100";
-            }
-        });
-        Editor.Profile.getConfig('assetsindex', 'resourcesdeal_sizecountHeightinput').then((value) => {
-            if (this.$.sizecountHeightinput) {
-                this.$.sizecountHeightinput.value = value || "100";
-            }
-        });
-        Editor.Profile.getConfig('assetsindex', 'resourcesdeal_sizecountCountinput').then((value) => {
-            if (this.$.sizecountCountinput) {
-                this.$.sizecountCountinput.value = value || "100";
-            }
-        });
-        Editor.Profile.getConfig('assetsindex', 'resourcesdeal_sizeCountThreshold').then((value) => {
-            if (this.$.sizeCountThreshold) {
-                this.$.sizeCountThreshold.value = value || "1000000";
-            }
-        });
-        Editor.Profile.getConfig('assetsindex', 'resourcesdeal_commonTargetPattern').then((value) => {
-            if (this.$.commonTargetPattern) {
-                this.$.commonTargetPattern.value = value || "resources/staticRes/common/";
-            }
-        });
-        Editor.Profile.getConfig('assetsindex', 'resourcesdeal_singlePrefabRegex').then((value) => {
-            if (this.$.singlePrefabRegex) {
-                this.$.singlePrefabRegex.value = value || `preb[/\\](.*)[/\\](.*)\.prefab`;
-            }
-        });
-        Editor.Profile.getConfig('assetsindex', 'resourcesdeal_singleTargetPattern').then((value) => {
-            if (this.$.singleTargetPattern) {
-                this.$.singleTargetPattern.value = value || "staticRes/$1/single/$2/";
-            }
-        });
-        Editor.Profile.getConfig('assetsindex', 'resourcesdeal_ignorePattern').then((value) => {
-            if (this.$.ignorePattern) {
-                this.$.ignorePattern.value = value || "i18";
-            }
-        });
-        Editor.Profile.getConfig('assetsindex', 'resourcesdeal_caseConflictKeepOld').then((value) => {
-            if (this.$.caseConflictKeepOld) {
-                this.$.caseConflictKeepOld.checked = value === "1" ? true : false;
-            }
-        });
-        Editor.Profile.getConfig('assetsindex', 'resourcesdeal_caseConflictUseNew').then((value) => {
-            if (this.$.caseConflictUseNew) {
-                this.$.caseConflictUseNew.checked = value === "1" ? true : false;
-            }
-        });
-        Editor.Profile.getConfig('assetsindex', 'resourcesdeal_sameDirPrefabRegex').then((value) => {
-            if (this.$.sameDirPrefabRegex) {
-                this.$.sameDirPrefabRegex.value = value || `preb[/\\](.*)[/\\](.*)\.prefab`;
-            }
-        });
-        Editor.Profile.getConfig('assetsindex', 'resourcesdeal_sameDirTargetPattern').then((value) => {
-            if (this.$.sameDirTargetPattern) {
-                this.$.sameDirTargetPattern.value = value || "staticRes/$1/same/$2/";
-            }
-        });
-        Editor.Profile.getConfig('assetsindex', 'resourcesdeal_preimgWidthinput').then((value) => {
-            if (this.$.preimgWidthinput) {
-                this.$.preimgWidthinput.value = value || "100";
-            }
-        });
-        Editor.Profile.getConfig('assetsindex', 'resourcesdeal_preimgHeightinput').then((value) => {
-            if (this.$.preimgHeightinput) {
-                this.$.preimgHeightinput.value = value || "100";
-            }
-        });
-        Editor.Profile.getConfig('assetsindex', 'resourcesdeal_preImageThreshold').then((value) => {
-            if (this.$.preImageThreshold) {
-                this.$.preImageThreshold.value = value || "10000";
-            }
-        });
-        // 绑定 Tab 点击事件
-        if (this.$.tabs) {
-            const tabs = this.$.tabs.querySelectorAll('.tab-button');
-            tabs.forEach(tab => {
-                const tabId = tab.getAttribute('data-tab');
-                if (tabId) {
-                    tab.addEventListener('click', () => this.switchTab(tabId));
-                }
-            });
-        }
-        // 绑定构建基础数据按钮点击事件
-        if (this.$.buildmapsdatabtn) {
-            this.$.buildmapsdatabtn.addEventListener('click', () => {
-                var _a;
-                const dir = (_a = this.$.directoryInput) === null || _a === void 0 ? void 0 : _a.value;
-                this.buildMapsData(dir);
-                //保存两个输入框的值到缓存还是哪里等下次ready的时候读取赋值
-                Editor.Profile.setConfig('assetsindex', 'resourcesdeal_input_directory', dir);
-            });
-        }
-        if (this.$.genImageTableBtn) {
-            this.$.genImageTableBtn.addEventListener('click', () => {
-                var _a;
-                console.log('点击了生成图片使用表按钮');
-                //读取这个路径的数据文件，然后赋值给_dataCache的{ prefabMaps_name, spriteFrameMaps_name }
-                const filePath = (_a = this.$.buildMapsDataResultPath) === null || _a === void 0 ? void 0 : _a.value;
-                if (!filePath) {
-                    console.warn('输出数据文件路径为空');
-                    return;
-                }
+        },
+        // #endregion
+        // #region 配置初始化方法
+        async initializeConfigurations() {
+            const configs = [
+                { key: 'resourcesdeal_input_directory', element: 'directoryInput', defaultValue: '' },
+                { key: 'resourcesdeal_outputdata2_directory', element: 'buildMapsDataResultPath', defaultValue: '', special: 'outputPath' },
+                { key: 'resourcesdeal_bgPrefabRegex', element: 'bgPrefabRegex', defaultValue: 'preb[/\\\\](.*)[/\\\\](.*)\\.prefab' },
+                { key: 'resourcesdeal_bgTargetPattern', element: 'bgTargetPattern', defaultValue: 'staticRes/$1/$2/' },
+                { key: 'resourcesdeal_bgimgWidthinput', element: 'bgimgWidthinput', defaultValue: '400' },
+                { key: 'resourcesdeal_bgimgHeightinput', element: 'bgimgHeightinput', defaultValue: '400' },
+                { key: 'resourcesdeal_largeImageThreshold', element: 'largeImageThreshold', defaultValue: '160000' },
+                { key: 'resourcesdeal_commonThreshold', element: 'commonThreshold', defaultValue: '10' },
+                { key: 'resourcesdeal_commonTargetPattern', element: 'commonTargetPattern', defaultValue: 'resources/staticRes/common/' },
+                { key: 'resourcesdeal_sizecountWidthinput', element: 'sizecountWidthinput', defaultValue: '100' },
+                { key: 'resourcesdeal_sizecountHeightinput', element: 'sizecountHeightinput', defaultValue: '100' },
+                { key: 'resourcesdeal_sizecountCountinput', element: 'sizecountCountinput', defaultValue: '100' },
+                { key: 'resourcesdeal_sizeCountThreshold', element: 'sizeCountThreshold', defaultValue: '1000000' },
+                { key: 'resourcesdeal_singlePrefabRegex', element: 'singlePrefabRegex', defaultValue: 'preb[/\\\\](.*)[/\\\\](.*)\\.prefab' },
+                { key: 'resourcesdeal_singleTargetPattern', element: 'singleTargetPattern', defaultValue: 'staticRes/$1/single/$2/' },
+                { key: 'resourcesdeal_sameDirPrefabRegex', element: 'sameDirPrefabRegex', defaultValue: 'preb[/\\\\](.*)[/\\\\](.*)\\.prefab' },
+                { key: 'resourcesdeal_sameDirTargetPattern', element: 'sameDirTargetPattern', defaultValue: 'staticRes/$1/same/$2/' },
+                { key: 'resourcesdeal_preimgWidthinput', element: 'preimgWidthinput', defaultValue: '100' },
+                { key: 'resourcesdeal_preimgHeightinput', element: 'preimgHeightinput', defaultValue: '100' },
+                { key: 'resourcesdeal_preImageThreshold', element: 'preImageThreshold', defaultValue: '10000' },
+                { key: 'resourcesdeal_ignorePattern', element: 'ignorePattern', defaultValue: 'i18' },
+                { key: 'resourcesdeal_caseConflictKeepOld', element: 'caseConflictKeepOld', defaultValue: '0', type: 'checkbox' },
+                { key: 'resourcesdeal_caseConflictUseNew', element: 'caseConflictUseNew', defaultValue: '0', type: 'checkbox' },
+            ];
+            for (const config of configs) {
                 try {
-                    // 读取 out2.json 数据
-                    const raw = fs.readFileSync(filePath, 'utf8');
-                    const parsed = JSON.parse(raw);
-                    // 只取需要的两个字段
-                    _dataCache = {
-                        prefabMaps_name: parsed.prefabMaps_name,
-                        spriteFrameMaps_name: parsed.spriteFrameMaps_name,
-                        path2info: parsed.path2info,
-                    };
-                    _spriteFrameMaps_nameCache = deepClone(_dataCache.spriteFrameMaps_name); // 缓存 spriteFrameMaps_name 数据
-                    console.log('成功读取缓存数据，开始渲染图片使用表');
-                    this.renderImageTable(_dataCache.spriteFrameMaps_name, _dataCache.path2info);
+                    const value = await Editor.Profile.getConfig('assetsindex', config.key);
+                    const element = this.$[config.element];
+                    if (element) {
+                        if (config.type === 'checkbox') {
+                            element.checked = value === "1";
+                        }
+                        else {
+                            element.value = value || config.defaultValue;
+                        }
+                        if (config.special === 'outputPath' && value) {
+                            this.$.buildMapsDataResultContainer.style.visibility = 'visible';
+                        }
+                    }
                 }
-                catch (err) {
-                    console.error('读取或解析数据文件失败:', err);
-                    return;
+                catch (error) {
+                    console.warn(`无法加载配置 ${config.key}:`, error);
                 }
+            }
+        },
+        // #endregion
+        // #region 事件绑定方法
+        bindEvents() {
+            this.bindTabEvents();
+            this.bindDataBuildEvents();
+            this.bindThresholdEvents();
+            this.bindCalculationEvents();
+            this.bindViewResultEvents();
+            this.bindMoveEvents();
+            this.bindPreprocessEvents();
+        },
+        bindTabEvents() {
+            if (this.$.tabs) {
+                const tabs = this.$.tabs.querySelectorAll('.tab-button');
+                tabs.forEach(tab => {
+                    const tabId = tab.getAttribute('data-tab');
+                    if (tabId) {
+                        tab.addEventListener('click', () => this.switchTab(tabId));
+                    }
+                });
+            }
+        },
+        bindDataBuildEvents() {
+            if (this.$.buildmapsdatabtn) {
+                this.$.buildmapsdatabtn.addEventListener('click', () => {
+                    var _a;
+                    const dir = (_a = this.$.directoryInput) === null || _a === void 0 ? void 0 : _a.value;
+                    this.buildMapsData(dir);
+                    Editor.Profile.setConfig('assetsindex', 'resourcesdeal_input_directory', dir);
+                });
+            }
+            if (this.$.genImageTableBtn) {
+                this.$.genImageTableBtn.addEventListener('click', () => {
+                    this.generateImageTable();
+                });
+            }
+        },
+        bindThresholdEvents() {
+            var _a, _b, _c, _d, _e, _f, _g;
+            (_a = this.$.bgimgWidthinput) === null || _a === void 0 ? void 0 : _a.addEventListener('input', this.updateThreshold.bind(this));
+            (_b = this.$.bgimgHeightinput) === null || _b === void 0 ? void 0 : _b.addEventListener('input', this.updateThreshold.bind(this));
+            this.updateThreshold();
+            (_c = this.$.sizecountWidthinput) === null || _c === void 0 ? void 0 : _c.addEventListener('input', this.updatesizeCountThreshold.bind(this));
+            (_d = this.$.sizecountHeightinput) === null || _d === void 0 ? void 0 : _d.addEventListener('input', this.updatesizeCountThreshold.bind(this));
+            (_e = this.$.sizecountCountinput) === null || _e === void 0 ? void 0 : _e.addEventListener('input', this.updatesizeCountThreshold.bind(this));
+            this.updatesizeCountThreshold();
+            (_f = this.$.preimgWidthinput) === null || _f === void 0 ? void 0 : _f.addEventListener('input', this.updatePreImageThreshold.bind(this));
+            (_g = this.$.preimgHeightinput) === null || _g === void 0 ? void 0 : _g.addEventListener('input', this.updatePreImageThreshold.bind(this));
+            this.updatePreImageThreshold();
+        },
+        bindCalculationEvents() {
+            var _a, _b, _c, _d, _e, _f, _g, _h;
+            (_a = this.$.setIgnorePatternBtn) === null || _a === void 0 ? void 0 : _a.addEventListener('click', () => {
+                this.calculateIgnore(_dataCache === null || _dataCache === void 0 ? void 0 : _dataCache.path2info);
             });
-        }
-        (_a = this.$.bgimgWidthinput) === null || _a === void 0 ? void 0 : _a.addEventListener('input', this.updateThreshold.bind(this));
-        (_b = this.$.bgimgHeightinput) === null || _b === void 0 ? void 0 : _b.addEventListener('input', this.updateThreshold.bind(this));
-        this.updateThreshold();
-        (_c = this.$.sizecountWidthinput) === null || _c === void 0 ? void 0 : _c.addEventListener('input', this.updatesizeCountThreshold.bind(this));
-        (_d = this.$.sizecountHeightinput) === null || _d === void 0 ? void 0 : _d.addEventListener('input', this.updatesizeCountThreshold.bind(this));
-        (_e = this.$.sizecountCountinput) === null || _e === void 0 ? void 0 : _e.addEventListener('input', this.updatesizeCountThreshold.bind(this));
-        this.updatesizeCountThreshold();
-        (_f = this.$.preimgWidthinput) === null || _f === void 0 ? void 0 : _f.addEventListener('input', this.updatePreImageThreshold.bind(this));
-        (_g = this.$.preimgHeightinput) === null || _g === void 0 ? void 0 : _g.addEventListener('input', this.updatePreImageThreshold.bind(this));
-        this.updatePreImageThreshold();
-        // 初始化 Clusterize.js
-        // 延迟 Clusterize 初始化
-        setTimeout(() => {
-            // @ts-ignore
-            const Clusterize = require('../../../static/libs/clusterize.js'); // 或 import Clusterize from ...
-            if (!Clusterize) {
-                console.error('Clusterize.js 未正确加载');
-                return;
-            }
-            this._clusterize = new Clusterize({
-                scrollElem: this.$.scrollArea,
-                contentElem: this.$.contentArea,
-                rows: [],
-                no_data_text: '暂无图片引用数据',
+            (_b = this.$.calculatePreSameImageBtn) === null || _b === void 0 ? void 0 : _b.addEventListener('click', () => {
+                this.calculatePreImage(_ignoreRemainingdataCache || (_dataCache === null || _dataCache === void 0 ? void 0 : _dataCache.path2info));
             });
-        }, 1000); // 延迟 1000ms
-        //忽略跳过包含xx的内容
-        (_h = this.$.setIgnorePatternBtn) === null || _h === void 0 ? void 0 : _h.addEventListener('click', () => {
-            functioncalignore(_dataCache.path2info);
-        });
-        (_j = this.$.calculatePreSameImageBtn) === null || _j === void 0 ? void 0 : _j.addEventListener('click', () => {
-            functioncalpreImage(_ignoreRemainingdataCache || _dataCache.path2info);
-        });
-        (_k = this.$.calculateBg) === null || _k === void 0 ? void 0 : _k.addEventListener('click', () => {
-            functioncalBg(_preImageRemainingdataCache || _ignoreRemainingdataCache || _dataCache.path2info);
-        });
-        (_l = this.$.calculateCommon) === null || _l === void 0 ? void 0 : _l.addEventListener('click', () => {
-            functioncalCommon(_preImageRemainingdataCache || _dataCache.path2info);
-        });
-        (_m = this.$.calculateSingle) === null || _m === void 0 ? void 0 : _m.addEventListener('click', () => {
-            functioncalSingle(_commonRemainingdataCache || _dataCache.path2info);
-        });
-        (_o = this.$.calculateSameDir) === null || _o === void 0 ? void 0 : _o.addEventListener('click', () => {
-            functioncalSame(_singleRemainingdataCache || _dataCache.path2info);
-        });
-        (_p = this.$.calculateSizeCount) === null || _p === void 0 ? void 0 : _p.addEventListener('click', () => {
-            functioncalSizeCount(_sameRemainingdataCache || _dataCache.path2info);
-        });
-        (_q = this.$.lookIgnorePatternResult) === null || _q === void 0 ? void 0 : _q.addEventListener('click', () => {
-            //查看_ignoreCache的内容
-            if (!_ignoreCache) {
-                console.warn('请先计算忽略跳过包含的内容');
+            (_c = this.$.calculateBg) === null || _c === void 0 ? void 0 : _c.addEventListener('click', () => {
+                this.calculateBg(_preImageRemainingdataCache || _ignoreRemainingdataCache || (_dataCache === null || _dataCache === void 0 ? void 0 : _dataCache.path2info));
+            });
+            (_d = this.$.calculateCommon) === null || _d === void 0 ? void 0 : _d.addEventListener('click', () => {
+                this.calculateCommon(_preImageRemainingdataCache || (_dataCache === null || _dataCache === void 0 ? void 0 : _dataCache.path2info));
+            });
+            (_e = this.$.calculateSingle) === null || _e === void 0 ? void 0 : _e.addEventListener('click', () => {
+                this.calculateSingle(_commonRemainingdataCache || (_dataCache === null || _dataCache === void 0 ? void 0 : _dataCache.path2info));
+            });
+            (_f = this.$.calculateSameDir) === null || _f === void 0 ? void 0 : _f.addEventListener('click', () => {
+                this.calculateSame(_singleRemainingdataCache || (_dataCache === null || _dataCache === void 0 ? void 0 : _dataCache.path2info));
+            });
+            (_g = this.$.calculateSizeCount) === null || _g === void 0 ? void 0 : _g.addEventListener('click', () => {
+                this.calculateSizeCount(_sameRemainingdataCache || (_dataCache === null || _dataCache === void 0 ? void 0 : _dataCache.path2info));
+            });
+            (_h = this.$.processAll) === null || _h === void 0 ? void 0 : _h.addEventListener('click', () => {
+                this.processAllCalculations();
+            });
+        },
+        bindViewResultEvents() {
+            const viewResultButtons = [
+                { button: 'lookIgnorePatternResult', cache: () => _ignoreCache, message: '请先计算忽略跳过包含的内容' },
+                { button: 'lookPreImageResultBtn', cache: () => _preImageCache, message: '请先计算预处理相同大图', useAlert2: true },
+                { button: 'lookBgResult', cache: () => _bgdataCache, message: '请先计算大图文件夹图片数量' },
+                { button: 'lookCommonResult', cache: () => _commondataCache, message: '请先计算图集文件夹图片数量' },
+                { button: 'lookSingleResult', cache: () => _singledataCache, message: '请先计算单独文件夹图片数量' },
+                { button: 'lookSameDirResult', cache: () => _samedataCache, message: '请先计算相同目录文件夹图片数量' },
+                { button: 'lookSizeCountResult', cache: () => _sizecountdataCache, message: '请先计算按大小引用次数图片数量' },
+            ];
+            viewResultButtons.forEach(({ button, cache, message, useAlert2 }) => {
+                var _a;
+                (_a = this.$[button]) === null || _a === void 0 ? void 0 : _a.addEventListener('click', () => {
+                    const data = cache();
+                    if (!data) {
+                        console.warn(message);
+                        return;
+                    }
+                    useAlert2 ? this.showAlert2(data) : this.showAlert(data);
+                });
+            });
+        },
+        bindMoveEvents() {
+            var _a, _b, _c, _d, _e, _f, _g, _h;
+            // 预览移动
+            (_a = this.$.PreLookmoveBgImagesBtn) === null || _a === void 0 ? void 0 : _a.addEventListener('click', () => this.moveBgImage(true));
+            (_b = this.$.PreLookmoveCommonImagesBtn) === null || _b === void 0 ? void 0 : _b.addEventListener('click', () => this.moveCommonImage(true));
+            (_c = this.$.PreLookmoveSingleImagesBtn) === null || _c === void 0 ? void 0 : _c.addEventListener('click', () => this.moveSingleImage(true));
+            (_d = this.$.PreLookmoveSameDirImagesBtn) === null || _d === void 0 ? void 0 : _d.addEventListener('click', () => this.moveSameImage(true));
+            // 实际移动
+            (_e = this.$.moveBgImagesBtn) === null || _e === void 0 ? void 0 : _e.addEventListener('click', () => this.moveBgImage());
+            (_f = this.$.moveCommonImagesBtn) === null || _f === void 0 ? void 0 : _f.addEventListener('click', () => this.moveCommonImage());
+            (_g = this.$.moveSingleImagesBtn) === null || _g === void 0 ? void 0 : _g.addEventListener('click', () => this.moveSingleImage());
+            (_h = this.$.moveSameDirImagesBtn) === null || _h === void 0 ? void 0 : _h.addEventListener('click', () => this.moveSameImage());
+        },
+        bindPreprocessEvents() {
+            var _a;
+            (_a = this.$.preprocessIdenticalImagesBtn) === null || _a === void 0 ? void 0 : _a.addEventListener('click', () => {
+                this.preChangeImagesAndPrefabs();
+            });
+        },
+        // #endregion
+        // #region 数据生成方法
+        generateImageTable() {
+            var _a;
+            console.log('点击了生成图片使用表按钮');
+            const filePath = (_a = this.$.buildMapsDataResultPath) === null || _a === void 0 ? void 0 : _a.value;
+            if (!filePath) {
+                console.warn('输出数据文件路径为空');
                 return;
             }
-            // 简单 alert 弹窗
-            this.showAlert(_ignoreCache);
-        });
-        (_r = this.$.lookPreImageResultBtn) === null || _r === void 0 ? void 0 : _r.addEventListener('click', () => {
-            //查看_preImageCache的内容
-            if (!_preImageCache) {
-                console.warn('请先计算预处理相同大图');
+            try {
+                const raw = fs.readFileSync(filePath, 'utf8');
+                const parsed = JSON.parse(raw);
+                _dataCache = {
+                    prefabMaps_name: parsed.prefabMaps_name,
+                    spriteFrameMaps_name: parsed.spriteFrameMaps_name,
+                    path2info: parsed.path2info,
+                };
+                _spriteFrameMaps_nameCache = deepClone(_dataCache.spriteFrameMaps_name);
+                console.log('成功读取缓存数据，开始渲染图片使用表');
+                this.renderImageTable(_dataCache.spriteFrameMaps_name, _dataCache.path2info);
+            }
+            catch (err) {
+                console.error('读取或解析数据文件失败:', err);
+            }
+        },
+        // #endregion
+        // #region 计算功能方法
+        calculateIgnore(path2info) {
+            if (!path2info) {
+                console.warn('请先构建基础数据');
                 return;
             }
-            // 使用 showAlert2 显示树形结构
-            this.showAlert2(_preImageCache);
-        });
-        (_s = this.$.lookBgResult) === null || _s === void 0 ? void 0 : _s.addEventListener('click', () => {
-            //查看_bgdataCache的内容
-            if (!_bgdataCache) {
-                console.warn('请先计算大图文件夹图片数量');
-                return;
-            }
-            // 简单 alert 弹窗
-            this.showAlert(_bgdataCache);
-        });
-        (_t = this.$.lookCommonResult) === null || _t === void 0 ? void 0 : _t.addEventListener('click', () => {
-            //查看_commondataCache的内容
-            if (!_commondataCache) {
-                console.warn('请先计算图集文件夹图片数量');
-                return;
-            }
-            // 简单 alert 弹窗
-            this.showAlert(_commondataCache);
-        });
-        (_u = this.$.lookSingleResult) === null || _u === void 0 ? void 0 : _u.addEventListener('click', () => {
-            //查看_singledataCache的内容
-            if (!_singledataCache) {
-                console.warn('请先计算单独文件夹图片数量');
-                return;
-            }
-            // 简单 alert 弹窗
-            this.showAlert(_singledataCache);
-        });
-        (_v = this.$.lookSameDirResult) === null || _v === void 0 ? void 0 : _v.addEventListener('click', () => {
-            //查看_samedataCache的内容
-            if (!_samedataCache) {
-                console.warn('请先计算相同目录文件夹图片数量');
-                return;
-            }
-            // 简单 alert 弹窗
-            this.showAlert(_samedataCache);
-        });
-        (_w = this.$.lookSizeCountResult) === null || _w === void 0 ? void 0 : _w.addEventListener('click', () => {
-            //查看_sizecountdataCache的内容
-            if (!_sizecountdataCache) {
-                console.warn('请先计算按大小引用次数图片数量');
-                return;
-            }
-            // 简单 alert 弹窗
-            this.showAlert(_sizecountdataCache);
-        });
-        const functioncalignore = (path2info) => {
             let _remainpath2info = deepClone(path2info);
             _remainpath2info = Object.fromEntries(Object.entries(_remainpath2info).filter(([path, info]) => info.count > 0));
-            console.log('点击了计算忽略跳过包含的内容按钮');
             const pattern = this.$.ignorePattern.value;
             const patterns = pattern.split(',').map(p => p.trim()).filter(p => p.length > 0);
             Editor.Profile.setConfig('assetsindex', 'resourcesdeal_ignorePattern', pattern);
@@ -830,78 +716,85 @@ module.exports = Editor.Panel.define({
             const totalSize = Number(Object.values(_ignoreCache).reduce((sum, info) => sum + info.size, 0));
             this.$.ignoreTotalSize.textContent = formatSize(totalSize);
             console.log('计算忽略跳过包含的内容完成,共:', num_ignoreTotal, '剩余:', num_ignoreRemaining);
-        };
-        const functioncalBg = (path2info) => {
+        },
+        // 其他计算方法类似结构，为了简洁省略...
+        calculateBg(path2info) {
+            if (!path2info) {
+                console.warn('请先构建基础数据');
+                return;
+            }
             let _remainpath2info = deepClone(path2info);
             _remainpath2info = Object.fromEntries(Object.entries(_remainpath2info).filter(([path, info]) => info.count > 0));
             const largeImageThreshold = parseInt(this.$.largeImageThreshold.value) || 200000;
             Editor.Profile.setConfig('assetsindex', 'resourcesdeal_bgimgWidthinput', this.$.bgimgWidthinput.value);
             Editor.Profile.setConfig('assetsindex', 'resourcesdeal_bgimgHeightinput', this.$.bgimgHeightinput.value);
             Editor.Profile.setConfig('assetsindex', 'resourcesdeal_largeImageThreshold', this.$.largeImageThreshold.value);
-            console.log('点击了计算大图设置按钮,阈值:', largeImageThreshold);
             _bgRemainingdataCache = Object.fromEntries(Object.entries(_remainpath2info).filter(([path, info]) => (info.width * info.height) < largeImageThreshold));
             const num_bgTotal = Object.keys(_remainpath2info).length - Object.keys(_bgRemainingdataCache).length;
             const num_bgRemaining = Object.keys(_bgRemainingdataCache).length;
             this.$.bgTotal.textContent = num_bgTotal.toString();
             this.$.bgRemaining.textContent = num_bgRemaining.toString();
             _bgdataCache = Object.fromEntries(Object.entries(_remainpath2info).filter(([path, info]) => (info.width * info.height) >= largeImageThreshold));
-            //@ts-ignore
             const totalSize = Number(Object.values(_bgdataCache).reduce((sum, info) => sum + info.size, 0));
             this.$.bgTotalSize.textContent = formatSize(totalSize);
             console.log('计算大图文件夹图片数量完成,共:', num_bgTotal, '剩余:', num_bgRemaining);
-        };
-        const functioncalCommon = (path2info) => {
+        },
+        calculateCommon(path2info) {
+            if (!path2info) {
+                console.warn('请先构建基础数据');
+                return;
+            }
             let _remainpath2info = deepClone(path2info);
             _remainpath2info = Object.fromEntries(Object.entries(_remainpath2info).filter(([path, info]) => info.count > 0));
             const commonThreshold = parseInt(this.$.commonThreshold.value) || 10;
             Editor.Profile.setConfig('assetsindex', 'resourcesdeal_commonThreshold', this.$.commonThreshold.value);
-            console.log('点击了计算图集设置按钮,阈值:', commonThreshold);
             _commonRemainingdataCache = Object.fromEntries(Object.entries(_remainpath2info).filter(([path, info]) => info.count < commonThreshold));
             const num_commonTotal = Object.keys(_remainpath2info).length - Object.keys(_commonRemainingdataCache).length;
             const num_commonRemaining = Object.keys(_commonRemainingdataCache).length;
             this.$.commonTotal.textContent = num_commonTotal.toString();
             this.$.commonRemaining.textContent = num_commonRemaining.toString();
             _commondataCache = Object.fromEntries(Object.entries(_remainpath2info).filter(([path, info]) => info.count >= commonThreshold));
-            //@ts-ignore
             const totalSize = Number(Object.values(_commondataCache).reduce((sum, info) => sum + info.size, 0));
             this.$.commonTotalSize.textContent = formatSize(totalSize);
             console.log('计算Common文件夹图片数量完成,共:', num_commonTotal, '剩余:', num_commonRemaining);
-        };
-        const functioncalSingle = (path2info) => {
+        },
+        calculateSingle(path2info) {
+            if (!path2info) {
+                console.warn('请先构建基础数据');
+                return;
+            }
             let _remainpath2info = deepClone(path2info);
             _remainpath2info = Object.fromEntries(Object.entries(_remainpath2info).filter(([path, info]) => info.count > 0));
-            console.log('点击了计算单独文件设置按钮');
             _singleRemainingdataCache = Object.fromEntries(Object.entries(_remainpath2info).filter(([path, info]) => info.count != 1));
             const num_singleTotal = Object.keys(_remainpath2info).length - Object.keys(_singleRemainingdataCache).length;
             const num_singleRemaining = Object.keys(_singleRemainingdataCache).length;
             this.$.singleTotal.textContent = num_singleTotal.toString();
             this.$.singleRemaining.textContent = num_singleRemaining.toString();
             _singledataCache = Object.fromEntries(Object.entries(_remainpath2info).filter(([path, info]) => info.count <= 1));
-            //@ts-ignore
             const totalSize = Number(Object.values(_singledataCache).reduce((sum, info) => sum + info.size, 0));
             this.$.singleTotalSize.textContent = formatSize(totalSize);
             console.log('计算单独文件夹图片数量完成,共:', num_singleTotal, '剩余:', num_singleRemaining);
-        };
-        const functioncalSame = (path2info) => {
+        },
+        calculateSame(path2info) {
+            if (!path2info) {
+                console.warn('请先构建基础数据');
+                return;
+            }
             let _remainpath2info = deepClone(path2info);
             _remainpath2info = Object.fromEntries(Object.entries(_remainpath2info).filter(([path, info]) => info.count > 0));
-            console.log('点击了计算相同文件设置按钮');
             // 检查图片的引用路径是否都在同一个目录下
             const checkSameDirectory = (imagePath) => {
                 const prefabPaths = _spriteFrameMaps_nameCache[imagePath];
                 if (!prefabPaths || prefabPaths.length <= 1) {
-                    return false; // 没有引用或只有一个引用，不算同目录
+                    return false;
                 }
-                // 提取所有引用路径的目录部分
                 const directories = prefabPaths.map(prefabPath => {
                     const lastSlashIndex = Math.max(prefabPath.lastIndexOf('/'), prefabPath.lastIndexOf('\\'));
                     return lastSlashIndex > -1 ? prefabPath.substring(0, lastSlashIndex) : '';
                 });
-                // 检查是否所有目录都相同
                 const firstDir = directories[0];
                 return directories.every(dir => dir === firstDir);
             };
-            // 按照是否在同一目录分类
             _samedataCache = Object.fromEntries(Object.entries(_remainpath2info).filter(([path, info]) => {
                 return checkSameDirectory(path);
             }));
@@ -912,16 +805,18 @@ module.exports = Editor.Panel.define({
             const num_sameRemaining = Object.keys(_sameRemainingdataCache).length;
             this.$.sameDirTotal.textContent = num_sameTotal.toString();
             this.$.sameDirRemaining.textContent = num_sameRemaining.toString();
-            //@ts-ignore
             const totalSize = Number(Object.values(_samedataCache).reduce((sum, info) => sum + info.size, 0));
             this.$.sameDirTotalSize.textContent = formatSize(totalSize);
             console.log('计算相同目录文件夹图片数量完成,共:', num_sameTotal, '剩余:', num_sameRemaining);
-        };
-        const functioncalSizeCount = (path2info) => {
+        },
+        calculateSizeCount(path2info) {
+            if (!path2info) {
+                console.warn('请先构建基础数据');
+                return;
+            }
             let _remainpath2info = deepClone(path2info);
             _remainpath2info = Object.fromEntries(Object.entries(_remainpath2info).filter(([path, info]) => info.count > 0));
             const sizeCountThreshold = parseInt(this.$.sizeCountThreshold.value) || 1000000;
-            console.log('点击了计算按大小引用次数设置按钮,阈值:', sizeCountThreshold);
             Editor.Profile.setConfig('assetsindex', 'resourcesdeal_sizecountWidthinput', this.$.sizecountWidthinput.value);
             Editor.Profile.setConfig('assetsindex', 'resourcesdeal_sizecountHeightinput', this.$.sizecountHeightinput.value);
             Editor.Profile.setConfig('assetsindex', 'resourcesdeal_sizecountCountinput', this.$.sizecountCountinput.value);
@@ -932,26 +827,27 @@ module.exports = Editor.Panel.define({
             this.$.sizeCountTotal.textContent = num_sizeCountTotal.toString();
             this.$.sizeCountRemaining.textContent = num_sizeCountRemaining.toString();
             _sizecountdataCache = Object.fromEntries(Object.entries(_remainpath2info).filter(([path, info]) => info.width * info.height * info.count <= sizeCountThreshold));
-            //@ts-ignore
-            const totalSize = Number(Object.values(_sizecountdataCache).reduce((sum, info) => sum + info.size * info.count, 0));
+            const totalSize = Number(Object.values(_sizecountdataCache).reduce((sum, info) => sum + (info.size * info.count), 0));
             this.$.sizeCountTotalSize.textContent = formatSize(totalSize);
             console.log('计算按大小引用次数文件夹图片数量完成,共:', num_sizeCountTotal, '剩余:', num_sizeCountRemaining);
-        };
-        const functioncalpreImage = (path2info) => {
+        },
+        calculatePreImage(path2info) {
+            if (!path2info) {
+                console.warn('请先构建基础数据');
+                return;
+            }
             let _remainpath2info = deepClone(path2info);
             _remainpath2info = Object.fromEntries(Object.entries(_remainpath2info).filter(([path, info]) => info.count > 0));
-            console.log('点击了预处理相同大图设置按钮');
             const preImageThreshold = parseInt(this.$.preImageThreshold.value) || 10000;
             Editor.Profile.setConfig('assetsindex', 'resourcesdeal_preimgWidthinput', this.$.preimgWidthinput.value);
             Editor.Profile.setConfig('assetsindex', 'resourcesdeal_preimgHeightinput', this.$.preimgHeightinput.value);
             Editor.Profile.setConfig('assetsindex', 'resourcesdeal_preImageThreshold', this.$.preImageThreshold.value);
-            // 1. 筛选出尺寸大于阈值的图片
+            // 筛选出尺寸大于阈值的图片
             const largeImages = Object.fromEntries(Object.entries(_remainpath2info).filter(([path, info]) => {
                 const imageSize = info.width * info.height;
                 return imageSize >= preImageThreshold;
             }));
-            console.log(`找到 ${Object.keys(largeImages).length} 张大图（尺寸 >= ${preImageThreshold}）`);
-            // 2. 按MD5分组找出重复的图片
+            // 按MD5分组找出重复的图片
             const md5Groups = {};
             Object.entries(largeImages).forEach(([path, info]) => {
                 const md5 = info.md5;
@@ -962,16 +858,15 @@ module.exports = Editor.Panel.define({
                     md5Groups[md5].push(path);
                 }
             });
-            // 3. 找出有重复的组（同一个MD5有多个文件）
+            // 找出有重复的组
             const duplicateGroups = {};
             Object.entries(md5Groups).forEach(([md5, paths]) => {
                 if (paths.length > 1) {
                     duplicateGroups[md5] = paths;
                 }
             });
-            console.log(`找到 ${Object.keys(duplicateGroups).length} 组重复的大图`);
             const totalDuplicateFiles = Object.values(duplicateGroups).reduce((sum, paths) => sum + paths.length - 1, 0);
-            // 4. 构建预处理缓存数据
+            // 构建预处理缓存数据
             _preImageCache = {
                 duplicateGroups: duplicateGroups,
                 keepImages: {},
@@ -979,14 +874,14 @@ module.exports = Editor.Panel.define({
                 summary: {
                     totalGroups: Object.keys(duplicateGroups).length,
                     totalDuplicateFiles: totalDuplicateFiles,
-                    totalSavedSize: 0 // 后面计算
+                    totalSavedSize: 0
                 }
             };
-            // 5. 为每组选择保留的图片（选第一个）和要删除的图片
+            // 计算要保留和删除的图片
             let totalSavedSize = 0;
             Object.entries(duplicateGroups).forEach(([md5, paths]) => {
-                const keepImage = paths[0]; // 保留第一个
-                const removeImages = paths.slice(1); // 删除其他的
+                const keepImage = paths[0];
+                const removeImages = paths.slice(1);
                 _preImageCache.keepImages[md5] = {
                     path: keepImage,
                     info: largeImages[keepImage],
@@ -997,37 +892,31 @@ module.exports = Editor.Panel.define({
                     info: largeImages[path],
                     references: _dataCache.spriteFrameMaps_name[path] || []
                 }));
-                // 计算节省的大小
                 const imageSize = largeImages[keepImage].size;
                 totalSavedSize += imageSize * (paths.length - 1);
             });
             _preImageCache.summary.totalSavedSize = totalSavedSize;
-            // 6. 更新 _spriteFrameMaps_nameCache，将所有重复图片的引用都指向保留的图片
+            // 更新缓存数据
             if (!_spriteFrameMaps_nameCache) {
                 _spriteFrameMaps_nameCache = deepClone(_dataCache.spriteFrameMaps_name);
             }
             Object.entries(duplicateGroups).forEach(([md5, paths]) => {
                 const keepImage = paths[0];
                 const removeImages = paths.slice(1);
-                // 收集所有引用
                 let allReferences = [];
                 paths.forEach(path => {
                     const refs = _spriteFrameMaps_nameCache[path] || [];
                     allReferences = allReferences.concat(refs);
                 });
-                // 去重并排序
                 allReferences = Array.from(new Set(allReferences)).sort();
-                // 将所有引用都指向保留的图片
                 _spriteFrameMaps_nameCache[keepImage] = allReferences;
-                // 删除要移除图片的引用记录
                 removeImages.forEach(path => {
                     delete _spriteFrameMaps_nameCache[path];
                 });
             });
-            // 7. 计算剩余数据（去除重复的图片）
+            // 计算剩余数据
             const duplicatePathsSet = new Set();
             Object.values(duplicateGroups).forEach(paths => {
-                // 除了第一个，其他都是重复的
                 for (let i = 1; i < paths.length; i++) {
                     duplicatePathsSet.add(paths[i]);
                 }
@@ -1035,65 +924,43 @@ module.exports = Editor.Panel.define({
             _preImageRemainingdataCache = Object.fromEntries(Object.entries(_remainpath2info).filter(([path, info]) => {
                 return !duplicatePathsSet.has(path);
             }));
-            // 8. 更新UI显示
+            // 更新UI显示
             const duplicateCount = duplicatePathsSet.size;
             const remainingCount = Object.keys(_preImageRemainingdataCache).length;
             this.$.preImageTotal.textContent = totalDuplicateFiles.toString();
             this.$.preImagesaving.textContent = Object.keys(duplicateGroups).length.toString();
             this.$.preImageRemaining.textContent = remainingCount.toString();
             console.log(`预处理相同大图完成: 删除图片 ${totalDuplicateFiles} 张, 保留组 ${Object.keys(duplicateGroups).length} 组, 剩余 ${remainingCount} 张, 节省空间 ${formatSize(totalSavedSize)}`);
-        };
-        (_x = this.$.processAll) === null || _x === void 0 ? void 0 : _x.addEventListener('click', () => {
-            Editor.Profile.setConfig('assetsindex', 'resourcesdeal_bgimgWidthinput', this.$.bgimgWidthinput.value);
-            Editor.Profile.setConfig('assetsindex', 'resourcesdeal_bgimgHeightinput', this.$.bgimgHeightinput.value);
-            Editor.Profile.setConfig('assetsindex', 'resourcesdeal_largeImageThreshold', this.$.largeImageThreshold.value);
-            Editor.Profile.setConfig('assetsindex', 'resourcesdeal_commonThreshold', this.$.commonThreshold.value);
-            Editor.Profile.setConfig('assetsindex', 'resourcesdeal_sizecountWidthinput', this.$.sizecountWidthinput.value);
-            Editor.Profile.setConfig('assetsindex', 'resourcesdeal_sizecountHeightinput', this.$.sizecountHeightinput.value);
-            Editor.Profile.setConfig('assetsindex', 'resourcesdeal_sizecountCountinput', this.$.sizecountCountinput.value);
-            Editor.Profile.setConfig('assetsindex', 'resourcesdeal_sizeCountThreshold', this.$.sizeCountThreshold.value);
-            Editor.Profile.setConfig('assetsindex', 'resourcesdeal_ignorePattern', this.$.ignorePattern.value);
-            Editor.Profile.setConfig('assetsindex', 'resourcesdeal_preimgWidthinput', this.$.preimgWidthinput.value);
-            Editor.Profile.setConfig('assetsindex', 'resourcesdeal_preimgHeightinput', this.$.preimgHeightinput.value);
-            Editor.Profile.setConfig('assetsindex', 'resourcesdeal_preImageThreshold', this.$.preImageThreshold.value);
+        },
+        processAllCalculations() {
+            // 一键处理所有计算
             if (!_dataCache || !_dataCache.path2info) {
                 console.warn('请先构建基础数据，双向索引表');
                 return;
             }
-            functioncalignore(_dataCache.path2info);
-            if (!_ignoreRemainingdataCache) {
-                console.warn('请先计算忽略跳过包含的内容');
-                return;
+            this.calculateIgnore(_dataCache.path2info);
+            if (_ignoreRemainingdataCache) {
+                this.calculatePreImage(_ignoreRemainingdataCache);
             }
-            functioncalpreImage(_ignoreRemainingdataCache);
-            if (!_preImageRemainingdataCache) {
-                console.warn('请先计算预处理相同大图');
-                return;
+            if (_preImageRemainingdataCache) {
+                this.calculateBg(_preImageRemainingdataCache);
             }
-            functioncalBg(_preImageRemainingdataCache);
-            if (!_bgRemainingdataCache) {
-                console.warn('请先计算大图设置');
-                return;
+            if (_bgRemainingdataCache) {
+                this.calculateCommon(_bgRemainingdataCache);
             }
-            functioncalCommon(_bgRemainingdataCache);
-            if (!_commonRemainingdataCache) {
-                console.warn('请先计算图集设置');
-                return;
+            if (_commonRemainingdataCache) {
+                this.calculateSingle(_commonRemainingdataCache);
             }
-            functioncalSingle(_commonRemainingdataCache);
-            if (!_singleRemainingdataCache) {
-                console.warn('请先计算单独文件设置');
-                return;
+            if (_singleRemainingdataCache) {
+                this.calculateSame(_singleRemainingdataCache);
             }
-            functioncalSame(_singleRemainingdataCache);
-            if (!_sameRemainingdataCache) {
-                console.warn('请先计算相同目录设置');
-                return;
+            if (_sameRemainingdataCache) {
+                this.calculateSizeCount(_sameRemainingdataCache);
             }
-            functioncalSizeCount(_sameRemainingdataCache);
-        });
-        // 提取公共的移动图片函数
-        const moveImages = (config) => {
+        },
+        // #endregion
+        // #region 移动功能方法
+        moveImages(config) {
             console.log(`点击了移动${config.title}按钮`);
             // 检查冲突处理方式
             const caseConflictKeepOld = this.$.caseConflictKeepOld.checked;
@@ -1143,23 +1010,62 @@ module.exports = Editor.Panel.define({
                 .catch(err => {
                 console.error(`渲染进程：移动失败`, err);
             });
-        };
-        (_y = this.$.PreLookmoveBgImagesBtn) === null || _y === void 0 ? void 0 : _y.addEventListener('click', () => {
-            moveBgImage(true);
-        });
-        (_z = this.$.PreLookmoveCommonImagesBtn) === null || _z === void 0 ? void 0 : _z.addEventListener('click', () => {
-            moveCommonImage(true);
-        });
-        (_0 = this.$.PreLookmoveSingleImagesBtn) === null || _0 === void 0 ? void 0 : _0.addEventListener('click', () => {
-            moveSingleImage(true);
-        });
-        (_1 = this.$.PreLookmoveSameDirImagesBtn) === null || _1 === void 0 ? void 0 : _1.addEventListener('click', () => {
-            moveSameImage(true);
-        });
-        (_2 = this.$.preprocessIdenticalImagesBtn) === null || _2 === void 0 ? void 0 : _2.addEventListener('click', () => {
-            preChangeImagesAndPrefabs();
-        });
-        const preChangeImagesAndPrefabs = () => {
+        },
+        moveBgImage(preLook = false) {
+            const bgPrefabRegex = this.$.bgPrefabRegex.value;
+            const bgTargetPattern = this.$.bgTargetPattern.value;
+            this.moveImages({
+                type: 'bg',
+                dataCache: _bgdataCache,
+                prefabRegex: bgPrefabRegex,
+                targetPattern: bgTargetPattern,
+                configKeys: ['bgPrefabRegex', 'bgTargetPattern'],
+                title: '大图',
+                checkMessage: '请先计算大图设置',
+                preLook
+            });
+        },
+        moveCommonImage(preLook = false) {
+            const commonTargetPattern = this.$.commonTargetPattern.value;
+            this.moveImages({
+                type: 'common',
+                dataCache: _commondataCache,
+                targetPattern: commonTargetPattern,
+                configKeys: ['commonTargetPattern'],
+                title: 'common图',
+                checkMessage: '请先计算图集设置',
+                preLook
+            });
+        },
+        moveSingleImage(preLook = false) {
+            const singlePrefabRegex = this.$.singlePrefabRegex.value;
+            const singleTargetPattern = this.$.singleTargetPattern.value;
+            this.moveImages({
+                type: 'single',
+                dataCache: _singledataCache,
+                prefabRegex: singlePrefabRegex,
+                targetPattern: singleTargetPattern,
+                configKeys: ['singlePrefabRegex', 'singleTargetPattern'],
+                title: '单独图',
+                checkMessage: '请先计算单独文件设置',
+                preLook
+            });
+        },
+        moveSameImage(preLook = false) {
+            const sameDirPrefabRegex = this.$.sameDirPrefabRegex.value;
+            const sameDirTargetPattern = this.$.sameDirTargetPattern.value;
+            this.moveImages({
+                type: 'single',
+                dataCache: _samedataCache,
+                prefabRegex: sameDirPrefabRegex,
+                targetPattern: sameDirTargetPattern,
+                configKeys: ['sameDirPrefabRegex', 'sameDirTargetPattern'],
+                title: '相同目录图',
+                checkMessage: '请先计算相同目录文件设置',
+                preLook
+            });
+        },
+        preChangeImagesAndPrefabs() {
             if (!_preImageCache) {
                 console.warn('请先计算预处理相同大图');
                 Editor.Dialog.info('请先计算预处理相同大图', { title: '预处理提示', buttons: ['我知道了'] });
@@ -1221,77 +1127,45 @@ module.exports = Editor.Panel.define({
                     console.log('用户取消了预处理操作');
                 }
             });
-        };
-        // 移动大图按钮
-        (_3 = this.$.moveBgImagesBtn) === null || _3 === void 0 ? void 0 : _3.addEventListener('click', () => {
-            moveBgImage();
-        });
-        const moveBgImage = (preLook = false) => {
-            const bgPrefabRegex = this.$.bgPrefabRegex.value;
-            const bgTargetPattern = this.$.bgTargetPattern.value;
-            moveImages({
-                type: 'bg',
-                dataCache: _bgdataCache,
-                prefabRegex: bgPrefabRegex,
-                targetPattern: bgTargetPattern,
-                configKeys: ['bgPrefabRegex', 'bgTargetPattern'],
-                title: '大图',
-                checkMessage: '请先计算大图设置',
-                preLook
-            });
-        };
-        const moveCommonImage = (preLook = false) => {
-            const commonTargetPattern = this.$.commonTargetPattern.value;
-            moveImages({
-                type: 'common',
-                dataCache: _commondataCache,
-                targetPattern: commonTargetPattern,
-                configKeys: ['commonTargetPattern'],
-                title: 'common图',
-                checkMessage: '请先计算图集设置',
-                preLook
-            });
-        };
-        const moveSingleImage = (preLook = false) => {
-            const singlePrefabRegex = this.$.singlePrefabRegex.value;
-            const singleTargetPattern = this.$.singleTargetPattern.value;
-            moveImages({
-                type: 'single',
-                dataCache: _singledataCache,
-                prefabRegex: singlePrefabRegex,
-                targetPattern: singleTargetPattern,
-                configKeys: ['singlePrefabRegex', 'singleTargetPattern'],
-                title: '单独图',
-                checkMessage: '请先计算单独文件设置',
-                preLook
-            });
-        };
-        const moveSameImage = (preLook = false) => {
-            const singlePrefabRegex = this.$.singlePrefabRegex.value;
-            const singleTargetPattern = this.$.singleTargetPattern.value;
-            moveImages({
-                type: 'single',
-                dataCache: _samedataCache,
-                prefabRegex: singlePrefabRegex,
-                targetPattern: singleTargetPattern,
-                configKeys: ['singlePrefabRegex', 'singleTargetPattern'],
-                title: '相同目录图',
-                checkMessage: '请先计算相同目录文件设置',
-                preLook
-            });
-        };
-        // 移动common图按钮
-        (_4 = this.$.moveCommonImagesBtn) === null || _4 === void 0 ? void 0 : _4.addEventListener('click', () => {
-            moveCommonImage();
-        });
-        // 移动单独图按钮
-        (_5 = this.$.moveSingleImagesBtn) === null || _5 === void 0 ? void 0 : _5.addEventListener('click', () => {
-            moveSingleImage();
-        });
-        // 移动相同目录图按钮
-        (_6 = this.$.moveSameDirImagesBtn) === null || _6 === void 0 ? void 0 : _6.addEventListener('click', () => {
-            moveSameImage();
-        });
+        },
+        // #endregion
+        // #region 初始化方法
+        initializeClusterize() {
+            setTimeout(() => {
+                try {
+                    // @ts-ignore
+                    const Clusterize = require('../../../static/libs/clusterize.js');
+                    if (!Clusterize) {
+                        console.error('Clusterize.js 未正确加载');
+                        return;
+                    }
+                    this._clusterize = new Clusterize({
+                        scrollElem: this.$.scrollArea,
+                        contentElem: this.$.contentArea,
+                        rows: [],
+                        no_data_text: '暂无图片引用数据',
+                    });
+                }
+                catch (error) {
+                    console.error('Clusterize 初始化失败:', error);
+                }
+            }, 1000);
+        },
+        // #endregion
+    },
+    async ready() {
+        try {
+            // 初始化配置
+            await this.initializeConfigurations();
+            // 绑定事件
+            this.bindEvents();
+            // 初始化 Clusterize
+            this.initializeClusterize();
+            console.log('ResourcesDeal 面板初始化完成');
+        }
+        catch (error) {
+            console.error('ResourcesDeal 面板初始化失败:', error);
+        }
     },
     beforeClose() { },
     close() { },
