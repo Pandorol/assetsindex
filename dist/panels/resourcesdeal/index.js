@@ -1033,7 +1033,7 @@ module.exports = Editor.Panel.define({
             this.$.preImageTotal.textContent = totalDuplicateFiles.toString();
             this.$.preImagesaving.textContent = Object.keys(duplicateGroups).length.toString();
             this.$.preImageRemaining.textContent = remainingCount.toString();
-            console.log(`预处理相同大图完成: 重复图片 ${duplicateCount} 张, 保留组 ${Object.keys(duplicateGroups).length} 组, 剩余 ${remainingCount} 张, 节省空间 ${formatSize(totalSavedSize)}`);
+            console.log(`预处理相同大图完成: 删除图片 ${totalDuplicateFiles} 张, 保留组 ${Object.keys(duplicateGroups).length} 组, 剩余 ${remainingCount} 张, 节省空间 ${formatSize(totalSavedSize)}`);
         };
         (_q = this.$.processAll) === null || _q === void 0 ? void 0 : _q.addEventListener('click', () => {
             Editor.Profile.setConfig('assetsindex', 'resourcesdeal_bgimgWidthinput', this.$.bgimgWidthinput.value);
