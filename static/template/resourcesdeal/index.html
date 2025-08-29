@@ -65,132 +65,142 @@
                 <div id="imageStatsContent">暂无统计数据</div>
             </div>
         </div>
-        <div id="panel2" class="tab-content">
-            <!--忽略跳过包含xx的内容-->
-            <h2>忽略跳过路径包含xx的内容</h2>
-            <div>
-                <label for="ignorePattern">忽略跳过包含:</label>
-                <input type="text" id="ignorePattern" value="i18,spine" style="width: 400px;"/>
-                <span>多个用逗号分隔</span>
-                <button id="setIgnorePatternBtn">设置</button>
-            </div>
-            <div id="ignoreResult">
-                共 <span id="ignoreTotal">0</span> 张，总大小 <span id="ignoreTotalSize">0</span> KB, 剩余 <span id="ignoreRemaining">0</span> 张待处理
-                <button id="lookIgnorePatternResult">查看忽略内容</button>
-            </div>
-            <div style="height: 20px;"></div>
-            <h2>0、预处理完全一样的图片</h2>
-            <h2>尺寸大于多少的只保留一份,其他多份的的后面再看</h2>
-            <div>
-                <label for="preImageThreshold">图片尺寸(只对比宽高乘积不单独比较宽高):</label>
-                <input type="number" id="preimgWidthinput" value="100" style="width:60px;"/>
-                <label>X</label>
-                <input type="number" id="preimgHeightinput" value="100" style="width:60px;"/>
-                <label>=</label>
-                <input type="number" id="preImageThreshold" value="10000" style="width:120px;" readonly/>
-                <span></span>
-                <button id="calculatePreSameImageBtn">设置</button>
-            </div>
-            <div id="preImageResult">
-                删除 <span id="preImageTotal">0</span> 张，保留<span id="preImagesaving">0</span> 张，剩余 <span id="preImageRemaining">0</span> 张待处理
-                <button id="lookPreImageResultBtn">查看预处理结果</button>
-            </div>
-            <div style="height: 20px;"></div>
-            <!-- 大图文件夹 大小超过 -->
-            <h2>大图定义</h2>
-            <div>
-                <label for="defineLargeImageThreshold">大图文件尺寸:</label>
-                <input type="number" id="defineLargeImageWidth" value="300" style="width:60px;"/>
-                <label>X</label>
-                <input type="number" id="defineLargeImageHeight" value="300" style="width:60px;"/>
-                <label>=</label>
-                <input type="number" id="defineLargeImageThreshold" value="90000" style="width:120px;" readonly/>
-                <span></span>
-            </div>
-            <div>
-                <!-- 3个复选框 宽大于就算大图，高大于就算大图，宽高乘积才算大图 -->
-                <input type="checkbox" id="defineLargeImageByWidth" checked>
-                <label for="largeImageByWidth">宽大于就算大图</label>
-                <input type="checkbox" id="defineLargeImageByHeight" checked>
-                <label for="largeImageByHeight">高大于就算大图</label>
-                <input type="checkbox" id="defineLargeImageByArea" checked>
-                <label for="largeImageByArea">宽高乘积大于算大图</label>
-            </div>
-            <button id="defineLargeImageBtn">定义大图(放bg,其他放atlas)</button>
+        <div id="panel2" class="tab-content" style="display: flex; gap: 20px;">
+            <!-- 左列 -->
+            <div style="flex: 1; min-width: 500px;">
+                <!--忽略跳过包含xx的内容-->
+                <h2>忽略跳过路径包含xx的内容</h2>
+                <div>
+                    <label for="ignorePattern">忽略跳过包含:</label>
+                    <input type="text" id="ignorePattern" value="i18,spine" style="width: 400px;"/>
+                    <span>多个用逗号分隔</span>
+                    <button id="setIgnorePatternBtn">设置</button>
+                </div>
+                <div id="ignoreResult">
+                    共 <span id="ignoreTotal">0</span> 张，总大小 <span id="ignoreTotalSize">0</span> KB, 剩余 <span id="ignoreRemaining">0</span> 张待处理
+                    <button id="lookIgnorePatternResult">查看忽略内容</button>
+                </div>
+                <div style="height: 20px;"></div>
+                
+                <h2>0、预处理完全一样的图片</h2>
+                <h2>尺寸大于多少的只保留一份,其他多份的的后面再看</h2>
+                <div>
+                    <label for="preImageThreshold">图片尺寸(只对比宽高乘积不单独比较宽高):</label>
+                    <input type="number" id="preimgWidthinput" value="100" style="width:60px;"/>
+                    <label>X</label>
+                    <input type="number" id="preimgHeightinput" value="100" style="width:60px;"/>
+                    <label>=</label>
+                    <input type="number" id="preImageThreshold" value="10000" style="width:120px;" readonly/>
+                    <span></span>
+                    <button id="calculatePreSameImageBtn">设置</button>
+                </div>
+                <div id="preImageResult">
+                    删除 <span id="preImageTotal">0</span> 张，保留<span id="preImagesaving">0</span> 张，剩余 <span id="preImageRemaining">0</span> 张待处理
+                    <button id="lookPreImageResultBtn">查看预处理结果</button>
+                </div>
+                <div style="height: 20px;"></div>
 
-            <div style="display: none;">
-            <div style="height: 20px;"></div>
-            <h2>1、大图文件夹尺寸超过或等于多少的放bg</h2>
-            <div>
-                <label for="largeImageThreshold">大图文件夹尺寸(只对比宽高乘积不单独比较宽高):</label>
-                <input type="number" id="bgimgWidthinput" value="400" style="width:60px;"/>
-                <label>X</label>
-                <input type="number" id="bgimgHeightinput" value="400" style="width:60px;"/>
-                <label>=</label>
-                <input type="number" id="largeImageThreshold" value="160000" style="width:120px;"/>
-                <span></span>
-                <button id="calculateBg">设置</button>
-            </div>
-            <div id="bgResult">
-                共 <span id="bgTotal">0</span> 张，总大小 <span id="bgTotalSize">0</span> KB, 剩余 <span id="bgRemaining">0</span> 张待处理
-                <button id="lookBgResult">查看大图结果</button>
-            </div>
-            </div>
-            <!-- common文件夹 超过多少xx(这里设置一个输入框)次引用放common，计算共xx张，剩余xx张待处理 -->
-             <div style="height: 20px;"></div>
-            <h2>1、引用次数超过或等于多少个的放common</h2>
-            <div>
-                <label for="commonThreshold">Common 文件夹引用阈值:</label>
-                <input type="number" id="commonThreshold" value="10" />
-                <button id="calculateCommon">设置</button>
-            </div>
-            <div id="commonResult">
-                共 <span id="commonTotal">0</span> 张，总大小 <span id="commonTotalSize">0</span> KB, 剩余 <span id="commonRemaining">0</span> 张待处理
-                <button id="lookCommonResult">查看common结果</button>
+                <!-- 引用次数设置 -->
+                <h2>1、引用次数超过或等于多少个的放common</h2>
+                <div>
+                    <label for="commonThreshold">Common 文件夹引用阈值:</label>
+                    <input type="number" id="commonThreshold" value="10" />
+                    <button id="calculateCommon">设置</button>
+                </div>
+                <div id="commonResult">
+                    共 <span id="commonTotal">0</span> 张，总大小 <span id="commonTotalSize">0</span> KB, 剩余 <span id="commonRemaining">0</span> 张待处理
+                    <button id="lookCommonResult">查看common结果</button>
+                </div>
+
+                <!-- single文件夹 只有单次引用的直接放对应预制体路径文件夹 -->
+                <div style="height: 20px;"></div>
+                <h2>2、单次引用的放对应预制体路径文件夹</h2>
+                <div>
+                    <button id="calculateSingle">设置</button>
+                </div>
+                <div id="singleResult">
+                    共 <span id="singleTotal">0</span> 张，总大小 <span id="singleTotalSize">0</span> KB, 剩余 <span id="singleRemaining">0</span> 张待处理
+                    <button id="lookSingleResult">查看single结果</button>
+                </div>
             </div>
 
-            <!-- single文件夹 只有单次引用的直接放对应预制体路径文件夹 -->
-             <div style="height: 20px;"></div>
-            <h2>2、单次引用的放对应预制体路径文件夹</h2>
-            <div>
-                <button id="calculateSingle">设置</button>
-            </div>
-            <div id="singleResult">
-                共 <span id="singleTotal">0</span> 张，总大小 <span id="singleTotalSize">0</span> KB, 剩余 <span id="singleRemaining">0</span> 张待处理
-                <button id="lookSingleResult">查看single结果</button>
-            </div>
-            <h2>3、检查所有引用的预制体都是在同一目录的,</h2>
-            <div style="height: 20px;"></div>
-            <div>
-                <button id="calculateSameDir">设置</button>
-            </div>
-            <div id="sameDirResult">
-                共 <span id="sameDirTotal">0</span> 张，总大小 <span id="sameDirTotalSize">0</span> KB, 剩余 <span id="sameDirRemaining">0</span> 张待处理
-                <button id="lookSameDirResult">查看sameDir结果</button>
-            </div>
-            <!-- 图片大小*引用次数<=多少时,复制图使其单独引用到对应预制体路径 -->
-             <div style="height: 20px;"></div>
-            <h2>4、图片大小*引用次数&lt;=多少时,复制图使其单独引用到对应预制体路径</h2>
-            <div>
-                <label for="sizeCountThreshold">图片大小*引用次数阈值:</label>
-                <input type="number" id="sizecountWidthinput" value="100" style="width:60px;"/>
-                <label>X</label>
-                <input type="number" id="sizecountHeightinput" value="100" style="width:60px;"/>
-                <label>X</label>
-                <input type="number" id="sizecountCountinput" value="100" style="width:60px;"/>
-                <label>=</label>
-                <input type="number" id="sizeCountThreshold" value="1000000" style="width:180px;"/>
-                <span></span>
-                <button id="calculateSizeCount">设置</button>
-            </div>
-            <div id="sizeCountResult">
-                共 <span id="sizeCountTotal">0</span> 张，总大小 <span id="sizeCountTotalSize">0</span> KB, 剩余 <span id="sizeCountRemaining">0</span> 张待处理
-                <button id="lookSizeCountResult">查看sizeCount结果</button>
-            </div>
+            <!-- 右列 -->
+            <div style="flex: 1; min-width: 500px;">
+                <!-- 大图定义 -->
+                <h2>大图定义</h2>
+                <div>
+                    <label for="defineLargeImageThreshold">大图文件尺寸:</label>
+                    <input type="number" id="defineLargeImageWidth" value="300" style="width:60px;"/>
+                    <label>X</label>
+                    <input type="number" id="defineLargeImageHeight" value="300" style="width:60px;"/>
+                    <label>=</label>
+                    <input type="number" id="defineLargeImageThreshold" value="90000" style="width:120px;" readonly/>
+                    <span></span>
+                </div>
+                <div>
+                    <!-- 3个复选框 宽大于就算大图，高大于就算大图，宽高乘积才算大图 -->
+                    <input type="checkbox" id="defineLargeImageByWidth" checked>
+                    <label for="largeImageByWidth">宽大于就算大图</label>
+                    <input type="checkbox" id="defineLargeImageByHeight" checked>
+                    <label for="largeImageByHeight">高大于就算大图</label>
+                    <input type="checkbox" id="defineLargeImageByArea" checked>
+                    <label for="largeImageByArea">宽高乘积大于算大图</label>
+                </div>
+                <button id="defineLargeImageBtn">定义大图(放bg,其他放atlas)</button>
 
-            <!-- 处理按钮 一键计算-->
-            <div style="margin-top:20px;">
-                <button id="processAll">一键计算所有设置</button>
+                <div style="display: none;">
+                <div style="height: 20px;"></div>
+                <h2>1、大图文件夹尺寸超过或等于多少的放bg</h2>
+                <div>
+                    <label for="largeImageThreshold">大图文件夹尺寸(只对比宽高乘积不单独比较宽高):</label>
+                    <input type="number" id="bgimgWidthinput" value="400" style="width:60px;"/>
+                    <label>X</label>
+                    <input type="number" id="bgimgHeightinput" value="400" style="width:60px;"/>
+                    <label>=</label>
+                    <input type="number" id="largeImageThreshold" value="160000" style="width:120px;"/>
+                    <span></span>
+                    <button id="calculateBg">设置</button>
+                </div>
+                <div id="bgResult">
+                    共 <span id="bgTotal">0</span> 张，总大小 <span id="bgTotalSize">0</span> KB, 剩余 <span id="bgRemaining">0</span> 张待处理
+                    <button id="lookBgResult">查看大图结果</button>
+                </div>
+                </div>
+
+                <div style="height: 20px;"></div>
+                <h2>3、检查所有引用的预制体都是在同一目录的,</h2>
+                <div>
+                    <button id="calculateSameDir">设置</button>
+                </div>
+                <div id="sameDirResult">
+                    共 <span id="sameDirTotal">0</span> 张，总大小 <span id="sameDirTotalSize">0</span> KB, 剩余 <span id="sameDirRemaining">0</span> 张待处理
+                    <button id="lookSameDirResult">查看sameDir结果</button>
+                </div>
+                
+                <!-- 图片大小*引用次数<=多少时,复制图使其单独引用到对应预制体路径 -->
+                <div style="height: 20px;"></div>
+                <h2>4、图片大小*引用次数&lt;=多少时,复制图使其单独引用到对应预制体路径</h2>
+                <div>
+                    <label for="sizeCountThreshold">图片大小*引用次数阈值:</label>
+                    <input type="number" id="sizecountWidthinput" value="100" style="width:60px;"/>
+                    <label>X</label>
+                    <input type="number" id="sizecountHeightinput" value="100" style="width:60px;"/>
+                    <label>X</label>
+                    <input type="number" id="sizecountCountinput" value="100" style="width:60px;"/>
+                    <label>=</label>
+                    <input type="number" id="sizeCountThreshold" value="1000000" style="width:180px;"/>
+                    <span></span>
+                    <button id="calculateSizeCount">设置</button>
+                </div>
+                <div id="sizeCountResult">
+                    共 <span id="sizeCountTotal">0</span> 张，总大小 <span id="sizeCountTotalSize">0</span> KB, 剩余 <span id="sizeCountRemaining">0</span> 张待处理
+                    <button id="lookSizeCountResult">查看sizeCount结果</button>
+                </div>
+
+                <!-- 处理按钮 一键计算-->
+                <div style="margin-top:20px;">
+                    <button id="processAll">一键计算所有设置</button>
+                </div>
             </div>
         </div>
         <div id="panel3" class="tab-content">
