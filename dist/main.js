@@ -467,7 +467,9 @@ async function moveBgImages(args) {
     const spriteFrameMaps_name = args.spriteFrameMaps_name;
     const path2info = args.path2info;
     // const bgPrefabRegex = new RegExp(args.bgPrefabRegex); // e.g., "preb/(.*?)/(.*?).prefab"
-    const bgTargetPattern = args.bgTargetPattern; // e.g., "staticRes/$1/$2/"
+    const bgTargetPattern = args.bgTargetPattern; // e.g., "staticRes/$1/$2/" 普通图片路径
+    const bigTargetPattern = args.bigTargetPattern; // 大图路径
+    const defineBigImage = args.defineBigImage; // 大图定义配置
     const absprefix = path.join(Editor.Project.path, 'assets');
     const regex = new RegExp(args.bgPrefabRegex || ".*"); // 默认匹配所有
     let caseConflictStrategy = 'keepOld'; // 'useNew' 或 'keepOld'
@@ -498,9 +500,13 @@ async function moveBgImages(args) {
             console.warn(`prefab 路径不匹配正则: ${prefabPath}`);
             continue;
         }
+        // 判断是否为大图 - 通过参数接收判断结果
+        const imgInfo = info;
+        const isLarge = args.isBigImage ? args.isBigImage(imgInfo.width || 0, imgInfo.height || 0) : false;
+        // 根据是否为大图选择目标路径模板
+        let targetDir = isLarge ? (bigTargetPattern || bgTargetPattern) : bgTargetPattern;
         // 构建新的目标目录
-        let targetDir = bgTargetPattern;
-        // 如果有捕获组，进行替换；否则直接使用 bgTargetPattern
+        // 如果有捕获组，进行替换；否则直接使用 targetPattern
         if (match.length > 1) {
             match.forEach((g, i) => {
                 if (i > 0) { // 跳过完整匹配

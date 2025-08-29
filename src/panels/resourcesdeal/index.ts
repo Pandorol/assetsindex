@@ -605,15 +605,18 @@ module.exports = Editor.Panel.define({
                 { key: 'resourcesdeal_bgimgHeightinput', element: 'bgimgHeightinput', defaultValue: '400' },
                 { key: 'resourcesdeal_largeImageThreshold', element: 'largeImageThreshold', defaultValue: '160000' },
                 { key: 'resourcesdeal_commonThreshold', element: 'commonThreshold', defaultValue: '10' },
-                { key: 'resourcesdeal_commonTargetPattern', element: 'commonTargetPattern', defaultValue: 'remotemain/staticRes/common/' },
+                { key: 'resourcesdeal_commonTargetPattern', element: 'commonTargetPattern', defaultValue: 'remotemain/staticRes/common/atlas/' },
+                { key: 'resourcesdeal_bigcommonTargetPattern', element: 'bigcommonTargetPattern', defaultValue: 'remotemain/staticRes/common/bg/' },
                 { key: 'resourcesdeal_sizecountWidthinput', element: 'sizecountWidthinput', defaultValue: '100' },
                 { key: 'resourcesdeal_sizecountHeightinput', element: 'sizecountHeightinput', defaultValue: '100' },
                 { key: 'resourcesdeal_sizecountCountinput', element: 'sizecountCountinput', defaultValue: '100' },
                 { key: 'resourcesdeal_sizeCountThreshold', element: 'sizeCountThreshold', defaultValue: '1000000' },
                 { key: 'resourcesdeal_singlePrefabRegex', element: 'singlePrefabRegex', defaultValue: 'remotemain/preb[/\\\\](.*)[/\\\\](.*)\\.prefab' },
-                { key: 'resourcesdeal_singleTargetPattern', element: 'singleTargetPattern', defaultValue: 'remotemain/staticRes/$1/single/$2/' },
+                { key: 'resourcesdeal_singleTargetPattern', element: 'singleTargetPattern', defaultValue: 'remotemain/staticRes/$1/atlas/' },
+                { key: 'resourcesdeal_bigsingleTargetPattern', element: 'bigsingleTargetPattern', defaultValue: 'remotemain/staticRes/$1/bg/' },
                 { key: 'resourcesdeal_sameDirPrefabRegex', element: 'sameDirPrefabRegex', defaultValue: 'remotemain/preb[/\\\\](.*)[/\\\\](.*)\\.prefab' },
-                { key: 'resourcesdeal_sameDirTargetPattern', element: 'sameDirTargetPattern', defaultValue: 'remotemain/staticRes/$1/same/$2/' },
+                { key: 'resourcesdeal_sameDirTargetPattern', element: 'sameDirTargetPattern', defaultValue: 'remotemain/staticRes/$1/atlas/' },
+                { key: 'resourcesdeal_bigsameDirTargetPattern', element: 'bigsameDirTargetPattern', defaultValue: 'remotemain/staticRes/$1/bg/' },
                 { key: 'resourcesdeal_preimgWidthinput', element: 'preimgWidthinput', defaultValue: '100' },
                 { key: 'resourcesdeal_preimgHeightinput', element: 'preimgHeightinput', defaultValue: '100' },
                 { key: 'resourcesdeal_preImageThreshold', element: 'preImageThreshold', defaultValue: '10000' },
@@ -1288,6 +1291,7 @@ module.exports = Editor.Panel.define({
             dataCache: any,
             prefabRegex?: string,
             targetPattern: string,
+            bigTargetPattern?: string,
             configKeys: string[],
             title: string,
             checkMessage: string,
@@ -1326,6 +1330,9 @@ module.exports = Editor.Panel.define({
                 spriteFrameMaps_name: _spriteFrameMaps_nameCache,
                 path2info: config.dataCache,
                 bgTargetPattern: config.targetPattern,
+                bigTargetPattern: config.bigTargetPattern, // 添加大图目标路径
+                defineBigImage: _defineBigImage, // 传递大图定义配置
+                isBigImage: isBigImage, // 传递大图判断函数
                 keepOld: caseConflictKeepOld,
                 preLook: config.preLook || false,
             };
@@ -1367,11 +1374,13 @@ module.exports = Editor.Panel.define({
 
         moveCommonImage(preLook = false) {
             const commonTargetPattern = (this.$.commonTargetPattern as HTMLInputElement).value;
+            const bigcommonTargetPattern = (this.$.bigcommonTargetPattern as HTMLInputElement).value;
             this.moveImages({
                 type: 'common',
                 dataCache: _commondataCache,
                 targetPattern: commonTargetPattern,
-                configKeys: ['commonTargetPattern'],
+                bigTargetPattern: bigcommonTargetPattern,
+                configKeys: ['commonTargetPattern', 'bigcommonTargetPattern'],
                 title: 'common图',
                 checkMessage: '请先计算图集设置',
                 preLook
@@ -1381,12 +1390,14 @@ module.exports = Editor.Panel.define({
         moveSingleImage(preLook = false) {
             const singlePrefabRegex = (this.$.singlePrefabRegex as HTMLInputElement).value;
             const singleTargetPattern = (this.$.singleTargetPattern as HTMLInputElement).value;
+            const bigsingleTargetPattern = (this.$.bigsingleTargetPattern as HTMLInputElement).value;
             this.moveImages({
                 type: 'single',
                 dataCache: _singledataCache,
                 prefabRegex: singlePrefabRegex,
                 targetPattern: singleTargetPattern,
-                configKeys: ['singlePrefabRegex', 'singleTargetPattern'],
+                bigTargetPattern: bigsingleTargetPattern,
+                configKeys: ['singlePrefabRegex', 'singleTargetPattern', 'bigsingleTargetPattern'],
                 title: '单独图',
                 checkMessage: '请先计算单独文件设置',
                 preLook
@@ -1396,12 +1407,14 @@ module.exports = Editor.Panel.define({
         moveSameImage(preLook = false) {
             const sameDirPrefabRegex = (this.$.sameDirPrefabRegex as HTMLInputElement).value;
             const sameDirTargetPattern = (this.$.sameDirTargetPattern as HTMLInputElement).value;
+            const bigsameDirTargetPattern = (this.$.bigsameDirTargetPattern as HTMLInputElement).value;
             this.moveImages({
                 type: 'single',
                 dataCache: _samedataCache,
                 prefabRegex: sameDirPrefabRegex,
                 targetPattern: sameDirTargetPattern,
-                configKeys: ['sameDirPrefabRegex', 'sameDirTargetPattern'],
+                bigTargetPattern: bigsameDirTargetPattern,
+                configKeys: ['sameDirPrefabRegex', 'sameDirTargetPattern', 'bigsameDirTargetPattern'],
                 title: '相同目录图',
                 checkMessage: '请先计算相同目录文件设置',
                 preLook
