@@ -4,7 +4,7 @@
     <div id="tabs">
         <button id="tab1" class="tab-button active" data-tab="panel1">图片引用数据总览</button>
         <button id="tab2" class="tab-button" data-tab="panel2">设置图集参数</button>
-        <button id="tab3" class="tab-button" data-tab="panel3">移动图片</button>
+        <button id="tab3" class="tab-button" data-tab="panel3">处理和移动图片</button>
     </div>
     <div id="content">
         <div id="panel1" class="tab-content active" style="overflow: auto;">
@@ -175,6 +175,11 @@
             </div>
             <div>
                 <h2 style="color: #007acc;">移动过程中移动到同目录的同名文件，会弹窗询问处理，取消不会移动，重名名会自动重命名，覆盖会全部丢失</h2>
+            </div>
+            <!--先预处理那些完全相同的图和预制体引用重新指向-->
+            <div style="scale: 2;">
+                <button id="preprocessIdenticalImagesBtn">预处理完全相同的图和预制体引用重新指向</button>
+                <button id="lookPreprocessIdenticalImagesBtn">查看预处理结果</button>
             </div>
             <!-- 移动大图按钮 -->
             <h2>1、移动大图  大图直接移动到第一个应用的预制体的模块目录去</h2>

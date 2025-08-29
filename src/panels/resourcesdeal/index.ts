@@ -962,6 +962,9 @@ module.exports = Editor.Panel.define({
             (this.$.sizeCountTotalSize as HTMLInputElement).textContent = formatSize(totalSize);
             console.log('计算按大小引用次数文件夹图片数量完成,共:',num_sizeCountTotal,'剩余:',num_sizeCountRemaining)
         }
+        const functioncalpreImage=(path2info)=>{
+            
+        }
         this.$.processAll?.addEventListener('click', () => {
             Editor.Profile.setConfig('assetsindex','resourcesdeal_bgimgWidthinput',(this.$.bgimgWidthinput as HTMLInputElement).value);
             Editor.Profile.setConfig('assetsindex','resourcesdeal_bgimgHeightinput',(this.$.bgimgHeightinput as HTMLInputElement).value);
