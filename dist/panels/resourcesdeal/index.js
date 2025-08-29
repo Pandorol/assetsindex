@@ -29,22 +29,6 @@ let _defineBigImage = {
     byHeight: false,
     byArea: true,
 };
-function isBigImage(width, height) {
-    // 如果没有启用任何判断方式，默认使用面积判断
-    if (!_defineBigImage.byWidth && !_defineBigImage.byHeight && !_defineBigImage.byArea) {
-        return width * height >= _defineBigImage.threshold;
-    }
-    if (_defineBigImage.byWidth && width >= _defineBigImage.width) {
-        return true;
-    }
-    if (_defineBigImage.byHeight && height >= _defineBigImage.height) {
-        return true;
-    }
-    if (_defineBigImage.byArea && width * height >= _defineBigImage.threshold) {
-        return true;
-    }
-    return false;
-}
 // #endregion
 // #region 工具函数
 function formatSize(bytes) {
@@ -1151,7 +1135,6 @@ module.exports = Editor.Panel.define({
                 bgTargetPattern: config.targetPattern,
                 bigTargetPattern: config.bigTargetPattern,
                 defineBigImage: _defineBigImage,
-                isBigImage: isBigImage,
                 keepOld: caseConflictKeepOld,
                 preLook: config.preLook || false,
             };

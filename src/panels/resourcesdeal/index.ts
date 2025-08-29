@@ -28,23 +28,7 @@ let _defineBigImage: any = {
     byHeight: false,
     byArea: true,
 };
-function isBigImage(width: number, height: number): boolean {
-    // 如果没有启用任何判断方式，默认使用面积判断
-    if (!_defineBigImage.byWidth && !_defineBigImage.byHeight && !_defineBigImage.byArea) {
-        return width * height >= _defineBigImage.threshold;
-    }
 
-    if (_defineBigImage.byWidth && width >= _defineBigImage.width) {
-        return true;
-    }
-    if (_defineBigImage.byHeight && height >= _defineBigImage.height) {
-        return true;
-    }
-    if (_defineBigImage.byArea && width * height >= _defineBigImage.threshold) {
-        return true;
-    }
-    return false;
-}
 // #endregion
 
 // #region 工具函数
@@ -1332,7 +1316,6 @@ module.exports = Editor.Panel.define({
                 bgTargetPattern: config.targetPattern,
                 bigTargetPattern: config.bigTargetPattern, // 添加大图目标路径
                 defineBigImage: _defineBigImage, // 传递大图定义配置
-                isBigImage: isBigImage, // 传递大图判断函数
                 keepOld: caseConflictKeepOld,
                 preLook: config.preLook || false,
             };
