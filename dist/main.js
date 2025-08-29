@@ -610,7 +610,7 @@ async function moveBgImages(args) {
         catch (e) {
             console.error(`[${i + 1}/${operations.length}] 移动异常: ${fileName}`, e.message);
             // 检查是否为超时错误
-            if (e.message && e.message.includes('操作超时')) {
+            if (e.message && e.message.includes('超时')) {
                 console.warn(`[${i + 1}/${operations.length}] ${fileName} 操作超时，记录待重试`);
                 timeoutFiles.push({ src, dest, imgPath, fileName });
                 continue;
