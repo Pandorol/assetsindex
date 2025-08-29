@@ -201,15 +201,27 @@
             </div>
             <h2>4、引用不多的</h2>
             <!--弄几个复选框-->
-            <div style="display: flex; align-items: center; gap: 10px;">
-                <label><input type="checkbox" id="otherbigToCommon">大图扔common去处理</label>
-                <span>共 <span id="otherbigTotal">0</span> 张，总大小 <span id="otherbigTotalSize">0</span> KB, 剩余 <span id="otherbigRemaining">0</span> 张待处理</span>
-                <button id="lookotherbigResult">查看大图结果</button>
+            <div style="display: table; width: 100%;">
+                <div style="display: table-cell; width: 200px;">
+                    <label><input type="checkbox" id="otherbigToCommon">大图扔common去处理</label>
+                </div>
+                <div style="display: table-cell;">
+                    共 <span id="otherbigTotal">0</span> 张，总大小 <span id="otherbigTotalSize">0</span> KB, 剩余 <span id="otherbigRemaining">0</span> 张待处理
+                </div>
+                <div style="display: table-cell; width: 100px;">
+                    <button id="lookotherbigResult">查看大图结果</button>
+                </div>
             </div>
-            <div style="display: flex; align-items: center; gap: 10px;">
-                <label><input type="checkbox" id="othersmallToCommon">小图复制多份</label>
-                <span>共 <span id="othersmallTotal">0</span> 张，总大小 <span id="othersmallTotalSize">0</span> KB, 剩余 <span id="othersmallRemaining">0</span> 张待处理</span>
-                <button id="lookothersmallResult">查看小图结果</button>
+            <div style="display: table; width: 100%;">
+                <div style="display: table-cell; width: 200px;">
+                    <label><input type="checkbox" id="othersmallToCommon">小图复制多份</label>
+                </div>
+                <div style="display: table-cell;">
+                    共 <span id="othersmallTotal">0</span> 张，总大小 <span id="othersmallTotalSize">0</span> KB, 剩余 <span id="othersmallRemaining">0</span> 张待处理
+                </div>
+                <div style="display: table-cell; width: 100px;">
+                    <button id="lookothersmallResult">查看小图结果</button>
+                </div>
             </div>
             <!-- 处理按钮 一键计算-->
             <div style="margin-top:20px;">
