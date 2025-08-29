@@ -113,7 +113,7 @@
                         <input type="number" id="defineLargeImageThreshold" value="90000" style="width:120px;" readonly/>
                         <span></span>
                     </div>
-                    <div style="margin: 8px;display: flex;">
+                    <div style="display: flex;">
                         <!-- 3个复选框 宽大于就算大图，高大于就算大图，宽高乘积才算大图 -->
                         <input type="checkbox" id="defineLargeImageByWidth" checked>
                         <label for="largeImageByWidth">宽大于就算大图</label><br>
@@ -217,7 +217,7 @@
             </div>
             <!--先预处理那些完全相同的图和预制体引用重新指向-->
             <div >
-                <button id="preprocessIdenticalImagesBtn" style="height: 25px;">预处理完全相同的图和预制体引用重新指向</button>
+                0.<button id="preprocessIdenticalImagesBtn" style="height: 25px;">预处理完全相同的图和预制体引用重新指向</button>
                 <!-- <button id="lookPreprocessIdenticalImagesBtn" style="height: 25px;">预查看预处理结果</button> -->
             </div>
             <div style="display: none;">
@@ -242,10 +242,17 @@
                 <button id="PreLookmoveBgImagesBtn">预查看需要移动的图</button>
             </div>
             </div>
+            <div style="height: 20px;"></div>
             <h2>1、移动common图  直接移动到指定文件夹</h2>
             <!-- 取设置目录 -->
-             <label>目标路径模板:</label>
-            <input type="text" id="commonTargetPattern" value="remotemain/staticRes/common/" style="width: 400px;"/>
+             <div>
+                <label>目标路径模板:</label>
+             </div>
+             <div>
+                <label>大图：</label> <input type="text" id="bigcommonTargetPattern" value="remotemain/staticRes/common/bg/" style="width: 400px;"/>
+                <label>非大图：</label> <input type="text" id="commonTargetPattern" value="remotemain/staticRes/common/atlas/" style="width: 400px;"/>
+            </div>
+           
             <div>
                 <button id="moveCommonImagesBtn">移动</button>
                 <button id="PreLookmoveCommonImagesBtn">预查看需要移动的图</button>
@@ -254,8 +261,12 @@
             <!-- 取目录和设置目录 -->
              <label>Prefab 正则:</label>
             <input type="text" id="singlePrefabRegex" value="remotemain/preb[/\\](.*)[/\\](.*)\.prefab" style="width: 400px;"/>
-            <label>目标路径模板:</label>
-            <input type="text" id="singleTargetPattern" value="remotemain/staticRes/$1/atlas/" style="width: 400px;"/>
+            <div><label>目标路径模板:</label></div>
+            <div>
+                <label>大图：</label><input type="text" id="bigsingleTargetPattern" value="remotemain/staticRes/$1/bg/" style="width: 400px;"/>
+                <label>非大图：</label><input type="text" id="singleTargetPattern" value="remotemain/staticRes/$1/atlas/" style="width: 400px;"/>
+            </div>
+            
             <div>
                 <button id="moveSingleImagesBtn">移动</button>
                 <button id="PreLookmoveSingleImagesBtn">预查看需要移动的图</button>
@@ -264,8 +275,12 @@
             <!-- 取目录和设置目录 -->
              <label>Prefab 正则:</label>
             <input type="text" id="sameDirPrefabRegex" value="remotemain/preb[/\\](.*)[/\\](.*)\.prefab" style="width: 400px;"/>
-            <label>目标路径模板:</label>
-            <input type="text" id="sameDirTargetPattern" value="remotemain/staticRes/$1/atlas/" style="width: 400px;"/>
+            <div><label>目标路径模板:</label></div>
+            <div>
+                <label>大图：</label><input type="text" id="bigsameDirTargetPattern" value="remotemain/staticRes/$1/atlas/" style="width: 400px;"/>
+                <label>非大图：</label><input type="text" id="sameDirTargetPattern" value="remotemain/staticRes/$1/atlas/" style="width: 400px;"/>
+            </div>
+            
             <div>
                 <button id="moveSameDirImagesBtn">移动</button>
                 <button id="PreLookmoveSameDirImagesBtn">预查看需要移动的图</button>

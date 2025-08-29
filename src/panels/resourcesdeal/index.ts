@@ -173,18 +173,21 @@ module.exports = Editor.Panel.define({
 
         //移动common图片
         commonTargetPattern: '#commonTargetPattern',
+        bigcommonTargetPattern: '#bigcommonTargetPattern',
         moveCommonImagesBtn: '#moveCommonImagesBtn',
         PreLookmoveCommonImagesBtn: '#PreLookmoveCommonImagesBtn',
 
         //移动单独图片
         singlePrefabRegex: '#singlePrefabRegex',
         singleTargetPattern: '#singleTargetPattern',
+        bigsingleTargetPattern: '#bigsingleTargetPattern',
         moveSingleImagesBtn: '#moveSingleImagesBtn',
         PreLookmoveSingleImagesBtn: '#PreLookmoveSingleImagesBtn',
 
         //移动sameDir图片
         sameDirPrefabRegex: '#sameDirPrefabRegex',
         sameDirTargetPattern: '#sameDirTargetPattern',
+        bigsameDirTargetPattern: '#bigsameDirTargetPattern',
         moveSameDirImagesBtn: '#moveSameDirImagesBtn',
         PreLookmoveSameDirImagesBtn: '#PreLookmoveSameDirImagesBtn',
     },
