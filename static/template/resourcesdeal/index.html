@@ -95,6 +95,27 @@
                 <button id="lookPreImageResultBtn">查看预处理结果</button>
             </div>
             <!-- 大图文件夹 大小超过 -->
+            <h2>大图定义</h2>
+            <div>
+                <label for="defineLargeImageThreshold">大图文件尺寸:</label>
+                <input type="number" id="defineLargeImageWidth" value="300" style="width:60px;"/>
+                <label>X</label>
+                <input type="number" id="defineLargeImageHeight" value="300" style="width:60px;"/>
+                <label>=</label>
+                <input type="number" id="defineLargeImageThreshold" value="90000" style="width:120px;" readonly/>
+                <span></span>
+            </div>
+            <div>
+                <!-- 3个复选框 宽大于就算大图，高大于就算大图，宽高乘积才算大图 -->
+                <input type="checkbox" id="defineLargeImageByWidth" checked>
+                <label for="largeImageByWidth">宽大于就算大图</label>
+                <input type="checkbox" id="defineLargeImageByHeight" checked>
+                <label for="largeImageByHeight">高大于就算大图</label>
+                <input type="checkbox" id="defineLargeImageByArea" checked>
+                <label for="largeImageByArea">宽高乘积才算大图</label>
+            </div>
+            <button id="defineLargeImageBtn">定义大图</button>
+
             <div style="display: none;">
             <h2>1、大图文件夹尺寸超过或等于多少的放bg</h2>
             <div>
