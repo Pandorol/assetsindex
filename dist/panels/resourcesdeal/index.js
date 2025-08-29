@@ -70,7 +70,7 @@ module.exports = Editor.Panel.define({
         preimgWidthinput: '#preimgWidthinput',
         preimgHeightinput: '#preimgHeightinput',
         preImageThreshold: '#preImageThreshold',
-        calculateIgnoreSameImage: '#calculateIgnoreSameImage',
+        calculatePreSameImageBtn: '#calculatePreSameImageBtn',
         preImageTotal: '#preImageTotal',
         preImagesaving: '#preImagesaving',
         preImageRemaining: '#preImageRemaining',
@@ -721,14 +721,14 @@ module.exports = Editor.Panel.define({
         (_h = this.$.setIgnorePatternBtn) === null || _h === void 0 ? void 0 : _h.addEventListener('click', () => {
             functioncalignore(_dataCache.path2info);
         });
-        (_j = this.$.calculateIgnoreSameImage) === null || _j === void 0 ? void 0 : _j.addEventListener('click', () => {
+        (_j = this.$.calculatePreSameImageBtn) === null || _j === void 0 ? void 0 : _j.addEventListener('click', () => {
             functioncalpreImage(_ignoreRemainingdataCache || _dataCache.path2info);
         });
         (_k = this.$.calculateBg) === null || _k === void 0 ? void 0 : _k.addEventListener('click', () => {
             functioncalBg(_preImageRemainingdataCache || _ignoreRemainingdataCache || _dataCache.path2info);
         });
         (_l = this.$.calculateCommon) === null || _l === void 0 ? void 0 : _l.addEventListener('click', () => {
-            functioncalCommon(_bgRemainingdataCache || _dataCache.path2info);
+            functioncalCommon(_preImageRemainingdataCache || _dataCache.path2info);
         });
         (_m = this.$.calculateSingle) === null || _m === void 0 ? void 0 : _m.addEventListener('click', () => {
             functioncalSingle(_commonRemainingdataCache || _dataCache.path2info);

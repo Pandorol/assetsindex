@@ -71,7 +71,7 @@ module.exports = Editor.Panel.define({
         preimgWidthinput: '#preimgWidthinput',// 输入框
         preimgHeightinput: '#preimgHeightinput',// 输入框
         preImageThreshold: '#preImageThreshold',// 输入框
-        calculateIgnoreSameImage: '#calculateIgnoreSameImage',// 设置按钮
+        calculatePreSameImageBtn: '#calculatePreSameImageBtn',// 设置按钮
         preImageTotal: '#preImageTotal',// 计算结果
         preImagesaving: '#preImagesaving',// 计算结果
         preImageRemaining: '#preImageRemaining',// 计算结果
@@ -781,7 +781,7 @@ module.exports = Editor.Panel.define({
         this.$.setIgnorePatternBtn?.addEventListener('click', () => {
             functioncalignore( _dataCache.path2info);
         });
-        this.$.calculateIgnoreSameImage?.addEventListener('click', () => {
+        this.$.calculatePreSameImageBtn?.addEventListener('click', () => {
             functioncalpreImage( _ignoreRemainingdataCache||_dataCache.path2info);
         });
         this.$.calculateBg?.addEventListener('click', () => {
@@ -789,7 +789,7 @@ module.exports = Editor.Panel.define({
         })
         
         this.$.calculateCommon?.addEventListener('click', () => {
-            functioncalCommon( _bgRemainingdataCache||_dataCache.path2info);
+            functioncalCommon( _preImageRemainingdataCache||_dataCache.path2info);
         })
         
         this.$.calculateSingle?.addEventListener('click', () => {
