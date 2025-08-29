@@ -80,37 +80,24 @@
             </div>
             <div style="height: 20px;"></div>
             
-            <h2>0、预处理完全一样的图片</h2>
-            <h2>尺寸大于多少的只保留一份,其他多份的的后面再看</h2>
-            <div>
-                <label for="preImageThreshold">图片尺寸(只对比宽高乘积不单独比较宽高):</label>
-                <input type="number" id="preimgWidthinput" value="100" style="width:60px;"/>
-                <label>X</label>
-                <input type="number" id="preimgHeightinput" value="100" style="width:60px;"/>
-                <label>=</label>
-                <input type="number" id="preImageThreshold" value="10000" style="width:120px;" readonly/>
-                <span></span>
-                <button id="calculatePreSameImageBtn">设置</button>
-            </div>
-            <div id="preImageResult">
-                删除 <span id="preImageTotal">0</span> 张，保留<span id="preImagesaving">0</span> 张，剩余 <span id="preImageRemaining">0</span> 张待处理
-                <button id="lookPreImageResultBtn">查看预处理结果</button>
-            </div>
-            <div style="height: 20px;"></div>
-
-            <!-- 大图定义区域 - 单独右浮动 -->
+            <!-- 预处理区域 与 大图定义 并排显示 -->
             <div style="display: flex; gap: 20px; align-items: flex-start;">
                 <div style="flex: 1;">
-                    <!-- 引用次数设置 -->
-                    <h2>1、引用次数超过或等于多少个的放common</h2>
+                    <h2>0、预处理完全一样的图片</h2>
+                    <h2>尺寸大于多少的只保留一份,其他多份的的后面再看</h2>
                     <div>
-                        <label for="commonThreshold">Common 文件夹引用阈值:</label>
-                        <input type="number" id="commonThreshold" value="10" />
-                        <button id="calculateCommon">设置</button>
+                        <label for="preImageThreshold">图片尺寸(只对比宽高乘积不单独比较宽高):</label>
+                        <input type="number" id="preimgWidthinput" value="100" style="width:60px;"/>
+                        <label>X</label>
+                        <input type="number" id="preimgHeightinput" value="100" style="width:60px;"/>
+                        <label>=</label>
+                        <input type="number" id="preImageThreshold" value="10000" style="width:120px;" readonly/>
+                        <span></span>
+                        <button id="calculatePreSameImageBtn">设置</button>
                     </div>
-                    <div id="commonResult">
-                        共 <span id="commonTotal">0</span> 张，总大小 <span id="commonTotalSize">0</span> KB, 剩余 <span id="commonRemaining">0</span> 张待处理
-                        <button id="lookCommonResult">查看common结果</button>
+                    <div id="preImageResult">
+                        删除 <span id="preImageTotal">0</span> 张，保留<span id="preImagesaving">0</span> 张，剩余 <span id="preImageRemaining">0</span> 张待处理
+                        <button id="lookPreImageResultBtn">查看预处理结果</button>
                     </div>
                 </div>
                 
@@ -137,6 +124,20 @@
                     </div>
                     <button id="defineLargeImageBtn" style="background-color: #007acc; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;">定义大图(放bg,其他放atlas)</button>
                 </div>
+            </div>
+
+            <div style="height: 20px;"></div>
+
+            <!-- 引用次数设置 -->
+            <h2>1、引用次数超过或等于多少个的放common</h2>
+            <div>
+                <label for="commonThreshold">Common 文件夹引用阈值:</label>
+                <input type="number" id="commonThreshold" value="10" />
+                <button id="calculateCommon">设置</button>
+            </div>
+            <div id="commonResult">
+                共 <span id="commonTotal">0</span> 张，总大小 <span id="commonTotalSize">0</span> KB, 剩余 <span id="commonRemaining">0</span> 张待处理
+                <button id="lookCommonResult">查看common结果</button>
             </div>
 
             <div style="display: none;">
