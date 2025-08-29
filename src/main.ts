@@ -624,6 +624,8 @@ async function moveBgImages(args:any){
     console.log(`准备移动 ${operations.length} 个文件`);
     console.log('移动操作开始时间:', new Date().toLocaleTimeString());
     
+    const timeoutFiles = []; // 记录超时的文件
+    
     for (let i = 0; i < operations.length; i++) {
         const { src, dest, imgPath } = operations[i];
         const fileName = path.basename(imgPath);
@@ -643,7 +645,6 @@ async function moveBgImages(args:any){
             );
             // console.log(`move-asset 返回结果: ${result}`);
             
-            
             movedCount++;
             
         } catch (e) {
@@ -651,9 +652,8 @@ async function moveBgImages(args:any){
             
             // 检查是否为超时错误
             if (e.message && e.message.includes('操作超时')) {
-                console.warn(`[${i + 1}/${operations.length}] ${fileName} 操作超时，跳过`);
-                errorCount++;
-                errors.push(`移动超时: ${imgPath}`);
+                console.warn(`[${i + 1}/${operations.length}] ${fileName} 操作超时，记录待重试`);
+                timeoutFiles.push({ src, dest, imgPath, fileName });
                 continue;
             }
             
@@ -678,12 +678,48 @@ async function moveBgImages(args:any){
         }
     }
     
-     // 第五阶段：最终刷新
+    // 第五阶段：刷新资源数据库
+    console.log('第一轮移动完成，刷新资源数据库...');
     try {
         await Editor.Message.send('asset-db', 'refresh-asset', 'db://assets');
-        console.log('移动完成，已刷新资源数据库');
+        console.log('资源数据库刷新完成');
     } catch (e) {
-        console.warn('最终刷新资源数据库失败:', e);
+        console.warn('刷新资源数据库失败:', e);
+    }
+    
+    // 第六阶段：重试超时的文件
+    if (timeoutFiles.length > 0) {
+        console.log(`开始重试 ${timeoutFiles.length} 个超时文件...`);
+        
+        for (let i = 0; i < timeoutFiles.length; i++) {
+            const { src, dest, imgPath, fileName } = timeoutFiles[i];
+            
+            console.log(`[重试 ${i + 1}/${timeoutFiles.length}] 重新尝试移动: ${fileName}`);
+            
+            try {
+                const result = await withTimeout(
+                    Editor.Message.request('asset-db', 'move-asset', src, dest),
+                    15000 // 15秒超时
+                );
+                
+                console.log(`[重试 ${i + 1}/${timeoutFiles.length}] 移动成功: ${fileName}`);
+                movedCount++;
+                
+            } catch (e) {
+                console.error(`[重试 ${i + 1}/${timeoutFiles.length}] 移动仍然失败: ${fileName}`, e.message);
+                errorCount++;
+                errors.push(`移动超时重试失败: ${imgPath}`);
+            }
+        }
+        
+        // 最终刷新
+        console.log('重试完成，最终刷新资源数据库...');
+        try {
+            await Editor.Message.send('asset-db', 'refresh-asset', 'db://assets');
+            console.log('最终刷新完成');
+        } catch (e) {
+            console.warn('最终刷新资源数据库失败:', e);
+        }
     }
 
     // 输出统计信息
