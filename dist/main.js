@@ -527,7 +527,7 @@ async function moveBgImages(args) {
             operations.push({ src, dest, targetDir, imgPath });
         }
         else {
-            no_ops.push({ src, dest, targetDir, imgPath });
+            no_ops.push({ src, dest, targetDir, imgPath, reason: '源路径与目标路径相同' });
         }
     }
     if (args.preLook) {
@@ -584,16 +584,59 @@ async function moveBgImages(args) {
     for (let i = 0; i < operations.length; i++) {
         const { src, dest, imgPath } = operations[i];
         try {
-            await Editor.Message.request('asset-db', 'move-asset', src, dest).then((result) => {
-                console.log('move-asset result:', result);
-            });
-            console.log(`[${i + 1}/${operations.length}] 移动成功: ${path.basename(imgPath)}, 从 ${src} 到 ${dest}`);
-            movedCount++;
+            // 检查源文件是否存在
+            const srcExists = await Editor.Message.request('asset-db', 'query-asset-info', src);
+            if (!srcExists) {
+                console.warn(`[${i + 1}/${operations.length}] 源文件不存在: ${src}`);
+                errorCount++;
+                errors.push(`源文件不存在: ${imgPath}`);
+                continue;
+            }
+            // 执行移动操作
+            const result = await Editor.Message.request('asset-db', 'move-asset', src, dest);
+            // 检查移动结果 - 即使返回null也要验证目标文件是否存在
+            if (result === null) {
+                // console.warn(`[${i + 1}/${operations.length}] move-asset 返回 null, 验证移动结果: ${path.basename(imgPath)}`);
+                // 验证目标文件是否存在
+                const destExists = await Editor.Message.request('asset-db', 'query-asset-info', dest);
+                if (destExists) {
+                    console.log(`[${i + 1}/${operations.length}] 移动成功 (已验证): ${path.basename(imgPath)}, 从 ${src} 到 ${dest}`);
+                    movedCount++;
+                }
+                else {
+                    console.error(`[${i + 1}/${operations.length}] 移动失败 (目标不存在): ${path.basename(imgPath)}`);
+                    errorCount++;
+                    errors.push(`移动失败: ${imgPath} - 目标文件不存在`);
+                }
+            }
+            else {
+                console.log(`[${i + 1}/${operations.length}] 移动成功: ${path.basename(imgPath)}, 从 ${src} 到 ${dest}`);
+                movedCount++;
+            }
         }
         catch (e) {
-            console.error(`[${i + 1}/${operations.length}] 移动失败: ${path.basename(imgPath)}`, e);
-            errorCount++;
-            errors.push(`移动失败: ${imgPath} - ${e.message}`);
+            console.error(`[${i + 1}/${operations.length}] 移动异常: ${path.basename(imgPath)}`, e.message);
+            // 即使出现异常，也检查目标文件是否存在
+            try {
+                const destExists = await Editor.Message.request('asset-db', 'query-asset-info', dest);
+                if (destExists) {
+                    console.log(`[${i + 1}/${operations.length}] 移动成功 (异常后验证): ${path.basename(imgPath)}, 从 ${src} 到 ${dest}`);
+                    movedCount++;
+                }
+                else {
+                    errorCount++;
+                    errors.push(`移动失败: ${imgPath} - ${e.message}`);
+                }
+            }
+            catch (verifyError) {
+                console.error(`验证移动结果失败: ${verifyError.message}`);
+                errorCount++;
+                errors.push(`移动失败: ${imgPath} - ${e.message}`);
+            }
+        }
+        // 每10个文件后稍作暂停，避免过快操作
+        if ((i + 1) % 10 === 0) {
+            await new Promise(resolve => setTimeout(resolve, 50));
         }
     }
     // 第五阶段：最终刷新
