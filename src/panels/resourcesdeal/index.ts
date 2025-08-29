@@ -19,6 +19,27 @@ let _commonRemainingdataCache: any = null;
 let _singleRemainingdataCache: any = null; 
 let _sameRemainingdataCache: any = null; 
 let _sizecountRemainingdataCache: any = null; 
+let _defineLargeImageCache: any = null; // 大图定义缓存
+let _defineBigImage: any = {
+    width: 500,
+    height: 500,
+    threshold: 500 * 500,
+    byWidth: false,
+    byHeight: false,
+    byArea: true,
+};
+function isBigImage(width: number, height: number): boolean {
+    if (_defineBigImage.byWidth && width > _defineBigImage.width) {
+        return true;
+    }
+    if (_defineBigImage.byHeight && height > _defineBigImage.height) {
+        return true;
+    }
+    if (_defineBigImage.byArea && width * height > _defineBigImage.threshold) {
+        return true;
+    }
+    return false;
+}
 // #endregion
 
 // #region 工具函数
@@ -202,6 +223,12 @@ module.exports = Editor.Panel.define({
             const w = parseInt(this.$.preimgWidthinput.value) || 0;
             const h = parseInt(this.$.preimgHeightinput.value) || 0;
             this.$.preImageThreshold.value = w * h;
+        },
+
+        updateDefineLargeImageThreshold() {
+            const w = parseInt((this.$.defineLargeImageWidth as HTMLInputElement).value) || 0;
+            const h = parseInt((this.$.defineLargeImageHeight as HTMLInputElement).value) || 0;
+            (this.$.defineLargeImageThreshold as HTMLInputElement).value = (w * h).toString();
         },
         // #endregion
 
@@ -562,29 +589,36 @@ module.exports = Editor.Panel.define({
         // #region 配置初始化方法
         async initializeConfigurations() {
             const configs = [
-                { key: 'resourcesdeal_input_directory', element: 'directoryInput', defaultValue: '' },
+                { key: 'resourcesdeal_input_directory', element: 'directoryInput', defaultValue: 'E:\\gitfolders\\killercity-client\\killercity-client\\assets\\remotemain' },
                 { key: 'resourcesdeal_outputdata2_directory', element: 'buildMapsDataResultPath', defaultValue: '', special: 'outputPath' },
-                { key: 'resourcesdeal_bgPrefabRegex', element: 'bgPrefabRegex', defaultValue: 'preb[/\\\\](.*)[/\\\\](.*)\\.prefab' },
-                { key: 'resourcesdeal_bgTargetPattern', element: 'bgTargetPattern', defaultValue: 'staticRes/$1/$2/' },
+                { key: 'resourcesdeal_bgPrefabRegex', element: 'bgPrefabRegex', defaultValue: 'remotemain/preb[/\\](.*)[/\\](.*)\.prefab' },
+                { key: 'resourcesdeal_bgTargetPattern', element: 'bgTargetPattern', defaultValue: 'remotemain/staticRes/$1/bg/' },
                 { key: 'resourcesdeal_bgimgWidthinput', element: 'bgimgWidthinput', defaultValue: '400' },
                 { key: 'resourcesdeal_bgimgHeightinput', element: 'bgimgHeightinput', defaultValue: '400' },
                 { key: 'resourcesdeal_largeImageThreshold', element: 'largeImageThreshold', defaultValue: '160000' },
                 { key: 'resourcesdeal_commonThreshold', element: 'commonThreshold', defaultValue: '10' },
-                { key: 'resourcesdeal_commonTargetPattern', element: 'commonTargetPattern', defaultValue: 'resources/staticRes/common/' },
+                { key: 'resourcesdeal_commonTargetPattern', element: 'commonTargetPattern', defaultValue: 'remotemain/staticRes/common/' },
                 { key: 'resourcesdeal_sizecountWidthinput', element: 'sizecountWidthinput', defaultValue: '100' },
                 { key: 'resourcesdeal_sizecountHeightinput', element: 'sizecountHeightinput', defaultValue: '100' },
                 { key: 'resourcesdeal_sizecountCountinput', element: 'sizecountCountinput', defaultValue: '100' },
                 { key: 'resourcesdeal_sizeCountThreshold', element: 'sizeCountThreshold', defaultValue: '1000000' },
-                { key: 'resourcesdeal_singlePrefabRegex', element: 'singlePrefabRegex', defaultValue: 'preb[/\\\\](.*)[/\\\\](.*)\\.prefab' },
-                { key: 'resourcesdeal_singleTargetPattern', element: 'singleTargetPattern', defaultValue: 'staticRes/$1/single/$2/' },
-                { key: 'resourcesdeal_sameDirPrefabRegex', element: 'sameDirPrefabRegex', defaultValue: 'preb[/\\\\](.*)[/\\\\](.*)\\.prefab' },
-                { key: 'resourcesdeal_sameDirTargetPattern', element: 'sameDirTargetPattern', defaultValue: 'staticRes/$1/same/$2/' },
+                { key: 'resourcesdeal_singlePrefabRegex', element: 'singlePrefabRegex', defaultValue: 'remotemain/preb[/\\\\](.*)[/\\\\](.*)\\.prefab' },
+                { key: 'resourcesdeal_singleTargetPattern', element: 'singleTargetPattern', defaultValue: 'remotemain/staticRes/$1/single/$2/' },
+                { key: 'resourcesdeal_sameDirPrefabRegex', element: 'sameDirPrefabRegex', defaultValue: 'remotemain/preb[/\\\\](.*)[/\\\\](.*)\\.prefab' },
+                { key: 'resourcesdeal_sameDirTargetPattern', element: 'sameDirTargetPattern', defaultValue: 'remotemain/staticRes/$1/same/$2/' },
                 { key: 'resourcesdeal_preimgWidthinput', element: 'preimgWidthinput', defaultValue: '100' },
                 { key: 'resourcesdeal_preimgHeightinput', element: 'preimgHeightinput', defaultValue: '100' },
                 { key: 'resourcesdeal_preImageThreshold', element: 'preImageThreshold', defaultValue: '10000' },
                 { key: 'resourcesdeal_ignorePattern', element: 'ignorePattern', defaultValue: 'i18' },
-                { key: 'resourcesdeal_caseConflictKeepOld', element: 'caseConflictKeepOld', defaultValue: '0', type: 'checkbox' },
+                { key: 'resourcesdeal_caseConflictKeepOld', element: 'caseConflictKeepOld', defaultValue: '1', type: 'checkbox' },
                 { key: 'resourcesdeal_caseConflictUseNew', element: 'caseConflictUseNew', defaultValue: '0', type: 'checkbox' },
+                // 大图定义相关配置
+                { key: 'resourcesdeal_defineLargeImageWidth', element: 'defineLargeImageWidth', defaultValue: '400' },
+                { key: 'resourcesdeal_defineLargeImageHeight', element: 'defineLargeImageHeight', defaultValue: '400' },
+                { key: 'resourcesdeal_defineLargeImageThreshold', element: 'defineLargeImageThreshold', defaultValue: '160000' },
+                { key: 'resourcesdeal_defineLargeImageByWidth', element: 'defineLargeImageByWidth', defaultValue: '0', type: 'checkbox' },
+                { key: 'resourcesdeal_defineLargeImageByHeight', element: 'defineLargeImageByHeight', defaultValue: '0', type: 'checkbox' },
+                { key: 'resourcesdeal_defineLargeImageByArea', element: 'defineLargeImageByArea', defaultValue: '1', type: 'checkbox' },
             ];
 
             for (const config of configs) {
@@ -662,6 +696,11 @@ module.exports = Editor.Panel.define({
             this.$.preimgWidthinput?.addEventListener('input', this.updatePreImageThreshold.bind(this));
             this.$.preimgHeightinput?.addEventListener('input', this.updatePreImageThreshold.bind(this));
             this.updatePreImageThreshold();
+
+            // 大图定义相关事件
+            this.$.defineLargeImageWidth?.addEventListener('input', this.updateDefineLargeImageThreshold.bind(this));
+            this.$.defineLargeImageHeight?.addEventListener('input', this.updateDefineLargeImageThreshold.bind(this));
+            this.updateDefineLargeImageThreshold();
         },
 
         bindCalculationEvents() {
@@ -688,6 +727,10 @@ module.exports = Editor.Panel.define({
             });
             this.$.processAll?.addEventListener('click', () => {
                 this.processAllCalculations();
+            });
+            // 大图定义按钮事件
+            this.$.defineLargeImageBtn?.addEventListener('click', () => {
+                this.defineLargeImages(_dataCache?.path2info);
             });
         },
 
@@ -946,6 +989,98 @@ module.exports = Editor.Panel.define({
             (this.$.sizeCountTotalSize as HTMLInputElement).textContent = formatSize(totalSize);
             
             console.log('计算按大小引用次数文件夹图片数量完成,共:',num_sizeCountTotal,'剩余:',num_sizeCountRemaining);
+        },
+
+        defineLargeImages(path2info: any) {
+            if (!path2info) {
+                console.warn('请先构建基础数据');
+                return;
+            }
+
+            console.log('开始定义大图');
+            
+            // 保存配置
+            Editor.Profile.setConfig('assetsindex','resourcesdeal_defineLargeImageWidth',(this.$.defineLargeImageWidth as HTMLInputElement).value);
+            Editor.Profile.setConfig('assetsindex','resourcesdeal_defineLargeImageHeight',(this.$.defineLargeImageHeight as HTMLInputElement).value);
+            Editor.Profile.setConfig('assetsindex','resourcesdeal_defineLargeImageThreshold',(this.$.defineLargeImageThreshold as HTMLInputElement).value);
+            Editor.Profile.setConfig('assetsindex','resourcesdeal_defineLargeImageByWidth',(this.$.defineLargeImageByWidth as HTMLInputElement).checked ? '1' : '0');
+            Editor.Profile.setConfig('assetsindex','resourcesdeal_defineLargeImageByHeight',(this.$.defineLargeImageByHeight as HTMLInputElement).checked ? '1' : '0');
+            Editor.Profile.setConfig('assetsindex','resourcesdeal_defineLargeImageByArea',(this.$.defineLargeImageByArea as HTMLInputElement).checked ? '1' : '0');
+
+            const width = parseInt((this.$.defineLargeImageWidth as HTMLInputElement).value) || 400;
+            const height = parseInt((this.$.defineLargeImageHeight as HTMLInputElement).value) || 400;
+            const areaThreshold = parseInt((this.$.defineLargeImageThreshold as HTMLInputElement).value) || 160000;
+            
+            const byWidth = (this.$.defineLargeImageByWidth as HTMLInputElement).checked;
+            const byHeight = (this.$.defineLargeImageByHeight as HTMLInputElement).checked;
+            const byArea = (this.$.defineLargeImageByArea as HTMLInputElement).checked;
+
+            if (!byWidth && !byHeight && !byArea) {
+                console.warn('请至少选择一种大图定义方式');
+                Editor.Dialog.info('请至少选择一种大图定义方式（按宽度、按高度或按面积）', {title: '大图定义', buttons: ['我知道了']});
+                return;
+            }
+
+            let _remainpath2info = deepClone(path2info);
+            _remainpath2info = Object.fromEntries(Object.entries(_remainpath2info).filter(([path, info]) => (info as any).count > 0));
+
+            // 根据选择的条件筛选大图
+            const largeImages: Record<string, any> = {};
+            const normalImages: Record<string, any> = {};
+
+            Object.entries(_remainpath2info).forEach(([path, info]) => {
+                const imgInfo = info as any;
+                let isLargeImage = false;
+
+                if (byWidth && imgInfo.width >= width) {
+                    isLargeImage = true;
+                }
+                if (byHeight && imgInfo.height >= height) {
+                    isLargeImage = true;
+                }
+                if (byArea && (imgInfo.width * imgInfo.height) >= areaThreshold) {
+                    isLargeImage = true;
+                }
+
+                if (isLargeImage) {
+                    largeImages[path] = info;
+                } else {
+                    normalImages[path] = info;
+                }
+            });
+
+            // 计算统计信息
+            const largeImageCount = Object.keys(largeImages).length;
+            const normalImageCount = Object.keys(normalImages).length;
+            const largeImageSize = Object.values(largeImages).reduce((sum: number, info: any) => sum + info.size, 0);
+            const normalImageSize = Object.values(normalImages).reduce((sum: number, info: any) => sum + info.size, 0);
+
+            // 显示结果
+            const resultMessage = `大图定义完成！\n\n定义条件：\n- 按宽度 >= ${width}px: ${byWidth ? '启用' : '禁用'}\n- 按高度 >= ${height}px: ${byHeight ? '启用' : '禁用'}\n- 按面积 >= ${areaThreshold}px²: ${byArea ? '启用' : '禁用'}\n\n结果统计：\n- 大图: ${largeImageCount} 张，总大小 ${formatSize(largeImageSize)}\n- 普通图: ${normalImageCount} 张，总大小 ${formatSize(normalImageSize)}`;
+
+            Editor.Dialog.info(resultMessage, {title: '大图定义结果', buttons: ['我知道了']});
+
+            // 缓存结果供其他功能使用
+            _defineLargeImageCache = {
+                largeImages: largeImages,
+                normalImages: normalImages,
+                criteria: {
+                    width: width,
+                    height: height,
+                    areaThreshold: areaThreshold,
+                    byWidth: byWidth,
+                    byHeight: byHeight,
+                    byArea: byArea
+                },
+                statistics: {
+                    largeImageCount: largeImageCount,
+                    normalImageCount: normalImageCount,
+                    largeImageSize: largeImageSize,
+                    normalImageSize: normalImageSize
+                }
+            };
+
+            console.log('大图定义完成:', `大图 ${largeImageCount} 张, 普通图 ${normalImageCount} 张`);
         },
 
         calculatePreImage(path2info: any) {
