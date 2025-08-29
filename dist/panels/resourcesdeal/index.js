@@ -1151,7 +1151,7 @@ module.exports = Editor.Panel.define({
         (_v = this.$.preprocessIdenticalImagesBtn) === null || _v === void 0 ? void 0 : _v.addEventListener('click', () => {
             preChangeImagesAndPrefabs();
         });
-        function preChangeImagesAndPrefabs() {
+        const preChangeImagesAndPrefabs = () => {
             if (!_preImageCache) {
                 console.warn('请先计算预处理相同大图');
                 Editor.Dialog.info('请先计算预处理相同大图', { title: '预处理提示', buttons: ['我知道了'] });
@@ -1213,7 +1213,7 @@ module.exports = Editor.Panel.define({
                     console.log('用户取消了预处理操作');
                 }
             });
-        }
+        };
         // 移动大图按钮
         (_w = this.$.moveBgImagesBtn) === null || _w === void 0 ? void 0 : _w.addEventListener('click', () => {
             moveBgImage();

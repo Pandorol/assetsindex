@@ -1274,7 +1274,7 @@ module.exports = Editor.Panel.define({
             preChangeImagesAndPrefabs();
         });
         
-        function preChangeImagesAndPrefabs(){
+        const preChangeImagesAndPrefabs = () => {
             if(!_preImageCache) {
                 console.warn('请先计算预处理相同大图');
                 Editor.Dialog.info('请先计算预处理相同大图', {title: '预处理提示', buttons: ['我知道了']});
