@@ -29,13 +29,18 @@ let _defineBigImage: any = {
     byArea: true,
 };
 function isBigImage(width: number, height: number): boolean {
-    if (_defineBigImage.byWidth && width > _defineBigImage.width) {
+    // 如果没有启用任何判断方式，默认使用面积判断
+    if (!_defineBigImage.byWidth && !_defineBigImage.byHeight && !_defineBigImage.byArea) {
+        return width * height >= _defineBigImage.threshold;
+    }
+
+    if (_defineBigImage.byWidth && width >= _defineBigImage.width) {
         return true;
     }
-    if (_defineBigImage.byHeight && height > _defineBigImage.height) {
+    if (_defineBigImage.byHeight && height >= _defineBigImage.height) {
         return true;
     }
-    if (_defineBigImage.byArea && width * height > _defineBigImage.threshold) {
+    if (_defineBigImage.byArea && width * height >= _defineBigImage.threshold) {
         return true;
     }
     return false;
@@ -641,6 +646,29 @@ module.exports = Editor.Panel.define({
                     console.warn(`无法加载配置 ${config.key}:`, error);
                 }
             }
+
+            // 初始化全局大图定义配置
+            try {
+                const defineWidth = parseInt(await Editor.Profile.getConfig('assetsindex', 'resourcesdeal_defineLargeImageWidth') || '400');
+                const defineHeight = parseInt(await Editor.Profile.getConfig('assetsindex', 'resourcesdeal_defineLargeImageHeight') || '400');
+                const defineThreshold = parseInt(await Editor.Profile.getConfig('assetsindex', 'resourcesdeal_defineLargeImageThreshold') || '160000');
+                const defineByWidth = (await Editor.Profile.getConfig('assetsindex', 'resourcesdeal_defineLargeImageByWidth')) === '1';
+                const defineByHeight = (await Editor.Profile.getConfig('assetsindex', 'resourcesdeal_defineLargeImageByHeight')) === '1';
+                const defineByArea = (await Editor.Profile.getConfig('assetsindex', 'resourcesdeal_defineLargeImageByArea')) !== '0'; // 默认启用
+
+                _defineBigImage = {
+                    width: defineWidth,
+                    height: defineHeight,
+                    threshold: defineThreshold,
+                    byWidth: defineByWidth,
+                    byHeight: defineByHeight,
+                    byArea: defineByArea,
+                };
+
+                console.log('初始化大图定义配置:', _defineBigImage);
+            } catch (error) {
+                console.warn('无法加载大图定义配置，使用默认值:', error);
+            }
         },
         // #endregion
 
@@ -714,7 +742,7 @@ module.exports = Editor.Panel.define({
                 this.calculateBg(_preImageRemainingdataCache || _ignoreRemainingdataCache || _dataCache?.path2info);
             });
             this.$.calculateCommon?.addEventListener('click', () => {
-                this.calculateCommon(_preImageRemainingdataCache || _dataCache?.path2info);
+                this.calculateCommon(_ignoreRemainingdataCache || _dataCache?.path2info);
             });
             this.$.calculateSingle?.addEventListener('click', () => {
                 this.calculateSingle(_commonRemainingdataCache || _dataCache?.path2info);
@@ -1080,7 +1108,18 @@ module.exports = Editor.Panel.define({
                 }
             };
 
+            // 更新全局大图定义配置
+            _defineBigImage = {
+                width: width,
+                height: height,
+                threshold: areaThreshold,
+                byWidth: byWidth,
+                byHeight: byHeight,
+                byArea: byArea,
+            };
+
             console.log('大图定义完成:', `大图 ${largeImageCount} 张, 普通图 ${normalImageCount} 张`);
+            console.log('更新大图定义配置:', _defineBigImage);
         },
 
         calculatePreImage(path2info: any) {
@@ -1222,11 +1261,11 @@ module.exports = Editor.Panel.define({
             if (_ignoreRemainingdataCache) {
                 this.calculatePreImage(_ignoreRemainingdataCache);
             }
+            // if (_preImageRemainingdataCache) {
+            //     this.calculateBg(_preImageRemainingdataCache);
+            // }
             if (_preImageRemainingdataCache) {
-                this.calculateBg(_preImageRemainingdataCache);
-            }
-            if (_bgRemainingdataCache) {
-                this.calculateCommon(_bgRemainingdataCache);
+                this.calculateCommon(_preImageRemainingdataCache);
             }
             if (_commonRemainingdataCache) {
                 this.calculateSingle(_commonRemainingdataCache);
