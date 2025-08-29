@@ -202,11 +202,15 @@
             <h2>4、引用不多的</h2>
             <!--弄几个复选框-->
             <div>
-                <label><input type="checkbox" id="lowReferenceCheckbox1">大图扔common去处理</label>
-                <label><input type="checkbox" id="lowReferenceCheckbox2">小图</label>
-                <label><input type="checkbox" id="lowReferenceCheckbox3"> 选项3</label>
+                <label><input type="checkbox" id="otherbigToCommon">大图扔common去处理</label>
+                共 <span id="otherbigTotal">0</span> 张，总大小 <span id="otherbigTotalSize">0</span> KB, 剩余 <span id="otherbigRemaining">0</span> 张待处理
+                <button id="lookotherbigResult">查看大图结果</button>
             </div>
-
+            <div>
+                <label><input type="checkbox" id="othersmallToCommon">小图复制多份</label>
+                共 <span id="othersmallTotal">0</span> 张，总大小 <span id="othersmallTotalSize">0</span> KB, 剩余 <span id="othersmallRemaining">0</span> 张待处理
+                <button id="lookothersmallResult">查看小图结果</button>
+            </div>
             <!-- 处理按钮 一键计算-->
             <div style="margin-top:20px;">
                 <button id="processAll">一键计算所有设置</button>
