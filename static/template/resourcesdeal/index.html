@@ -95,7 +95,7 @@
                 <button id="lookPreImageResultBtn">查看预处理结果</button>
             </div>
             <!-- 大图文件夹 大小超过 -->
-            <div style="visibility: hidden;">
+            <div style="display: none;">
             <h2>1、大图文件夹尺寸超过或等于多少的放bg</h2>
             <div>
                 <label for="largeImageThreshold">大图文件夹尺寸(只对比宽高乘积不单独比较宽高):</label>
@@ -182,6 +182,7 @@
                 <button id="preprocessIdenticalImagesBtn" style="height: 25px;">预处理完全相同的图和预制体引用重新指向</button>
                 <!-- <button id="lookPreprocessIdenticalImagesBtn" style="height: 25px;">预查看预处理结果</button> -->
             </div>
+            <div style="display: none;">
             <!-- 移动大图按钮 -->
             <h2>1、移动大图  大图直接移动到第一个应用的预制体的模块目录去</h2>
             <!-- 取目录和设置目录 -->
@@ -202,7 +203,8 @@
                 <button id="moveBgImagesBtn">移动</button>
                 <button id="PreLookmoveBgImagesBtn">预查看需要移动的图</button>
             </div>
-            <h2>2、移动common图  直接移动到指定文件夹</h2>
+            </div>
+            <h2>1、移动common图  直接移动到指定文件夹</h2>
             <!-- 取设置目录 -->
              <label>目标路径模板:</label>
             <input type="text" id="commonTargetPattern" value="remotemain/staticRes/common/" style="width: 400px;"/>
@@ -210,7 +212,7 @@
                 <button id="moveCommonImagesBtn">移动</button>
                 <button id="PreLookmoveCommonImagesBtn">预查看需要移动的图</button>
             </div>
-            <h2>3、移动单图  直接移动到对应模块文件夹</h2>
+            <h2>2、移动单引用图  直接移动到对应模块文件夹</h2>
             <!-- 取目录和设置目录 -->
              <label>Prefab 正则:</label>
             <input type="text" id="singlePrefabRegex" value="remotemain/preb[/\\](.*)[/\\](.*)\.prefab" style="width: 400px;"/>
@@ -220,7 +222,7 @@
                 <button id="moveSingleImagesBtn">移动</button>
                 <button id="PreLookmoveSingleImagesBtn">预查看需要移动的图</button>
             </div>
-            <h2>4、移动sameDir图  直接移动到对应模块文件夹</h2>
+            <h2>3、移动引用预制体图都在同一目录图  直接移动到对应模块文件夹</h2>
             <!-- 取目录和设置目录 -->
              <label>Prefab 正则:</label>
             <input type="text" id="sameDirPrefabRegex" value="remotemain/preb[/\\](.*)[/\\](.*)\.prefab" style="width: 400px;"/>
