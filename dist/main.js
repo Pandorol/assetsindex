@@ -464,6 +464,13 @@ function buildMapsData(args) {
 }
 async function moveBgImages(args) {
     console.log('moveBgImages called');
+    // 添加超时包装函数
+    const withTimeout = (promise, ms) => {
+        return Promise.race([
+            promise,
+            new Promise((_, reject) => setTimeout(() => reject(new Error(`操作超时 (${ms}ms)`)), ms))
+        ]);
+    };
     const spriteFrameMaps_name = args.spriteFrameMaps_name;
     const path2info = args.path2info;
     // const bgPrefabRegex = new RegExp(args.bgPrefabRegex); // e.g., "preb/(.*?)/(.*?).prefab"
@@ -581,46 +588,58 @@ async function moveBgImages(args) {
     }
     // 第四阶段：批量移动文件
     console.log('开始移动文件...');
+    console.log(`准备移动 ${operations.length} 个文件`);
+    console.log('移动操作开始时间:', new Date().toLocaleTimeString());
     for (let i = 0; i < operations.length; i++) {
         const { src, dest, imgPath } = operations[i];
+        const fileName = path.basename(imgPath);
+        // 输出进度
+        if (i % 5 === 0 || i === 0) {
+            const currentTime = new Date().toLocaleTimeString();
+            console.log(`[${currentTime}] 进度: [${i + 1}/${operations.length}] 正在处理: ${fileName}`);
+        }
         try {
-            // 检查源文件是否存在
-            const srcExists = await Editor.Message.request('asset-db', 'query-asset-info', src);
-            if (!srcExists) {
-                console.warn(`[${i + 1}/${operations.length}] 源文件不存在: ${src}`);
-                errorCount++;
-                errors.push(`源文件不存在: ${imgPath}`);
-                continue;
-            }
-            // 执行移动操作
-            const result = await Editor.Message.request('asset-db', 'move-asset', src, dest);
+            // 直接执行移动操作，不做预查询
+            console.log(`执行移动: ${fileName}`);
+            const result = await withTimeout(Editor.Message.request('asset-db', 'move-asset', src, dest), 15000 // 15秒超时
+            );
+            console.log(`move-asset 返回结果: ${result}`);
             // 检查移动结果 - 即使返回null也要验证目标文件是否存在
             if (result === null) {
-                // console.warn(`[${i + 1}/${operations.length}] move-asset 返回 null, 验证移动结果: ${path.basename(imgPath)}`);
+                console.log(`验证移动结果: ${fileName}`);
                 // 验证目标文件是否存在
-                const destExists = await Editor.Message.request('asset-db', 'query-asset-info', dest);
+                const destExists = await withTimeout(Editor.Message.request('asset-db', 'query-asset-info', dest), 5000 // 5秒超时
+                );
                 if (destExists) {
-                    console.log(`[${i + 1}/${operations.length}] 移动成功 (已验证): ${path.basename(imgPath)}, 从 ${src} 到 ${dest}`);
+                    console.log(`[${i + 1}/${operations.length}] 移动成功 (已验证): ${fileName}, 从 ${src} 到 ${dest}`);
                     movedCount++;
                 }
                 else {
-                    console.error(`[${i + 1}/${operations.length}] 移动失败 (目标不存在): ${path.basename(imgPath)}`);
+                    console.error(`[${i + 1}/${operations.length}] 移动失败 (目标不存在): ${fileName}`);
                     errorCount++;
                     errors.push(`移动失败: ${imgPath} - 目标文件不存在`);
                 }
             }
             else {
-                console.log(`[${i + 1}/${operations.length}] 移动成功: ${path.basename(imgPath)}, 从 ${src} 到 ${dest}`);
+                console.log(`[${i + 1}/${operations.length}] 移动成功: ${fileName}, 从 ${src} 到 ${dest}`);
                 movedCount++;
             }
         }
         catch (e) {
-            console.error(`[${i + 1}/${operations.length}] 移动异常: ${path.basename(imgPath)}`, e.message);
+            console.error(`[${i + 1}/${operations.length}] 移动异常: ${fileName}`, e.message);
+            // 检查是否为超时错误
+            if (e.message && e.message.includes('操作超时')) {
+                console.warn(`[${i + 1}/${operations.length}] ${fileName} 操作超时，跳过`);
+                errorCount++;
+                errors.push(`移动超时: ${imgPath}`);
+                continue;
+            }
             // 即使出现异常，也检查目标文件是否存在
             try {
-                const destExists = await Editor.Message.request('asset-db', 'query-asset-info', dest);
+                const destExists = await withTimeout(Editor.Message.request('asset-db', 'query-asset-info', dest), 5000 // 5秒超时
+                );
                 if (destExists) {
-                    console.log(`[${i + 1}/${operations.length}] 移动成功 (异常后验证): ${path.basename(imgPath)}, 从 ${src} 到 ${dest}`);
+                    console.log(`[${i + 1}/${operations.length}] 移动成功 (异常后验证): ${fileName}, 从 ${src} 到 ${dest}`);
                     movedCount++;
                 }
                 else {
@@ -633,10 +652,6 @@ async function moveBgImages(args) {
                 errorCount++;
                 errors.push(`移动失败: ${imgPath} - ${e.message}`);
             }
-        }
-        // 每10个文件后稍作暂停，避免过快操作
-        if ((i + 1) % 10 === 0) {
-            await new Promise(resolve => setTimeout(resolve, 50));
         }
     }
     // 第五阶段：最终刷新
