@@ -565,6 +565,35 @@ async function moveBgImages(args:any){
             no_ops.push({ src, dest, targetDir, imgPath, reason: '源路径与目标路径相同' });
         }
     }
+
+    
+    if (operations.length === 0) {
+        console.log('没有需要移动的文件');
+        return { movedCount: 0, errorCount: 0, errors: [] };
+    }
+    // 第二阶段：处理大小写冲突并创建目录
+    console.log('开始处理大小写冲突并创建目录...');
+    const caseConflictMap = await handleCaseConflictsAndCreateDirs(operations, caseConflictStrategy, errors);
+    
+    // 大小写冲突处理后，重新过滤掉源路径和目标路径相同的文件
+    const originalCount = operations.length;
+    const filteredOperations = operations.filter(op => op.src !== op.dest);
+    const removedCount = originalCount - filteredOperations.length;
+    
+    if (removedCount > 0) {
+        console.log(`大小写冲突处理后，过滤掉 ${removedCount} 个源路径与目标路径相同的文件`);
+        // 将过滤掉的文件添加到no_ops中
+        operations.filter(op => op.src === op.dest).forEach(op => {
+            no_ops.push({ ...op, reason: '大小写冲突处理后，源路径与目标路径相同' });
+        });
+    }
+    
+    // 更新operations为过滤后的数组
+    operations.length = 0;
+    operations.push(...filteredOperations);
+
+    console.log(`处理后，实际需要移动 ${operations.length} 个文件`);
+
     if(args.preLook) {
         console.log('预览模式，返回分析结果，不进行实际移动');
         
@@ -602,15 +631,6 @@ async function moveBgImages(args:any){
             duplicateDestGroups
         };
     }
-    console.log(`分析完成，准备移动 ${operations.length} 个文件`);
-    if (operations.length === 0) {
-        console.log('没有需要移动的文件');
-        return { movedCount: 0, errorCount: 0, errors: [] };
-    }
-    // 第二阶段：批量创建目录
-     // 第二阶段：处理大小写冲突并创建目录
-    console.log('开始处理大小写冲突并创建目录...');
-    const caseConflictMap = await handleCaseConflictsAndCreateDirs(operations, caseConflictStrategy, errors);
     
     // 第三阶段：刷新资源数据库
     try {
