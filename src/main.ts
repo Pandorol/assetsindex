@@ -491,29 +491,6 @@ async function moveBgImages(args:any){
         caseConflictStrategy = 'useNew';
     }
     
-    // 大图判断函数
-    const isBigImage = (width: number, height: number): boolean => {
-        if (!defineBigImage) {
-            return false; // 如果没有定义配置，默认不是大图
-        }
-        
-        // 如果没有启用任何判断方式，默认使用面积判断
-        if (!defineBigImage.byWidth && !defineBigImage.byHeight && !defineBigImage.byArea) {
-            return width * height >= defineBigImage.threshold;
-        }
-
-        if (defineBigImage.byWidth && width >= defineBigImage.width) {
-            return true;
-        }
-        if (defineBigImage.byHeight && height >= defineBigImage.height) {
-            return true;
-        }
-        if (defineBigImage.byArea && width * height >= defineBigImage.threshold) {
-            return true;
-        }
-        return false;
-    };
-    
     // 记录移动操作
     const recordMoveOperation = (src: string, dest: string, targetDir: string, imgPath: string) => {
         operations.push({ src, dest, targetDir, imgPath });
@@ -542,9 +519,9 @@ async function moveBgImages(args:any){
             continue;
         }
 
-        // 判断是否为大图
+        // 判断是否为大图 - 使用预计算的结果
         const imgInfo = info as any;
-        const isLarge = isBigImage(imgInfo.width || 0, imgInfo.height || 0);
+        const isLarge = args.imageSizeMap ? args.imageSizeMap[imgPath] : false;
         
         // 根据是否为大图选择目标路径模板
         let targetDir = isLarge ? (bigTargetPattern || bgTargetPattern) : bgTargetPattern;

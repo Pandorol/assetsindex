@@ -31,6 +31,22 @@ let _defineBigImage = {
 };
 // #endregion
 // #region 工具函数
+function isBigImage(width, height) {
+    // 如果没有启用任何判断方式，默认使用面积判断
+    if (!_defineBigImage.byWidth && !_defineBigImage.byHeight && !_defineBigImage.byArea) {
+        return width * height >= _defineBigImage.threshold;
+    }
+    if (_defineBigImage.byWidth && width >= _defineBigImage.width) {
+        return true;
+    }
+    if (_defineBigImage.byHeight && height >= _defineBigImage.height) {
+        return true;
+    }
+    if (_defineBigImage.byArea && width * height >= _defineBigImage.threshold) {
+        return true;
+    }
+    return false;
+}
 function formatSize(bytes) {
     if (bytes >= 1024 * 1024) {
         return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
@@ -1127,6 +1143,11 @@ module.exports = Editor.Panel.define({
                 console.warn(config.checkMessage);
                 return;
             }
+            // 预计算每个图片的大小判断结果
+            const imageSizeMap = {};
+            Object.entries(config.dataCache).forEach(([imgPath, info]) => {
+                imageSizeMap[imgPath] = isBigImage(info.width || 0, info.height || 0);
+            });
             // 构建请求参数
             const requestParams = {
                 method: 'moveBgImages',
@@ -1134,7 +1155,7 @@ module.exports = Editor.Panel.define({
                 path2info: config.dataCache,
                 bgTargetPattern: config.targetPattern,
                 bigTargetPattern: config.bigTargetPattern,
-                defineBigImage: _defineBigImage,
+                imageSizeMap: imageSizeMap,
                 keepOld: caseConflictKeepOld,
                 preLook: config.preLook || false,
             };
