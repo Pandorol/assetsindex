@@ -141,25 +141,7 @@ async function preChangeImagesAndPrefabs(args) {
     let deletedFiles = 0;
     const errors = [];
     try {
-        // 1. 删除重复的图片文件
-        console.log('开始删除重复的图片文件...');
-        for (const [md5, removeList] of Object.entries(preImageCache.removeImages)) {
-            for (const item of removeList) {
-                const imgPath = item.path;
-                const dbPath = `db://assets/${imgPath}`;
-                try {
-                    // 使用 asset-db API 删除文件
-                    await Editor.Message.request('asset-db', 'delete-asset', dbPath);
-                    console.log(`删除重复文件: ${imgPath}`);
-                    deletedFiles++;
-                }
-                catch (e) {
-                    console.error(`删除文件失败: ${imgPath}`, e);
-                    errors.push(`删除文件失败: ${imgPath} - ${e.message}`);
-                }
-            }
-        }
-        // 2. 修改预制体文件中的引用
+        // 1. 修改预制体文件中的引用
         console.log('开始修改预制体文件中的引用...');
         Object.entries(preImageCache.duplicateGroups).forEach(([md5, paths]) => {
             const keepImage = paths[0];
@@ -210,7 +192,7 @@ async function preChangeImagesAndPrefabs(args) {
                 });
             });
         });
-        // 3. 刷新资源数据库
+        // 2. 刷新资源数据库
         console.log('刷新资源数据库...');
         try {
             await Editor.Message.send('asset-db', 'refresh-asset', 'db://assets');
@@ -218,6 +200,24 @@ async function preChangeImagesAndPrefabs(args) {
         }
         catch (e) {
             console.warn('刷新资源数据库失败:', e);
+        }
+        // 3. 删除重复的图片文件
+        console.log('开始删除重复的图片文件...');
+        for (const [md5, removeList] of Object.entries(preImageCache.removeImages)) {
+            for (const item of removeList) {
+                const imgPath = item.path;
+                const dbPath = `db://assets/${imgPath}`;
+                try {
+                    // 使用 asset-db API 删除文件
+                    await Editor.Message.request('asset-db', 'delete-asset', dbPath);
+                    console.log(`删除重复文件: ${imgPath}`);
+                    deletedFiles++;
+                }
+                catch (e) {
+                    console.error(`删除文件失败: ${imgPath}`, e);
+                    errors.push(`删除文件失败: ${imgPath} - ${e.message}`);
+                }
+            }
         }
         const summary = preImageCache.summary;
         console.log(`预制体引用修改完成:`);
