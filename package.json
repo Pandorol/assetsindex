@@ -1,0 +1,105 @@
+{
+    "package_version": 2,
+    "version": "1.0.0",
+    "name": "assetsindex",
+    "description": "i18n:assetsindex.description",
+    "main": "./dist/main.js",
+    "dependencies": {
+        "fast-glob": "^3.3.3",
+        "fs-extra": "^10.0.0",
+        "glob": "^11.0.3",
+        "image-size": "^2.0.2"
+    },
+    "devDependencies": {
+        "@types/node": "^16.0.1",
+        "@types/fs-extra": "^9.0.5",
+        "typescript": "^4.3.4"
+    },
+    "panels": {
+        "default": {
+            "title": "构建索引表",
+            "type": "dockable",
+            "main": "dist/panels/default",
+            "size": {
+                "min-width": 400,
+                "min-height": 300,
+                "width": 500,
+                "height": 400
+            }
+        },
+        "remotedeal": {
+            "title": "远程包资源",
+            "type": "dockable",
+            "main": "dist/panels/remotedeal",
+            "size": {
+                "min-width": 300,
+                "min-height": 200,
+                "width": 400,
+                "height": 300
+            }
+        },
+        "resourcesdeal": {
+            "title": "资源处理",
+            "type": "dockable",
+            "main": "dist/panels/resourcesdeal",
+            "size": {
+                "min-width": 500,
+                "min-height": 400,
+                "width": 1250,
+                "height": 900
+            }
+        }
+    },
+    "contributions": {
+        "menu": [
+            {
+                "path": "i18n:menu.extension/i18n:assetsindex.open_panel",
+                "label": "i18n:assetsindex.gen_index",
+                "message": "open-panel"
+            },
+            {
+                "path": "i18n:menu.extension/i18n:assetsindex.open_panel",
+                "label": "i18n:assetsindex.resourcesdeal",
+                "message": "open-panel2"
+            }
+        ],
+        "messages": {
+            "open-panel": {
+                "methods": [
+                    "openPanel"
+                ]
+            },
+            "open-panel2": {
+                "methods": [
+                    "openPanel2"
+                ]
+            },
+            "dynamic-message": {
+                "methods": [
+                    "handleDynamicMessage"
+                ]
+            },
+            "send-to-panel": {
+                "methods": [
+                    "default.hello"
+                ]
+            },
+            "generate-assets-index": {
+                "methods": [
+                    "generateAssetsIndex"
+                ]
+            },
+            "fetch-build-folders": {
+                "methods": [
+                    "fetchBuildFolders"
+                ]
+            }
+        }
+    },
+    "author": "CJJ",
+    "editor": ">=3.7.4",
+    "scripts": {
+        "build": "tsc -b",
+        "watch": "tsc -w"
+    }
+}

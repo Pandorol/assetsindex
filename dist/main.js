@@ -1,0 +1,597 @@
+"use strict";
+// @ts-ignore
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.unload = exports.load = exports.methods = void 0;
+const package_json_1 = __importDefault(require("../package.json"));
+const fs = require('fs');
+const path = require('path');
+const fg = require('fast-glob');
+/**
+ * @en
+ * @zh 为扩展的主进程的注册方法
+ */
+exports.methods = {
+    openPanel() {
+        Editor.Panel.open(package_json_1.default.name);
+    },
+    openPanel2() {
+        // 生成assetsindex.json
+        Editor.Panel.open('assetsindex.resourcesdeal');
+    },
+    generateAssetsIndex(arg) {
+        console.log('主进程：开始生成 assetsindex.json');
+        // 遍历构建文件夹中的每个 bundle 的 config
+        const fs = require('fs');
+        const path = require('path');
+        const buildDir = path.join(Editor.Project.path, 'build');
+        console.log('arg:', arg);
+        const buildplatformdir = path.join(buildDir, arg);
+        if (!fs.existsSync(buildplatformdir)) {
+            console.error('构建平台目录不存在:', buildplatformdir);
+            return;
+        }
+        // 读取构建目录下assets\assets下的文件夹，这下面都是bundle文件夹，找到每个bundle文件夹下的cc.config.匹配任意值.json,读取json里的"paths":{"0":["texture/i18n/zh_tw/common/tips_btn_djly",1],"1":["texture/i18n/zh_ko/crossPvpTop/2",1],
+        //paths字段里的所有路径，生成assetsindex.json
+        const assetsIndex = {};
+        let findfunction = (assetsDir) => {
+            if (!fs.existsSync(assetsDir)) {
+                console.error('assets目录不存在:', assetsDir);
+                return;
+            }
+            const bundles = fs.readdirSync(assetsDir).filter((file) => {
+                const filePath = path.join(assetsDir, file);
+                return fs.statSync(filePath).isDirectory();
+            });
+            //找到每个bundle文件夹下的cc.config.匹配任意值.json,读取json里的"paths"字段
+            console.log('已找到构建文件夹列表:', assetsDir, bundles);
+            bundles.forEach((bundle) => {
+                const configPath = path.join(assetsDir, bundle, 'cc.config.*.json').replace(/\\/g, '/');
+                console.log(`正在处理 ${bundle} 的配置文件: ${configPath}`);
+                const configFiles = fg.sync(configPath); // 使用 fast-glob 匹配文件
+                if (configFiles.length === 0) {
+                    console.warn(`未找到 ${bundle} 的配置文件`);
+                    return;
+                }
+                //这里只会有一个文件
+                if (configFiles.length > 0) {
+                    const configFile = configFiles[0];
+                    const configData = JSON.parse(fs.readFileSync(configFile, 'utf-8'));
+                    if (configData.paths) {
+                        // 遍历paths字段
+                        Object.keys(configData.paths).forEach((key) => {
+                            const paths = configData.paths[key];
+                            // console.log(`处理 ${bundle} 的路径:`, paths);
+                            if (Array.isArray(paths) && paths.length > 0) {
+                                // 只取第一个路径，顺便检测一下同名的，有就打印出来
+                                const assetPath = paths[0];
+                                if (assetsIndex[assetPath] && assetsIndex[assetPath] !== bundle) {
+                                    console.warn(`警告：路径 ${assetPath} 在多个 bundle 中重复，当前 bundle: ${bundle}`);
+                                    //如果路径中没有'i18n'，则打印出来
+                                    if (!assetPath.includes('i18n')) {
+                                        console.error(`检测到重名且非i18路径: ${assetPath}，已存在于 bundle: ${assetsIndex[assetPath]}，当前 bundle: ${bundle}`);
+                                    }
+                                }
+                                assetsIndex[assetPath] = bundle; // 将路径和对应的 bundle 存入 assetsIndex
+                            }
+                        });
+                    }
+                }
+            });
+        };
+        const _assetsDir = path.join(buildplatformdir, 'assets', 'assets');
+        findfunction(_assetsDir);
+        const _remoteAssetsDir = path.join(buildplatformdir, 'remote');
+        findfunction(_remoteAssetsDir);
+        console.log('生成的 assetsindex:', assetsIndex);
+        // 生成assetsindex.json
+        fs.writeFileSync(path.join(buildplatformdir, 'assetsindex.json'), JSON.stringify(assetsIndex, null, 4));
+    },
+    fetchBuildFolders() {
+        console.log('主进程：获取已构建文件列表');
+        // 这里可以写获取已构建文件夹列表的逻辑
+        const fs = require('fs');
+        const path = require('path');
+        const buildDir = path.join(Editor.Project.path, 'build');
+        if (!fs.existsSync(buildDir)) {
+            console.error('构建目录不存在:', buildDir);
+            return [];
+        }
+        // 读取构建目录下的所有文件夹列表
+        const folders = fs.readdirSync(buildDir).filter((file) => {
+            const filePath = path.join(buildDir, file);
+            return fs.statSync(filePath).isDirectory();
+        });
+        return fs.readdirSync(buildDir);
+    },
+    handleDynamicMessage(args) {
+        const methodMap = {
+            "buildMapsData": buildMapsData,
+            "moveBgImages": moveBgImages
+        };
+        if (methodMap[args.method]) {
+            return methodMap[args.method](args);
+        }
+        else {
+            console.error(`Unknown method: ${args.method}`);
+        }
+    }
+};
+function buildMapsData(args) {
+    var _a, _b, _c, _d, _e, _f, _g, _h;
+    // 在这里实现函数逻辑
+    console.log('buildMapsData called with args:', args);
+    const dir = args.dir;
+    if (!dir || !fs.existsSync(dir)) {
+        throw new Error('args.dir 必须是有效路径（一般传 assets 目录）');
+    }
+    /** @type {Record<string, string[]>} */
+    const prefabMaps = {};
+    /** @type {Record<string, Set<string>>} */
+    const spriteFrameToPrefabs = {};
+    const files = fg.sync('**/*.prefab', {
+        cwd: dir,
+        absolute: false,
+        dot: true,
+        ignore: ['**/library/**', '**/temp/**', '**/local/**', '**/build/**', '**/.**/**'],
+    });
+    const addPair = (prefabRel, uuid) => {
+        if (!uuid)
+            return;
+        if (!prefabMaps[prefabRel])
+            prefabMaps[prefabRel] = [];
+        if (!prefabMaps[prefabRel].includes(uuid))
+            prefabMaps[prefabRel].push(uuid);
+        if (!spriteFrameToPrefabs[uuid])
+            spriteFrameToPrefabs[uuid] = new Set();
+        spriteFrameToPrefabs[uuid].add(prefabRel);
+    };
+    console.log(` → ${files.length} 个 prefab`);
+    for (const rel of files) {
+        const abs = path.join(dir, rel);
+        let content = '';
+        try {
+            content = fs.readFileSync(abs, 'utf8');
+        }
+        catch (e) {
+            console.warn('[read error]', rel, e.message);
+            continue;
+        }
+        const uuids = new Set();
+        // 1) 首选 JSON 解析 + 递归遍历
+        let parsed = null;
+        try {
+            parsed = JSON.parse(content);
+        }
+        catch (_) {
+            // 2) 兜底：正则查找 "_spriteFrame"/"spriteFrame"/"_N$spriteFrame" 的 __uuid__
+            const patterns = [
+                /"_N?\$?spriteFrame"\s*:\s*\{\s*"__uuid__"\s*:\s*"([^"]+)"\s*\}/g,
+                /"_spriteFrame"\s*:\s*\{\s*"__uuid__"\s*:\s*"([^"]+)"\s*\}/g,
+                /"spriteFrame"\s*:\s*\{\s*"__uuid__"\s*:\s*"([^"]+)"\s*\}/g,
+            ];
+            for (const re of patterns) {
+                let m;
+                while ((m = re.exec(content)))
+                    uuids.add(m[1]);
+            }
+        }
+        if (parsed) {
+            const visit = (node) => {
+                if (!node)
+                    return;
+                if (Array.isArray(node)) {
+                    for (const it of node)
+                        visit(it);
+                    return;
+                }
+                if (typeof node === 'object') {
+                    for (const [k, v] of Object.entries(node)) {
+                        // 匹配 _spriteFrame / spriteFrame / _N$spriteFrame
+                        if ((/(\b|_|\$)spriteFrame\b/i).test(String(k)) && v && typeof v === 'object') {
+                            const id = v['__uuid__'] || v['uuid'];
+                            if (typeof id === 'string' && id)
+                                uuids.add(id);
+                        }
+                        visit(v);
+                    }
+                }
+            };
+            visit(parsed);
+        }
+        for (const id of uuids)
+            addPair(rel, id);
+    }
+    // 归一化输出
+    /** @type {Record<string, string[]>} */
+    const spriteFrameMaps = {};
+    for (const [uuid, set] of Object.entries(spriteFrameToPrefabs)) {
+        spriteFrameMaps[uuid] = Array.from(set).sort();
+    }
+    for (const k of Object.keys(prefabMaps)) {
+        prefabMaps[k].sort();
+    }
+    console.log(`共 ${Object.keys(prefabMaps).length} 个 prefab，涉及 ${Object.keys(spriteFrameMaps).length} 个 spriteFrame`);
+    // ------- 新增: 构建 uuid -> 路径 映射 -------
+    const projectRoot = path.join(Editor.Project.path, 'assets'); // dir 就是 assets 目录
+    console.log('projectRoot:', projectRoot);
+    const uuid2info = {};
+    const path2info = {};
+    const metaFiles = fg.sync('**/*.meta', {
+        cwd: projectRoot,
+        absolute: false,
+        dot: true,
+        ignore: ['**/library/**', '**/temp/**', '**/local/**', '**/build/**', '**/.**/**'],
+    });
+    console.log(` → ${metaFiles.length} 个 meta`);
+    for (const rel of metaFiles) {
+        const abs = path.join(projectRoot, rel);
+        let content = '';
+        try {
+            content = fs.readFileSync(abs, 'utf8');
+        }
+        catch (_j) {
+            continue;
+        }
+        let meta = null;
+        try {
+            meta = JSON.parse(content);
+        }
+        catch (_k) {
+            continue;
+        }
+        if (!meta || !meta.subMetas)
+            continue;
+        for (const sub of Object.values(meta.subMetas)) {
+            if (sub.importer === 'sprite-frame' && sub.uuid) {
+                // 记录 uuid -> 文件路径 (去掉 .meta)
+                const imgPath = abs.slice(projectRoot.length + 1, -5).replace(/\\/g, '/');
+                // 计算对应贴图大小（如果有对应的导入文件）
+                let size = 0;
+                const texFile = abs.replace(/\.meta$/, ''); // 对应的源图
+                if (fs.existsSync(texFile)) {
+                    try {
+                        const stat = fs.statSync(texFile);
+                        size = stat.size;
+                    }
+                    catch (e) {
+                        console.error('error:', texFile, e.message);
+                    }
+                }
+                // 直接从 userData 取宽高
+                const width = (_d = (_b = (_a = sub.userData) === null || _a === void 0 ? void 0 : _a.width) !== null && _b !== void 0 ? _b : (_c = sub.userData) === null || _c === void 0 ? void 0 : _c.rawWidth) !== null && _d !== void 0 ? _d : 0;
+                const height = (_h = (_f = (_e = sub.userData) === null || _e === void 0 ? void 0 : _e.height) !== null && _f !== void 0 ? _f : (_g = sub.userData) === null || _g === void 0 ? void 0 : _g.rawHeight) !== null && _h !== void 0 ? _h : 0;
+                // 存成对象
+                uuid2info[sub.uuid] = {
+                    path: imgPath,
+                    size,
+                };
+                path2info[imgPath] = {
+                    uuid: sub.uuid,
+                    size,
+                    count: 0,
+                    width,
+                    height,
+                };
+            }
+        }
+    }
+    // ------- 新增: 用路径替换 uuid -------
+    const prefabMaps_name = {};
+    const spriteFrameMaps_name = {};
+    for (const [prefab, uuids] of Object.entries(prefabMaps)) {
+        prefabMaps_name[prefab] = uuids
+            .map((id) => { var _a; return (_a = uuid2info[id]) === null || _a === void 0 ? void 0 : _a.path; })
+            .filter(Boolean)
+            .sort();
+    }
+    for (const [uuid, prefabs] of Object.entries(spriteFrameMaps)) {
+        const info = uuid2info[uuid];
+        if (!info)
+            continue;
+        spriteFrameMaps_name[info.path] = prefabs.slice();
+        path2info[info.path].count = prefabs.length;
+    }
+    // ------- 输出 -------
+    if (!(args === null || args === void 0 ? void 0 : args.out)) {
+        // 项目根目录
+        const projectRoot = Editor.Project.path;
+        // extensions/resultouts 目录
+        const outDir = path.join(projectRoot, 'extensions', package_json_1.default.name, 'resultouts');
+        // 如果不存在则创建
+        if (!fs.existsSync(outDir)) {
+            fs.mkdirSync(outDir, { recursive: true });
+        }
+        // 输出文件
+        args.out = path.join(outDir, 'sprite_maps.json');
+    }
+    const outDir = path.isAbsolute(args.out) ? args.out : path.join(Editor.Project.path, args.out);
+    fs.mkdirSync(path.dirname(outDir), { recursive: true });
+    const out1 = outDir.replace(/(\.json)?$/, '1.json');
+    const out2 = outDir.replace(/(\.json)?$/, '2.json');
+    fs.writeFileSync(out1, JSON.stringify({ prefabMaps, spriteFrameMaps }, null, 2), 'utf8');
+    fs.writeFileSync(out2, JSON.stringify({ prefabMaps_name, spriteFrameMaps_name, path2info }, null, 2), 'utf8');
+    console.log(`映射已写入 → ${out1}, ${out2}`);
+    return { prefabMaps, spriteFrameMaps, prefabMaps_name, spriteFrameMaps_name, uuid2info, path2info, out1, out2 };
+}
+async function moveBgImages(args) {
+    console.log('moveBgImages called');
+    const spriteFrameMaps_name = args.spriteFrameMaps_name;
+    const path2info = args.path2info;
+    // const bgPrefabRegex = new RegExp(args.bgPrefabRegex); // e.g., "preb/(.*?)/(.*?).prefab"
+    const bgTargetPattern = args.bgTargetPattern; // e.g., "staticRes/$1/$2/"
+    const absprefix = path.join(Editor.Project.path, 'assets');
+    const regex = new RegExp(args.bgPrefabRegex || ".*"); // 默认匹配所有
+    let caseConflictStrategy = 'keepOld'; // 'useNew' 或 'keepOld'
+    if (!args.keepOld) {
+        caseConflictStrategy = 'useNew';
+    }
+    // 记录移动操作
+    const recordMoveOperation = (src, dest, targetDir, imgPath) => {
+        operations.push({ src, dest, targetDir, imgPath });
+    };
+    let movedCount = 0;
+    let errorCount = 0;
+    const operations = []; // 收集所有移动操作
+    const no_ops = []; // 收集所有不需要移动的文件
+    const errors = [];
+    // 第一阶段：收集所有移动操作
+    console.log('开始分析需要移动的文件...');
+    for (const [imgPath, info] of Object.entries(path2info)) {
+        const prefabList = spriteFrameMaps_name[imgPath];
+        if (!prefabList || prefabList.length === 0) {
+            console.warn(`未被引用的图片: ${imgPath}`);
+            continue;
+        }
+        // 取第一个 prefab 进行匹配
+        const prefabPath = prefabList[0];
+        const match = prefabPath.match(regex);
+        if (!match) {
+            console.warn(`prefab 路径不匹配正则: ${prefabPath}`);
+            continue;
+        }
+        // 构建新的目标目录
+        let targetDir = bgTargetPattern;
+        // 如果有捕获组，进行替换；否则直接使用 bgTargetPattern
+        if (match.length > 1) {
+            match.forEach((g, i) => {
+                if (i > 0) { // 跳过完整匹配
+                    targetDir = targetDir.replace(new RegExp("\\$" + i, "g"), g);
+                }
+            });
+        }
+        // 规范化路径分隔符并确保以 / 结尾
+        targetDir = targetDir.replace(/\\/g, '/');
+        if (!targetDir.endsWith('/')) {
+            targetDir += '/';
+        }
+        // 拼接源和目标 db:// 路径
+        const src = `db://assets/${imgPath.replace(/\\/g, '/')}`;
+        const fileName = path.basename(imgPath);
+        const dest = `db://assets/${targetDir}${fileName}`;
+        if (src !== dest) {
+            operations.push({ src, dest, targetDir, imgPath });
+        }
+        else {
+            no_ops.push({ src, dest, targetDir, imgPath });
+        }
+    }
+    if (args.preLook) {
+        console.log('预览模式，返回分析结果，不进行实际移动');
+        // 找出所有有重复dest的操作组
+        const destGroups = new Map();
+        operations.forEach(op => {
+            if (!destGroups.has(op.dest)) {
+                destGroups.set(op.dest, []);
+            }
+            destGroups.get(op.dest).push(op);
+        });
+        // 筛选出有冲突的组（超过1个文件指向同一个目标）
+        const duplicateDestGroups = Array.from(destGroups.entries())
+            .filter(([dest, ops]) => ops.length > 1)
+            .map(([dest, ops]) => ({
+            dest,
+            count: ops.length,
+            operations: ops
+        }));
+        // 为了兼容性，也保留原来的平铺格式
+        const duplicateDest = duplicateDestGroups.flatMap(group => group.operations);
+        return {
+            tips1: '不需要移动的图片',
+            no_ops,
+            tips2: '需要移动的图片',
+            totalProcessed: operations.length,
+            operations,
+            caseConflictStrategy,
+            tips3: "会同目录同名的文件",
+            duplicateDest,
+            tips4: "详细的冲突分组",
+            duplicateDestGroups
+        };
+    }
+    console.log(`分析完成，准备移动 ${operations.length} 个文件`);
+    if (operations.length === 0) {
+        console.log('没有需要移动的文件');
+        return { movedCount: 0, errorCount: 0, errors: [] };
+    }
+    // 第二阶段：批量创建目录
+    // 第二阶段：处理大小写冲突并创建目录
+    console.log('开始处理大小写冲突并创建目录...');
+    const caseConflictMap = await handleCaseConflictsAndCreateDirs(operations, caseConflictStrategy, errors);
+    // 第三阶段：刷新资源数据库
+    try {
+        await Editor.Message.send('asset-db', 'refresh-asset', 'db://assets');
+    }
+    catch (e) {
+        console.warn('刷新资源数据库失败:', e);
+    }
+    // 第四阶段：批量移动文件
+    console.log('开始移动文件...');
+    for (let i = 0; i < operations.length; i++) {
+        const { src, dest, imgPath } = operations[i];
+        try {
+            await Editor.Message.request('asset-db', 'move-asset', src, dest).then((result) => {
+                console.log('move-asset result:', result);
+            });
+            console.log(`[${i + 1}/${operations.length}] 移动成功: ${path.basename(imgPath)}, 从 ${src} 到 ${dest}`);
+            movedCount++;
+        }
+        catch (e) {
+            console.error(`[${i + 1}/${operations.length}] 移动失败: ${path.basename(imgPath)}`, e);
+            errorCount++;
+            errors.push(`移动失败: ${imgPath} - ${e.message}`);
+        }
+    }
+    // 第五阶段：最终刷新
+    try {
+        await Editor.Message.send('asset-db', 'refresh-asset', 'db://assets');
+        console.log('移动完成，已刷新资源数据库');
+    }
+    catch (e) {
+        console.warn('最终刷新资源数据库失败:', e);
+    }
+    // 输出统计信息
+    console.log(`移动操作完成：成功 ${movedCount} 个，失败 ${errorCount} 个`);
+    if (caseConflictMap.size > 0) {
+        console.log('大小写冲突处理结果:');
+        caseConflictMap.forEach((resolvedPath, originalPath) => {
+            console.log(`  ${originalPath} -> ${resolvedPath}`);
+        });
+    }
+    if (errors.length > 0) {
+        console.error('错误汇总:', errors);
+    }
+    return {
+        movedCount,
+        errorCount,
+        errors,
+        totalProcessed: operations.length,
+        caseConflicts: caseConflictMap.size
+    };
+}
+async function handleCaseConflictsAndCreateDirs(operations, strategy, errors) {
+    const caseConflictMap = new Map();
+    const uniqueDirs = [...new Set(operations.map(op => op.targetDir))];
+    // 1. 检测和解决每个路径的每一级目录大小写冲突
+    const resolvedDirs = new Map(); // 原路径 -> 解决后的路径
+    for (const dir of uniqueDirs) {
+        const resolvedPath = await resolvePathCaseConflicts(dir, strategy, errors);
+        if (resolvedPath !== dir) {
+            caseConflictMap.set(dir, resolvedPath);
+            resolvedDirs.set(dir, resolvedPath);
+        }
+    }
+    // 2. 更新 operations 中被修改的路径
+    for (const op of operations) {
+        if (caseConflictMap.has(op.targetDir)) {
+            const newTargetDir = caseConflictMap.get(op.targetDir);
+            // 确保新目录路径以 / 结尾
+            const normalizedTargetDir = newTargetDir.endsWith('/') ? newTargetDir : newTargetDir + '/';
+            const fileName = path.basename(op.src.split('/').pop() || '');
+            console.log(`更新操作路径: ${op.targetDir} -> ${newTargetDir}`);
+            op.targetDir = newTargetDir;
+            op.dest = `db://assets/${normalizedTargetDir}${fileName}`;
+        }
+    }
+    // 3. 创建所有需要的目录
+    const finalUniqueDirs = [...new Set(operations.map(op => op.targetDir))];
+    for (const dir of finalUniqueDirs) {
+        const absDir = path.join(Editor.Project.path, 'assets', dir);
+        if (!fs.existsSync(absDir)) {
+            try {
+                fs.mkdirSync(absDir, { recursive: true });
+                console.log(`创建目录: ${dir}`);
+            }
+            catch (e) {
+                console.error(`创建目录失败: ${dir}`, e);
+                errors.push(`创建目录失败: ${dir} - ${e.message}`);
+            }
+        }
+    }
+    return caseConflictMap;
+}
+// 新增：逐级检查并解决路径的大小写冲突
+async function resolvePathCaseConflicts(targetPath, strategy, errors) {
+    const assetsPath = path.join(Editor.Project.path, 'assets');
+    const pathParts = targetPath.split(/[/\\]/).filter(Boolean);
+    const resolvedParts = [];
+    let currentAbsPath = assetsPath;
+    for (let i = 0; i < pathParts.length; i++) {
+        const currentPart = pathParts[i];
+        const nextAbsPath = path.join(currentAbsPath, currentPart);
+        // 检查当前级别是否存在大小写冲突
+        if (fs.existsSync(currentAbsPath)) {
+            const siblings = fs.readdirSync(currentAbsPath);
+            const conflictingSibling = siblings.find(sibling => sibling.toLowerCase() === currentPart.toLowerCase() &&
+                sibling !== currentPart &&
+                fs.statSync(path.join(currentAbsPath, sibling)).isDirectory());
+            if (conflictingSibling) {
+                const conflictingAbsPath = path.join(currentAbsPath, conflictingSibling);
+                const currentRelPath = [...resolvedParts, conflictingSibling].join('/');
+                const targetRelPath = [...resolvedParts, currentPart].join('/');
+                console.warn(`检测到第 ${i + 1} 级目录大小写冲突: "${currentRelPath}" 与 "${targetRelPath}"`);
+                if (strategy == 'keepOld') {
+                    console.log(`使用已存在的目录名: "${conflictingSibling}"`);
+                    resolvedParts.push(conflictingSibling);
+                    currentAbsPath = conflictingAbsPath;
+                }
+                else {
+                    // 策略：使用新名称，将旧目录重命名为新目录名
+                    const oldDbPath = `db://assets/${[...resolvedParts, conflictingSibling].join('/')}`;
+                    const newDbPath = `db://assets/${[...resolvedParts, currentPart].join('/')}`;
+                    try {
+                        console.log(`重命名目录: "${currentRelPath}" -> "${targetRelPath}"`);
+                        await Editor.Message.request('asset-db', 'move-asset', oldDbPath, newDbPath);
+                        console.log(`成功使用新的目录名: "${currentPart}"`);
+                        resolvedParts.push(currentPart);
+                        currentAbsPath = nextAbsPath;
+                    }
+                    catch (e) {
+                        console.error(`重命名第 ${i + 1} 级目录失败: ${currentRelPath} -> ${targetRelPath}`, e);
+                        errors.push(`重命名目录失败: ${currentRelPath} -> ${targetRelPath} - ${e.message}`);
+                        // 失败时回退到保持旧名称
+                        console.log(`重命名失败，回退使用旧目录名: "${conflictingSibling}"`);
+                        resolvedParts.push(conflictingSibling);
+                        currentAbsPath = conflictingAbsPath;
+                    }
+                }
+            }
+            else {
+                // 没有冲突，直接使用
+                resolvedParts.push(currentPart);
+                currentAbsPath = nextAbsPath;
+            }
+        }
+        else {
+            // 父目录不存在，直接使用
+            resolvedParts.push(currentPart);
+            currentAbsPath = nextAbsPath;
+        }
+    }
+    let resolvedPath = resolvedParts.join('/');
+    // 保持原路径的末尾斜杠
+    if (targetPath.endsWith('/') && !resolvedPath.endsWith('/')) {
+        resolvedPath += '/';
+    }
+    if (resolvedPath !== targetPath) {
+        console.log(`路径解决结果: "${targetPath}" -> "${resolvedPath}"`);
+    }
+    return resolvedPath;
+}
+/**
+ * @en Hooks triggered after extension loading is complete
+ * @zh 扩展加载完成后触发的钩子
+ */
+function load() {
+    console.log(`[cocos-panel-html.${package_json_1.default.name}]: load`);
+    // 在这里可以进行一些初始化操作，比如注册面板、事件监听等
+}
+exports.load = load;
+/**
+ * @en Hooks triggered after extension uninstallation is complete
+ * @zh 扩展卸载完成后触发的钩子
+ */
+function unload() { }
+exports.unload = unload;
