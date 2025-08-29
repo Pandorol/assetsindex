@@ -75,7 +75,7 @@ module.exports = Editor.Panel.define({
         preImageTotal: '#preImageTotal',// 计算结果
         preImagesaving: '#preImagesaving',// 计算结果
         preImageRemaining: '#preImageRemaining',// 计算结果
-        lookPreImageResult: '#lookPreImageResult',// 查看结果按钮
+        lookPreImageResultBtn: '#lookPreImageResultBtn',// 查看结果按钮
         //common
         commonThreshold: '#commonThreshold',// 输入框
         calculateCommon: '#calculateCommon',// 计算按钮
@@ -124,7 +124,7 @@ module.exports = Editor.Panel.define({
 
         //移动图片
         preprocessIdenticalImagesBtn: '#preprocessIdenticalImagesBtn',// 预处理完全相同的图和预制体引用重新指向
-        lookPreprocessIdenticalImagesBtn: '#lookPreprocessIdenticalImagesBtn',// 查看预处理结果
+        lookPreprocessIdenticalImagesBtn: '#lookPreprocessIdenticalImagesBtn',// 预查看预处理结果
 
 
         caseConflictKeepOld: '#caseConflictKeepOld',// 保留旧文件夹名
@@ -810,7 +810,7 @@ module.exports = Editor.Panel.define({
             // 简单 alert 弹窗
             this.showAlert(_ignoreCache);
         });
-        this.$.lookPreImageResult?.addEventListener('click', () => {
+        this.$.lookPreImageResultBtn?.addEventListener('click', () => {
             //查看_preImageCache的内容
             if(!_preImageCache) {
                 console.warn('请先计算预处理相同大图');
@@ -1046,7 +1046,7 @@ module.exports = Editor.Panel.define({
             });
             
             console.log(`找到 ${Object.keys(duplicateGroups).length} 组重复的大图`);
-            
+            const totalDuplicateFiles=Object.values(duplicateGroups).reduce((sum, paths) => sum + paths.length - 1, 0),
             // 4. 构建预处理缓存数据
             _preImageCache = {
                 duplicateGroups: duplicateGroups,
@@ -1054,7 +1054,7 @@ module.exports = Editor.Panel.define({
                 removeImages: {}, // 每组需要删除的图片
                 summary: {
                     totalGroups: Object.keys(duplicateGroups).length,
-                    totalDuplicateFiles: Object.values(duplicateGroups).reduce((sum, paths) => sum + paths.length - 1, 0),
+                    totalDuplicateFiles: totalDuplicateFiles,
                     totalSavedSize: 0 // 后面计算
                 }
             };
@@ -1131,7 +1131,7 @@ module.exports = Editor.Panel.define({
             const duplicateCount = duplicatePathsSet.size;
             const remainingCount = Object.keys(_preImageRemainingdataCache).length;
             
-            (this.$.preImageTotal as HTMLInputElement).textContent = duplicateCount.toString();
+            (this.$.preImageTotal as HTMLInputElement).textContent = totalDuplicateFiles.toString();
             (this.$.preImagesaving as HTMLInputElement).textContent = Object.keys(duplicateGroups).length.toString();
             (this.$.preImageRemaining as HTMLInputElement).textContent = remainingCount.toString();
             
@@ -1291,9 +1291,9 @@ module.exports = Editor.Panel.define({
             const groupCount = Object.keys(_preImageCache.duplicateGroups).length;
             const duplicateCount = _preImageCache.summary.totalDuplicateFiles;
             const savedSizeStr = formatSize(_preImageCache.summary.totalSavedSize);
-            
-            const confirmMessage = `将要处理 ${groupCount} 组重复图片，删除 ${duplicateCount} 个重复文件，节省空间 ${savedSizeStr}。\n\n此操作将：\n1. 删除重复的图片文件\n2. 修改预制体文件中的引用指向\n3. 刷新资源数据库\n\n确定要继续吗？`;
-            
+
+            const confirmMessage = `将要处理 ${groupCount} 组重复图片，删除 ${duplicateCount} 个重复文件，节省空间 ${savedSizeStr}。\n\n此操作将：\n1. 修改预制体文件中的引用指向\n2. 删除重复的图片文件\n3. 刷新资源数据库\n\n确定要继续吗？`;
+
             Editor.Dialog.warn(confirmMessage, {
                 title: '确认预处理操作',
                 buttons: ['确定', '取消']
@@ -1303,7 +1303,8 @@ module.exports = Editor.Panel.define({
                     
                     Editor.Message.request('assetsindex', 'dynamic-message', {
                         method: 'preChangeImagesAndPrefabs',
-                        preImageCache: _preImageCache
+                        preImageCache: _preImageCache,
+                        
                     }).then((data)=>{
                         console.log('预处理完成:', data);
                         
@@ -1346,10 +1347,12 @@ module.exports = Editor.Panel.define({
                 }
             });
         }
+        
         // 移动大图按钮
         this.$.moveBgImagesBtn?.addEventListener('click', () => {
             moveBgImage();
         });
+        
         const moveBgImage=(preLook=false)=>{
             const bgPrefabRegex = (this.$.bgPrefabRegex as HTMLInputElement).value;
             const bgTargetPattern = (this.$.bgTargetPattern as HTMLInputElement).value;

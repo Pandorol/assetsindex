@@ -74,7 +74,7 @@ module.exports = Editor.Panel.define({
         preImageTotal: '#preImageTotal',
         preImagesaving: '#preImagesaving',
         preImageRemaining: '#preImageRemaining',
-        lookPreImageResult: '#lookPreImageResult',
+        lookPreImageResultBtn: '#lookPreImageResultBtn',
         //common
         commonThreshold: '#commonThreshold',
         calculateCommon: '#calculateCommon',
@@ -748,7 +748,7 @@ module.exports = Editor.Panel.define({
             // 简单 alert 弹窗
             this.showAlert(_ignoreCache);
         });
-        (_j = this.$.lookPreImageResult) === null || _j === void 0 ? void 0 : _j.addEventListener('click', () => {
+        (_j = this.$.lookPreImageResultBtn) === null || _j === void 0 ? void 0 : _j.addEventListener('click', () => {
             //查看_preImageCache的内容
             if (!_preImageCache) {
                 console.warn('请先计算预处理相同大图');
@@ -962,6 +962,7 @@ module.exports = Editor.Panel.define({
                 }
             });
             console.log(`找到 ${Object.keys(duplicateGroups).length} 组重复的大图`);
+            const totalDuplicateFiles = Object.values(duplicateGroups).reduce((sum, paths) => sum + paths.length - 1, 0), 
             // 4. 构建预处理缓存数据
             _preImageCache = {
                 duplicateGroups: duplicateGroups,
@@ -969,7 +970,7 @@ module.exports = Editor.Panel.define({
                 removeImages: {},
                 summary: {
                     totalGroups: Object.keys(duplicateGroups).length,
-                    totalDuplicateFiles: Object.values(duplicateGroups).reduce((sum, paths) => sum + paths.length - 1, 0),
+                    totalDuplicateFiles: totalDuplicateFiles,
                     totalSavedSize: 0 // 后面计算
                 }
             };
@@ -1029,7 +1030,7 @@ module.exports = Editor.Panel.define({
             // 8. 更新UI显示
             const duplicateCount = duplicatePathsSet.size;
             const remainingCount = Object.keys(_preImageRemainingdataCache).length;
-            this.$.preImageTotal.textContent = duplicateCount.toString();
+            this.$.preImageTotal.textContent = totalDuplicateFiles.toString();
             this.$.preImagesaving.textContent = Object.keys(duplicateGroups).length.toString();
             this.$.preImageRemaining.textContent = remainingCount.toString();
             console.log(`预处理相同大图完成: 重复图片 ${duplicateCount} 张, 保留组 ${Object.keys(duplicateGroups).length} 组, 剩余 ${remainingCount} 张, 节省空间 ${formatSize(totalSavedSize)}`);
@@ -1166,7 +1167,7 @@ module.exports = Editor.Panel.define({
             const groupCount = Object.keys(_preImageCache.duplicateGroups).length;
             const duplicateCount = _preImageCache.summary.totalDuplicateFiles;
             const savedSizeStr = formatSize(_preImageCache.summary.totalSavedSize);
-            const confirmMessage = `将要处理 ${groupCount} 组重复图片，删除 ${duplicateCount} 个重复文件，节省空间 ${savedSizeStr}。\n\n此操作将：\n1. 删除重复的图片文件\n2. 修改预制体文件中的引用指向\n3. 刷新资源数据库\n\n确定要继续吗？`;
+            const confirmMessage = `将要处理 ${groupCount} 组重复图片，删除 ${duplicateCount} 个重复文件，节省空间 ${savedSizeStr}。\n\n此操作将：\n1. 修改预制体文件中的引用指向\n2. 删除重复的图片文件\n3. 刷新资源数据库\n\n确定要继续吗？`;
             Editor.Dialog.warn(confirmMessage, {
                 title: '确认预处理操作',
                 buttons: ['确定', '取消']
@@ -1175,7 +1176,7 @@ module.exports = Editor.Panel.define({
                     console.log('开始执行预处理相同大图操作...');
                     Editor.Message.request('assetsindex', 'dynamic-message', {
                         method: 'preChangeImagesAndPrefabs',
-                        preImageCache: _preImageCache
+                        preImageCache: _preImageCache,
                     }).then((data) => {
                         console.log('预处理完成:', data);
                         if (data.success) {

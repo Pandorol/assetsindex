@@ -91,8 +91,8 @@
                 <button id="calculateIgnoreSameImage">设置</button>
             </div>
             <div id="preImageResult">
-                共 <span id="preImageTotal">0</span> 张，保留了<span id="preImagesaving">0</span> 张，剩余 <span id="preImageRemaining">0</span> 张待处理
-                <button id="lookPreImageResult">查看预处理结果</button>
+                删除 <span id="preImageTotal">0</span> 张，保留<span id="preImagesaving">0</span> 张，剩余 <span id="preImageRemaining">0</span> 张待处理
+                <button id="lookPreImageResultBtn">查看预处理结果</button>
             </div>
             <!-- 大图文件夹 大小超过 -->
             <h2>1、大图文件夹尺寸超过或等于多少的放bg</h2>
@@ -179,16 +179,16 @@
             <!--先预处理那些完全相同的图和预制体引用重新指向-->
             <div >
                 <button id="preprocessIdenticalImagesBtn" style="height: 25px;">预处理完全相同的图和预制体引用重新指向</button>
-                <button id="lookPreprocessIdenticalImagesBtn" style="height: 25px;">查看预处理结果</button>
+                <!-- <button id="lookPreprocessIdenticalImagesBtn" style="height: 25px;">预查看预处理结果</button> -->
             </div>
             <!-- 移动大图按钮 -->
             <h2>1、移动大图  大图直接移动到第一个应用的预制体的模块目录去</h2>
             <!-- 取目录和设置目录 -->
              <label>Prefab 正则:</label>
-            <input type="text" id="bgPrefabRegex" value="preb[/\\](.*)[/\\](.*)\.prefab" style="width: 400px;"/>
+            <input type="text" id="bgPrefabRegex" value="remotemain/preb[/\\](.*)[/\\](.*)\.prefab" style="width: 400px;"/>
 
             <label>目标路径模板:</label>
-            <input type="text" id="bgTargetPattern" value="staticRes/$1/bg/" style="width: 400px;"/>
+            <input type="text" id="bgTargetPattern" value="remotemain/staticRes/$1/bg/" style="width: 400px;"/>
             <div>
                 这个正则preb[/\\](.*)[/\\](.*)\.prefab 表示匹配 preb/scene1/active/kill/xx.prefab 这种格式
                 <br />
@@ -212,7 +212,7 @@
             <h2>3、移动单图  直接移动到对应模块文件夹</h2>
             <!-- 取目录和设置目录 -->
              <label>Prefab 正则:</label>
-            <input type="text" id="singlePrefabRegex" value="preb[/\\](.*)[/\\](.*)\.prefab" style="width: 400px;"/>
+            <input type="text" id="singlePrefabRegex" value="remotemain/preb[/\\](.*)[/\\](.*)\.prefab" style="width: 400px;"/>
             <label>目标路径模板:</label>
             <input type="text" id="singleTargetPattern" value="remotemain/staticRes/$1/atlas/" style="width: 400px;"/>
             <div>
@@ -222,7 +222,7 @@
             <h2>4、移动sameDir图  直接移动到对应模块文件夹</h2>
             <!-- 取目录和设置目录 -->
              <label>Prefab 正则:</label>
-            <input type="text" id="sameDirPrefabRegex" value="preb[/\\](.*)[/\\](.*)\.prefab" style="width: 400px;"/>
+            <input type="text" id="sameDirPrefabRegex" value="remotemain/preb[/\\](.*)[/\\](.*)\.prefab" style="width: 400px;"/>
             <label>目标路径模板:</label>
             <input type="text" id="sameDirTargetPattern" value="remotemain/staticRes/$1/atlas/" style="width: 400px;"/>
             <div>

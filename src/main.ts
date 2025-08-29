@@ -297,6 +297,8 @@ function buildMapsData(args: any) {
         spriteFrameToPrefabs[uuid].add(prefabRel);
     };
     console.log(` → ${files.length} 个 prefab`);
+    const assetsDir = path.join(Editor.Project.path, 'assets');
+    
     for (const rel of files) {
         const abs = path.join(dir, rel);
         let content = '';
@@ -347,7 +349,17 @@ function buildMapsData(args: any) {
         visit(parsed);
         }
 
-        for (const id of uuids) addPair(rel, id);
+        // 计算相对于 assets 目录的路径
+        let prefabRelToAssets = '';
+        if (abs.startsWith(assetsDir)) {
+            // 如果预制体在 assets 目录下，使用相对路径
+            prefabRelToAssets = path.relative(assetsDir, abs).replace(/\\/g, '/');
+        } else {
+            // 如果预制体不在 assets 目录下，使用原来的相对路径
+            prefabRelToAssets = rel;
+        }
+
+        for (const id of uuids) addPair(prefabRelToAssets, id);
     }
     // 归一化输出
     /** @type {Record<string, string[]>} */
