@@ -72,8 +72,8 @@
                 <label for="ignorePattern">忽略跳过包含:</label>
                 <input type="text" id="ignorePattern" value="i18,spine" style="width: 400px;"/>
                 <span>多个用逗号分隔</span>
-                <button id="setIgnorePatternBtn">设置</button>
             </div>
+            <div><button id="setIgnorePatternBtn">设置</button></div>
             <div id="ignoreResult">
                 共 <span id="ignoreTotal">0</span> 张，总大小 <span id="ignoreTotalSize">0</span> KB, 剩余 <span id="ignoreRemaining">0</span> 张待处理
                 <button id="lookIgnorePatternResult">查看忽略内容</button>
@@ -93,8 +93,8 @@
                         <label>=</label>
                         <input type="number" id="preImageThreshold" value="10000" style="width:120px;" readonly/>
                         <span></span>
-                        <button id="calculatePreSameImageBtn">设置</button>
                     </div>
+                    <div><button id="calculatePreSameImageBtn">设置</button></div>
                     <div id="preImageResult">
                         删除 <span id="preImageTotal">0</span> 张，保留<span id="preImagesaving">0</span> 张，剩余 <span id="preImageRemaining">0</span> 张待处理
                         <button id="lookPreImageResultBtn">查看预处理结果</button>
@@ -133,8 +133,8 @@
             <div>
                 <label for="commonThreshold">Common 文件夹引用阈值:</label>
                 <input type="number" id="commonThreshold" value="10" />
-                <button id="calculateCommon">设置</button>
             </div>
+            <div><button id="calculateCommon">设置</button></div>
             <div id="commonResult">
                 共 <span id="commonTotal">0</span> 张，总大小 <span id="commonTotalSize">0</span> KB, 剩余 <span id="commonRemaining">0</span> 张待处理
                 <button id="lookCommonResult">查看common结果</button>
@@ -180,6 +180,7 @@
             </div>
             <!-- 图片大小*引用次数<=多少时,复制图使其单独引用到对应预制体路径 -->
             <div style="height: 20px;"></div>
+            <div style="display: none;">
             <h2>4、图片大小*引用次数&lt;=多少时,复制图使其单独引用到对应预制体路径</h2>
             <div>
                 <label for="sizeCountThreshold">图片大小*引用次数阈值:</label>
@@ -196,6 +197,14 @@
             <div id="sizeCountResult">
                 共 <span id="sizeCountTotal">0</span> 张，总大小 <span id="sizeCountTotalSize">0</span> KB, 剩余 <span id="sizeCountRemaining">0</span> 张待处理
                 <button id="lookSizeCountResult">查看sizeCount结果</button>
+            </div>
+            </div>
+            <h2>4、引用不多的</h2>
+            <!--弄几个复选框-->
+            <div>
+                <label><input type="checkbox" id="lowReferenceCheckbox1">大图扔common去处理</label>
+                <label><input type="checkbox" id="lowReferenceCheckbox2">小图</label>
+                <label><input type="checkbox" id="lowReferenceCheckbox3"> 选项3</label>
             </div>
 
             <!-- 处理按钮 一键计算-->
