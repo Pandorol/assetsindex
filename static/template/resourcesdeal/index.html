@@ -79,7 +79,7 @@
                 <button id="lookIgnorePatternResult">查看忽略内容</button>
             </div>
             <h2>0、预处理完全一样的图片</h2>
-            <h2>尺寸大于多少的只保留一份,剩余的后面再看</h2>
+            <h2>尺寸大于多少的只保留一份,其他多份的的后面再看</h2>
             <div>
                 <label for="preImageThreshold">图片尺寸(只对比宽高乘积不单独比较宽高):</label>
                 <input type="number" id="preimgWidthinput" value="100" style="width:60px;"/>
@@ -95,7 +95,7 @@
                 <button id="lookPreImageResultBtn">查看预处理结果</button>
             </div>
             <!-- 大图文件夹 大小超过 -->
-            <h2>1、大图文件夹尺寸超过或等于多少的放bg</h2>
+            <!-- <h2>1、大图文件夹尺寸超过或等于多少的放bg</h2>
             <div>
                 <label for="largeImageThreshold">大图文件夹尺寸(只对比宽高乘积不单独比较宽高):</label>
                 <input type="number" id="bgimgWidthinput" value="400" style="width:60px;"/>
@@ -109,10 +109,10 @@
             <div id="bgResult">
                 共 <span id="bgTotal">0</span> 张，总大小 <span id="bgTotalSize">0</span> KB, 剩余 <span id="bgRemaining">0</span> 张待处理
                 <button id="lookBgResult">查看大图结果</button>
-            </div>
+            </div> -->
 
             <!-- common文件夹 超过多少xx(这里设置一个输入框)次引用放common，计算共xx张，剩余xx张待处理 -->
-            <h2>2、引用次数超过或等于多少个的放common</h2>
+            <h2>1、引用次数超过或等于多少个的放common</h2>
             <div>
                 <label for="commonThreshold">Common 文件夹引用阈值:</label>
                 <input type="number" id="commonThreshold" value="10" />
@@ -124,7 +124,7 @@
             </div>
 
             <!-- single文件夹 只有单次引用的直接放对应预制体路径文件夹 -->
-            <h2>3、单次引用的放对应预制体路径文件夹</h2>
+            <h2>2、单次引用的放对应预制体路径文件夹</h2>
             <div>
                 <button id="calculateSingle">设置</button>
             </div>
@@ -132,7 +132,7 @@
                 共 <span id="singleTotal">0</span> 张，总大小 <span id="singleTotalSize">0</span> KB, 剩余 <span id="singleRemaining">0</span> 张待处理
                 <button id="lookSingleResult">查看single结果</button>
             </div>
-            <h2>4、检查所有引用的预制体都是在同一目录的,</h2>
+            <h2>3、检查所有引用的预制体都是在同一目录的,</h2>
             <div>
                 <button id="calculateSameDir">设置</button>
             </div>
@@ -141,7 +141,7 @@
                 <button id="lookSameDirResult">查看sameDir结果</button>
             </div>
             <!-- 图片大小*引用次数<=多少时,复制图使其单独引用到对应预制体路径 -->
-            <h2>5、图片大小*引用次数&lt;=多少时,复制图使其单独引用到对应预制体路径</h2>
+            <h2>4、图片大小*引用次数&lt;=多少时,复制图使其单独引用到对应预制体路径</h2>
             <div>
                 <label for="sizeCountThreshold">图片大小*引用次数阈值:</label>
                 <input type="number" id="sizecountWidthinput" value="100" style="width:60px;"/>
