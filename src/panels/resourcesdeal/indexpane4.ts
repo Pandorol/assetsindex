@@ -157,7 +157,7 @@ export class Panel4Manager {
         
         container.appendChild(itemElement);
         
-        // 使用 setTimeout 确保 DOM 更新完成后验证
+        // 使用 setTimeout 确保 DOM 更新完成后再绑定事件
         setTimeout(() => {
             // 在扩展环境中，使用容器的 ownerDocument 来查找元素
             const doc = container.ownerDocument || document;
@@ -176,38 +176,12 @@ export class Panel4Manager {
             } else {
                 console.log(`元素成功添加到 DOM，ID: ${cleanId}`);
             }
+            
+            // 在 setTimeout 中绑定输入事件，确保 DOM 已更新
+            this.bindInputEvents(moveItem, cleanId, container);
         }, 0);
         
-        // 绑定输入事件 - 使用容器上下文查找元素
-        const doc = container.ownerDocument || document;
-        const regexInput = doc.getElementById(`${cleanId}_regex`) as HTMLInputElement;
-        const targetDirInput = doc.getElementById(`${cleanId}_targetDir`) as HTMLInputElement;
-        
-        console.log(`绑定输入事件 - 正则输入框:`, regexInput);
-        console.log(`绑定输入事件 - 目标目录输入框:`, targetDirInput);
-        
-        if (regexInput) {
-            regexInput.addEventListener('input', () => {
-                console.log(`正则输入框 input 事件触发，新值: "${regexInput.value}"`);
-                moveItem.regex = regexInput.value;
-                console.log(`更新 moveItem.regex: "${moveItem.regex}"`);
-                this.updateMatchCount(moveItem.id);
-            });
-        } else {
-            console.error(`无法找到正则输入框: ${cleanId}_regex`);
-        }
-        
-        if (targetDirInput) {
-            targetDirInput.addEventListener('input', () => {
-                console.log(`目标目录输入框 input 事件触发，新值: "${targetDirInput.value}"`);
-                moveItem.targetDir = targetDirInput.value;
-                console.log(`更新 moveItem.targetDir: "${moveItem.targetDir}"`);
-            });
-        } else {
-            console.error(`无法找到目标目录输入框: ${cleanId}_targetDir`);
-        }
-
-        // 绑定按钮事件
+        // 绑定按钮事件（使用 itemElement 查找，不依赖 ID）
         const previewBtn = itemElement.querySelector('[data-action="preview"]') as HTMLButtonElement;
         const selectBtn = itemElement.querySelector('[data-action="select"]') as HTMLButtonElement;
         const previewSelectedBtn = itemElement.querySelector('[data-action="previewSelected"]') as HTMLButtonElement;
@@ -325,6 +299,54 @@ export class Panel4Manager {
         }
         
         console.log(`删除操作完成，当前移动项:`, _dynamicMoveItems.map(item => item.id));
+    }
+
+    /**
+     * 绑定输入事件
+     */
+    static bindInputEvents(moveItem: MoveItem, cleanId: string, container: HTMLDivElement) {
+        console.log(`bindInputEvents 被调用，moveItem: ${moveItem.id}, cleanId: ${cleanId}`);
+        
+        // 使用容器上下文查找元素
+        const doc = container.ownerDocument || document;
+        
+        // 尝试多种方式查找输入框
+        let regexInput = doc.getElementById(`${cleanId}_regex`) as HTMLInputElement;
+        let targetDirInput = doc.getElementById(`${cleanId}_targetDir`) as HTMLInputElement;
+        
+        // 如果全局查找失败，使用容器查找
+        if (!regexInput) {
+            regexInput = container.querySelector(`#${cleanId}_regex`) as HTMLInputElement;
+        }
+        if (!targetDirInput) {
+            targetDirInput = container.querySelector(`#${cleanId}_targetDir`) as HTMLInputElement;
+        }
+        
+        console.log(`绑定输入事件 - 正则输入框:`, regexInput);
+        console.log(`绑定输入事件 - 目标目录输入框:`, targetDirInput);
+        
+        if (regexInput) {
+            regexInput.addEventListener('input', () => {
+                console.log(`正则输入框 input 事件触发，新值: "${regexInput.value}"`);
+                moveItem.regex = regexInput.value;
+                console.log(`更新 moveItem.regex: "${moveItem.regex}"`);
+                this.updateMatchCount(moveItem.id);
+            });
+            console.log(`正则输入框事件绑定成功`);
+        } else {
+            console.error(`无法找到正则输入框: ${cleanId}_regex`);
+        }
+        
+        if (targetDirInput) {
+            targetDirInput.addEventListener('input', () => {
+                console.log(`目标目录输入框 input 事件触发，新值: "${targetDirInput.value}"`);
+                moveItem.targetDir = targetDirInput.value;
+                console.log(`更新 moveItem.targetDir: "${moveItem.targetDir}"`);
+            });
+            console.log(`目标目录输入框事件绑定成功`);
+        } else {
+            console.error(`无法找到目标目录输入框: ${cleanId}_targetDir`);
+        }
     }
 
     /**
