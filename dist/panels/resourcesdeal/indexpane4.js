@@ -128,21 +128,30 @@ class Panel4Manager {
         container.appendChild(itemElement);
         // 使用 setTimeout 确保 DOM 更新完成后验证
         setTimeout(() => {
-            const verifyElement = document.getElementById(cleanId);
+            // 在扩展环境中，使用容器的 ownerDocument 来查找元素
+            const doc = container.ownerDocument || document;
+            const verifyElement = doc.getElementById(cleanId);
             console.log(`元素添加后验证查找结果 (setTimeout):`, verifyElement);
             if (!verifyElement) {
-                console.error(`元素添加失败！无法在 DOM 中找到 ID: ${cleanId}`);
+                console.warn(`全局 document 无法找到元素，尝试容器查找...`);
                 // 尝试直接通过容器查找
                 const directFind = container.querySelector(`#${cleanId}`);
                 console.log(`容器直接查找结果:`, directFind);
+                if (directFind) {
+                    console.log(`元素成功添加到容器，但不在全局 document 中，ID: ${cleanId}`);
+                }
+                else {
+                    console.error(`元素添加失败！容器中也找不到 ID: ${cleanId}`);
+                }
             }
             else {
                 console.log(`元素成功添加到 DOM，ID: ${cleanId}`);
             }
         }, 0);
-        // 绑定输入事件
-        const regexInput = document.getElementById(`${cleanId}_regex`);
-        const targetDirInput = document.getElementById(`${cleanId}_targetDir`);
+        // 绑定输入事件 - 使用容器上下文查找元素
+        const doc = container.ownerDocument || document;
+        const regexInput = doc.getElementById(`${cleanId}_regex`);
+        const targetDirInput = doc.getElementById(`${cleanId}_targetDir`);
         regexInput === null || regexInput === void 0 ? void 0 : regexInput.addEventListener('input', () => {
             moveItem.regex = regexInput.value;
             this.updateMatchCount(moveItem.id);
@@ -213,30 +222,36 @@ class Panel4Manager {
         else {
             console.warn(`在数组中找不到要删除的移动项: ${itemId}`);
         }
-        // 首先尝试直接查找
-        let element = document.getElementById(itemId);
-        console.log(`DOM 元素查找结果 (getElementById):`, element);
-        // 如果直接查找失败，尝试通过容器查找
-        if (!element) {
-            console.log(`尝试在容器中查找元素...`);
-            const container = _panel4Elements.moveItemsContainer;
-            if (container) {
-                // 使用 querySelector 查找
+        // 在扩展环境中，优先使用容器上下文查找元素
+        const container = _panel4Elements.moveItemsContainer;
+        let element = null;
+        if (container) {
+            const doc = container.ownerDocument || document;
+            // 首先尝试在容器的文档上下文中查找
+            element = doc.getElementById(itemId);
+            console.log(`容器文档上下文查找结果 (getElementById):`, element);
+            // 如果找不到，使用容器的 querySelector
+            if (!element) {
                 element = container.querySelector(`#${itemId}`);
                 console.log(`容器 querySelector 查找结果:`, element);
-                if (!element) {
-                    // 遍历所有 .move-item 元素查找
-                    const allItems = container.querySelectorAll('.move-item');
-                    console.log(`容器中所有 .move-item 元素:`, allItems);
-                    allItems.forEach((item, index) => {
-                        console.log(`第 ${index} 个元素 ID: "${item.id}"`);
-                    });
-                    element = Array.from(allItems).find(item => item.id === itemId);
-                    if (element) {
-                        console.log(`通过遍历找到了目标元素:`, element);
-                    }
+            }
+            // 如果还是找不到，遍历所有 .move-item 元素查找
+            if (!element) {
+                const allItems = container.querySelectorAll('.move-item');
+                console.log(`容器中所有 .move-item 元素:`, allItems);
+                allItems.forEach((item, index) => {
+                    console.log(`第 ${index} 个元素 ID: "${item.id}"`);
+                });
+                element = Array.from(allItems).find(item => item.id === itemId);
+                if (element) {
+                    console.log(`通过遍历找到了目标元素:`, element);
                 }
             }
+        }
+        else {
+            // 如果容器不存在，退回到全局 document 查找
+            console.warn('容器不存在，使用全局 document 查找...');
+            element = document.getElementById(itemId);
         }
         if (element) {
             element.remove();
@@ -244,6 +259,7 @@ class Panel4Manager {
         }
         else {
             console.warn(`在 DOM 中找不到要删除的元素: ${itemId}`);
+            console.warn('尝试的查找方法都失败了');
         }
         console.log(`删除操作完成，当前移动项:`, _dynamicMoveItems.map(item => item.id));
     }
@@ -256,7 +272,10 @@ class Panel4Manager {
             console.warn(`找不到移动项: ${itemId}`);
             return;
         }
-        const countElement = document.getElementById(`${itemId}_matchCount`);
+        // 使用容器上下文查找元素
+        const container = _panel4Elements.moveItemsContainer;
+        const doc = (container === null || container === void 0 ? void 0 : container.ownerDocument) || document;
+        const countElement = doc.getElementById(`${itemId}_matchCount`);
         if (!moveItem.regex.trim()) {
             if (countElement) {
                 countElement.textContent = '0';
@@ -366,7 +385,10 @@ class Panel4Manager {
             return;
         }
         moveItem.selectedImages = [...moveItem.matchedImages];
-        const selectedCountElement = document.getElementById(`${itemId}_selectedCount`);
+        // 使用容器上下文查找元素
+        const container = _panel4Elements.moveItemsContainer;
+        const doc = (container === null || container === void 0 ? void 0 : container.ownerDocument) || document;
+        const selectedCountElement = doc.getElementById(`${itemId}_selectedCount`);
         if (selectedCountElement) {
             selectedCountElement.textContent = moveItem.selectedImages.length.toString();
         }
@@ -423,7 +445,10 @@ class Panel4Manager {
             this.showStatus(itemId, `移动完成: 成功 ${result.movedCount} 个，失败 ${result.errorCount} 个`, 'success');
             // 清空选中列表
             moveItem.selectedImages = [];
-            const selectedCountElement = document.getElementById(`${itemId}_selectedCount`);
+            // 使用容器上下文查找元素
+            const container = _panel4Elements.moveItemsContainer;
+            const doc = (container === null || container === void 0 ? void 0 : container.ownerDocument) || document;
+            const selectedCountElement = doc.getElementById(`${itemId}_selectedCount`);
             if (selectedCountElement) {
                 selectedCountElement.textContent = '0';
             }
@@ -437,7 +462,10 @@ class Panel4Manager {
      * 显示状态消息
      */
     static showStatus(itemId, message, type) {
-        const statusElement = document.getElementById(`${itemId}_status`);
+        // 使用容器上下文查找元素
+        const container = _panel4Elements.moveItemsContainer;
+        const doc = (container === null || container === void 0 ? void 0 : container.ownerDocument) || document;
+        const statusElement = doc.getElementById(`${itemId}_status`);
         if (!statusElement)
             return;
         statusElement.textContent = message;
@@ -515,9 +543,14 @@ class Panel4Manager {
      */
     static clearAllMoveItems() {
         _dynamicMoveItems.forEach(item => {
-            const element = document.getElementById(item.id);
-            if (element) {
-                element.remove();
+            // 使用容器上下文查找元素
+            const container = _panel4Elements.moveItemsContainer;
+            if (container) {
+                const doc = container.ownerDocument || document;
+                const element = doc.getElementById(item.id) || container.querySelector(`#${item.id}`);
+                if (element) {
+                    element.remove();
+                }
             }
         });
         _dynamicMoveItems = [];
