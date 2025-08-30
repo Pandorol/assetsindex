@@ -80,6 +80,8 @@ class Panel4Manager {
         const itemElement = document.createElement('div');
         itemElement.className = 'move-item';
         itemElement.id = moveItem.id;
+        console.log(`创建元素，设置 ID: "${moveItem.id}"`);
+        console.log(`创建的元素:`, itemElement);
         itemElement.innerHTML = `
             <div class="move-item-header">
                 <span class="move-item-title">${moveItem.name}</span>
@@ -117,6 +119,15 @@ class Panel4Manager {
             <div class="move-item-status" id="${moveItem.id}_status"></div>
         `;
         container.appendChild(itemElement);
+        // 验证元素是否成功添加到 DOM
+        const verifyElement = document.getElementById(moveItem.id);
+        console.log(`元素添加后验证查找结果:`, verifyElement);
+        if (!verifyElement) {
+            console.error(`元素添加失败！无法在 DOM 中找到 ID: ${moveItem.id}`);
+        }
+        else {
+            console.log(`元素成功添加到 DOM，ID: ${moveItem.id}`);
+        }
         // 绑定输入事件
         const regexInput = document.getElementById(`${moveItem.id}_regex`);
         const targetDirInput = document.getElementById(`${moveItem.id}_targetDir`);
@@ -192,6 +203,27 @@ class Panel4Manager {
         }
         const element = document.getElementById(itemId);
         console.log(`DOM 元素查找结果:`, element);
+        // 如果直接查找失败，尝试其他方式
+        if (!element) {
+            console.log(`尝试在容器中查找元素...`);
+            const container = _panel4Elements.moveItemsContainer;
+            if (container) {
+                const allItems = container.querySelectorAll('.move-item');
+                console.log(`容器中所有 .move-item 元素:`, allItems);
+                // 遍历所有元素，查看它们的 ID
+                allItems.forEach((item, index) => {
+                    console.log(`第 ${index} 个元素 ID: "${item.id}"`);
+                });
+                // 尝试通过类名和索引找到元素
+                const targetElement = Array.from(allItems).find(item => item.id === itemId);
+                if (targetElement) {
+                    console.log(`通过遍历找到了目标元素:`, targetElement);
+                    targetElement.remove();
+                    console.log(`已通过遍历删除元素: ${itemId}`);
+                    return;
+                }
+            }
+        }
         if (element) {
             element.remove();
             console.log(`已从 DOM 中删除元素: ${itemId}`);
