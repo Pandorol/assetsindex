@@ -108,7 +108,7 @@ export class Panel4Manager {
         itemElement.innerHTML = `
             <div class="move-item-header">
                 <span class="move-item-title">${moveItem.name}</span>
-                <button class="move-item-remove" data-item-id="${moveItem.id}">✕ 删除</button>
+                <button class="move-item-remove" type="button">✕ 删除</button>
             </div>
             
             <div class="move-item-config">
@@ -125,16 +125,16 @@ export class Panel4Manager {
             </div>
             
             <div class="move-item-actions">
-                <button class="btn-preview" data-action="preview" data-item-id="${moveItem.id}">
+                <button class="btn-preview" data-action="preview" data-item-id="${moveItem.id}" type="button">
                     🔍 预览匹配 (<span id="${moveItem.id}_matchCount">0</span>)
                 </button>
-                <button class="btn-select" data-action="select" data-item-id="${moveItem.id}">
+                <button class="btn-select" data-action="select" data-item-id="${moveItem.id}" type="button">
                     ☑️ 选择匹配项
                 </button>
-                <button class="btn-preview" data-action="previewSelected" data-item-id="${moveItem.id}">
+                <button class="btn-preview" data-action="previewSelected" data-item-id="${moveItem.id}" type="button">
                     📋 预览选中 (<span id="${moveItem.id}_selectedCount">0</span>)
                 </button>
-                <button class="btn-move" data-action="move" data-item-id="${moveItem.id}">
+                <button class="btn-move" data-action="move" data-item-id="${moveItem.id}" type="button">
                     🚀 移动选中项
                 </button>
             </div>
@@ -193,11 +193,21 @@ export class Panel4Manager {
 
         // 绑定删除按钮事件
         const removeBtn = itemElement.querySelector('.move-item-remove') as HTMLButtonElement;
+        console.log(`绑定删除按钮事件，按钮:`, removeBtn, `移动项: ${moveItem.id}`);
+        
         removeBtn?.addEventListener('click', (e) => {
             e.preventDefault();
             e.stopPropagation();
             console.log(`点击删除按钮: ${moveItem.id}`);
-            this.removeMoveItem(moveItem.id);
+            console.log(`事件目标:`, e.target);
+            console.log(`当前元素:`, e.currentTarget);
+            
+            // 确认删除操作
+            if (confirm(`确定要删除"${moveItem.name}"吗？`)) {
+                this.removeMoveItem(moveItem.id);
+            } else {
+                console.log(`用户取消删除操作: ${moveItem.id}`);
+            }
         });
     }
 
@@ -205,15 +215,31 @@ export class Panel4Manager {
      * 删除移动项
      */
     static removeMoveItem(itemId: string) {
+        console.log(`removeMoveItem 被调用，删除项: ${itemId}`);
+        console.log(`删除前移动项数量: ${_dynamicMoveItems.length}`);
+        console.log(`当前移动项列表:`, _dynamicMoveItems.map(item => item.id));
+        
         const index = _dynamicMoveItems.findIndex(item => item.id === itemId);
+        console.log(`找到的索引位置: ${index}`);
+        
         if (index !== -1) {
             _dynamicMoveItems.splice(index, 1);
+            console.log(`已从数组中删除，删除后数量: ${_dynamicMoveItems.length}`);
+        } else {
+            console.warn(`在数组中找不到要删除的移动项: ${itemId}`);
         }
         
         const element = document.getElementById(itemId);
+        console.log(`DOM 元素查找结果:`, element);
+        
         if (element) {
             element.remove();
+            console.log(`已从 DOM 中删除元素: ${itemId}`);
+        } else {
+            console.warn(`在 DOM 中找不到要删除的元素: ${itemId}`);
         }
+        
+        console.log(`删除操作完成，当前移动项:`, _dynamicMoveItems.map(item => item.id));
     }
 
     /**
