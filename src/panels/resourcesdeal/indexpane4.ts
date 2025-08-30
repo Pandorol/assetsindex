@@ -56,7 +56,7 @@ export class Panel4Manager {
         };
         _dataCache = dataCache;
         
-        this.bindEvents();
+        // 不在这里绑定事件，由外部 index.ts 处理
         console.log('Panel4 动态移动功能初始化完成');
     }
 
@@ -68,26 +68,10 @@ export class Panel4Manager {
     }
 
     /**
-     * 绑定事件
-     */
-    static bindEvents() {
-        _panel4Elements.addMoveItemBtn?.addEventListener('click', () => {
-            this.addMoveItem();
-        });
-
-        _panel4Elements.previewAllSelectedBtn?.addEventListener('click', () => {
-            this.previewAllSelected();
-        });
-
-        _panel4Elements.moveAllSelectedBtn?.addEventListener('click', () => {
-            this.moveAllSelected();
-        });
-    }
-
-    /**
      * 添加新的移动项
      */
     static addMoveItem() {
+        console.log('addMoveItem 被调用');
         _moveItemCounter++;
         const itemId = `moveItem_${_moveItemCounter}`;
         
@@ -101,6 +85,8 @@ export class Panel4Manager {
         };
         
         _dynamicMoveItems.push(moveItem);
+        console.log(`添加了新的移动项: ${itemId}`, moveItem);
+        console.log(`当前移动项总数: ${_dynamicMoveItems.length}`);
         this.renderMoveItem(moveItem);
     }
 
@@ -108,8 +94,12 @@ export class Panel4Manager {
      * 渲染移动项UI
      */
     static renderMoveItem(moveItem: MoveItem) {
+        console.log(`renderMoveItem 被调用，渲染移动项: ${moveItem.id}`);
         const container = _panel4Elements.moveItemsContainer;
-        if (!container) return;
+        if (!container) {
+            console.error('moveItemsContainer 容器不存在');
+            return;
+        }
 
         const itemElement = document.createElement('div');
         itemElement.className = 'move-item';
@@ -168,32 +158,45 @@ export class Panel4Manager {
         });
 
         // 绑定按钮事件
-        itemElement.addEventListener('click', (e) => {
-            const target = e.target as HTMLElement;
-            const action = target.getAttribute('data-action');
-            const itemId = target.getAttribute('data-item-id');
-            
-            if (!itemId) return;
-            
-            switch (action) {
-                case 'preview':
-                    this.previewMatches(itemId);
-                    break;
-                case 'select':
-                    this.selectMatches(itemId);
-                    break;
-                case 'previewSelected':
-                    this.previewSelected(itemId);
-                    break;
-                case 'move':
-                    this.moveSelected(itemId);
-                    break;
-            }
+        const previewBtn = itemElement.querySelector('[data-action="preview"]') as HTMLButtonElement;
+        const selectBtn = itemElement.querySelector('[data-action="select"]') as HTMLButtonElement;
+        const previewSelectedBtn = itemElement.querySelector('[data-action="previewSelected"]') as HTMLButtonElement;
+        const moveBtn = itemElement.querySelector('[data-action="move"]') as HTMLButtonElement;
+
+        previewBtn?.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log(`点击预览匹配按钮: ${moveItem.id}`);
+            this.previewMatches(moveItem.id);
+        });
+
+        selectBtn?.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log(`点击选择匹配项按钮: ${moveItem.id}`);
+            this.selectMatches(moveItem.id);
+        });
+
+        previewSelectedBtn?.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log(`点击预览选中按钮: ${moveItem.id}`);
+            this.previewSelected(moveItem.id);
+        });
+
+        moveBtn?.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log(`点击移动选中项按钮: ${moveItem.id}`);
+            this.moveSelected(moveItem.id);
         });
 
         // 绑定删除按钮事件
         const removeBtn = itemElement.querySelector('.move-item-remove') as HTMLButtonElement;
-        removeBtn?.addEventListener('click', () => {
+        removeBtn?.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log(`点击删除按钮: ${moveItem.id}`);
             this.removeMoveItem(moveItem.id);
         });
     }
@@ -294,9 +297,13 @@ export class Panel4Manager {
      * 预览匹配的图片
      */
     static previewMatches(itemId: string) {
+        console.log(`previewMatches 被调用，itemId: ${itemId}`);
+        console.log(`当前移动项列表:`, _dynamicMoveItems.map(item => item.id));
+        
         const moveItem = _dynamicMoveItems.find(item => item.id === itemId);
         if (!moveItem) {
             console.warn(`找不到移动项: ${itemId}`);
+            console.warn(`可用的移动项ID:`, _dynamicMoveItems.map(item => item.id));
             return;
         }
         

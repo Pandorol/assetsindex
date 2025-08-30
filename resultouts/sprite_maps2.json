@@ -29441,46 +29441,6 @@
       "height": 497,
       "md5": "70639d4cccd50890a155cabcaabb03fc"
     },
-    "resources/spine/divineSkill/E2101001/action.png": {
-      "count": 0,
-      "uuid": "24c597ae-28ad-4aa8-8a73-0ea3049b8459@f9941",
-      "size": 0,
-      "width": 944,
-      "height": 1863,
-      "md5": ""
-    },
-    "resources/spine/divineSkill/E21014/action.png": {
-      "count": 0,
-      "uuid": "542342bc-ea2a-44bb-b88d-4117475d06be@f9941",
-      "size": 0,
-      "width": 2006,
-      "height": 1767,
-      "md5": ""
-    },
-    "resources/spine/divineSkill/E2103001/action.png": {
-      "count": 0,
-      "uuid": "be85c667-bbcb-4417-818b-bbb9bd8936e5@f9941",
-      "size": 0,
-      "width": 2020,
-      "height": 1091,
-      "md5": ""
-    },
-    "resources/spine/divineSkill/E2105001/action.png": {
-      "count": 0,
-      "uuid": "dcf9ed00-1cf9-438d-ad5c-121e5d3f3646@f9941",
-      "size": 0,
-      "width": 2039,
-      "height": 927,
-      "md5": ""
-    },
-    "resources/spine/divineSkill/E2107001/action.png": {
-      "count": 0,
-      "uuid": "9159e07e-aead-4dc5-96e4-88ab94164ab0@f9941",
-      "size": 0,
-      "width": 857,
-      "height": 2033,
-      "md5": ""
-    },
     "resources/spine/effect/ui_yewai/action.png": {
       "count": 0,
       "uuid": "5fb9b9dd-ef89-4d14-a243-ec320e3ce721@f9941",
