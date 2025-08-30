@@ -68,6 +68,55 @@ export class Panel4Manager {
     }
 
     /**
+     * 获取元素 - 使用类似 index.ts 的方式
+     */
+    static getElement(id: string): HTMLElement | null {
+        const container = _panel4Elements.moveItemsContainer;
+        if (!container) {
+            console.warn('容器不存在，无法查找元素:', id);
+            return null;
+        }
+        
+        // 优先使用容器的 querySelector，这是最可靠的方法
+        const element = container.querySelector(`#${id}`);
+        if (element) {
+            return element as HTMLElement;
+        }
+        
+        console.warn(`无法找到元素: ${id}`);
+        return null;
+    }
+
+    /**
+     * 获取计数元素 - 专门用于按钮中的计数显示
+     */
+    static getCountElement(itemId: string, type: 'matchCount' | 'selectedCount'): HTMLElement | null {
+        const container = _panel4Elements.moveItemsContainer;
+        if (!container) {
+            return null;
+        }
+        
+        // 直接通过选择器查找
+        const element = container.querySelector(`#${itemId}_${type}`);
+        if (element) {
+            return element as HTMLElement;
+        }
+        
+        // 如果直接查找失败，通过按钮查找
+        const actionAttr = type === 'matchCount' ? 'preview' : 'previewSelected';
+        const button = container.querySelector(`[data-action="${actionAttr}"][data-item-id="${itemId}"]`);
+        if (button) {
+            const span = button.querySelector('span');
+            if (span) {
+                return span as HTMLElement;
+            }
+        }
+        
+        console.warn(`无法找到计数元素: ${itemId}_${type}`);
+        return null;
+    }
+
+    /**
      * 添加新的移动项
      */
     static addMoveItem() {
@@ -361,11 +410,10 @@ export class Panel4Manager {
         }
         console.log(`找到移动项，当前正则: "${moveItem.regex}"`);
         
-        // 使用容器上下文查找元素
-        const container = _panel4Elements.moveItemsContainer;
-        const doc = container?.ownerDocument || document;
-        const countElement = doc.getElementById(`${itemId}_matchCount`);
+        // 使用新的元素获取方法
+        const countElement = this.getCountElement(itemId, 'matchCount');
         console.log(`查找计数元素结果:`, countElement);
+        console.log(`尝试查找的元素ID: ${itemId}_matchCount`);
         
         if (!moveItem.regex.trim()) {
             console.log(`正则表达式为空，设置计数为 0`);
@@ -415,6 +463,8 @@ export class Panel4Manager {
                 
                 // 强制刷新DOM显示
                 countElement.offsetHeight;
+            } else {
+                console.error(`无法找到计数元素，无法更新显示。尝试查找的ID: ${itemId}_matchCount`);
             }
             
             console.log(`正则 "${moveItem.regex}" 匹配到 ${moveItem.matchedImages.length} 个图片`);
@@ -634,11 +684,12 @@ export class Panel4Manager {
             moveItem.selectedImages = selectedImages;
             
             // 更新选中计数显示
-            const container = _panel4Elements.moveItemsContainer;
-            const doc = container?.ownerDocument || document;
-            const selectedCountElement = doc.getElementById(`${itemId}_selectedCount`);
+            const selectedCountElement = this.getCountElement(itemId, 'selectedCount');
             if (selectedCountElement) {
                 selectedCountElement.textContent = selectedImages.length.toString();
+                console.log(`更新选中计数显示: ${selectedImages.length}`);
+            } else {
+                console.error(`无法找到选中计数元素: ${itemId}_selectedCount`);
             }
             
             this.showStatus(itemId, `已选中 ${selectedImages.length} 个图片`, 'success');
@@ -694,26 +745,61 @@ export class Panel4Manager {
             }));
             
             // 调用主进程的移动功能
-            const result = await (window as any).Editor?.Message?.request('assetsindex', 'handle-dynamic-message', {
-                method: 'moveBgImages',
-                spriteFrameMaps_name: _dataCache.spriteFrameMaps_name,
-                path2info: _dataCache.path2info,
-                operations: moveOperations,
-                autoRename: true,
-                preLook: false
-            });
+            console.log('准备调用移动功能，操作数据:', moveOperations);
+            
+            // 检查 Editor.Message 和可用方法
+            console.log('Editor.Message 对象:', (window as any).Editor?.Message);
+            console.log('可用的方法:', Object.keys((window as any).Editor?.Message || {}));
+            
+            // 尝试不同的消息调用方式
+            let result;
+            try {
+                // 方式1: 直接调用扩展消息
+                result = await (window as any).Editor?.Message?.send('assetsindex', 'handle-dynamic-message', {
+                    method: 'moveBgImages',
+                    spriteFrameMaps_name: _dataCache.spriteFrameMaps_name,
+                    path2info: _dataCache.path2info,
+                    operations: moveOperations,
+                    autoRename: true,
+                    preLook: false
+                });
+                console.log('方式1调用结果:', result);
+            } catch (error1) {
+                console.log('方式1失败:', error1);
+                
+                try {
+                    // 方式2: 使用 request
+                    result = await (window as any).Editor?.Message?.request('assetsindex', 'moveBgImages', {
+                        spriteFrameMaps_name: _dataCache.spriteFrameMaps_name,
+                        path2info: _dataCache.path2info,
+                        operations: moveOperations,
+                        autoRename: true,
+                        preLook: false
+                    });
+                    console.log('方式2调用结果:', result);
+                } catch (error2) {
+                    console.log('方式2失败:', error2);
+                    
+                    // 方式3: 简化调用
+                    result = { movedCount: 0, errorCount: moveOperations.length };
+                    console.log('使用模拟结果:', result);
+                    this.showStatus(itemId, '移动功能暂不可用，请检查扩展配置', 'error');
+                    return;
+                }
+            }
             
             this.showStatus(itemId, `移动完成: 成功 ${result.movedCount} 个，失败 ${result.errorCount} 个`, 'success');
             
             // 清空选中列表
             moveItem.selectedImages = [];
             
-            // 使用容器上下文查找元素
-            const container = _panel4Elements.moveItemsContainer;
-            const doc = container?.ownerDocument || document;
-            const selectedCountElement = doc.getElementById(`${itemId}_selectedCount`);
+            // 重置选中计数显示
+            const selectedCountElement = this.getCountElement(itemId, 'selectedCount');
             if (selectedCountElement) {
                 selectedCountElement.textContent = '0';
+                console.log(`重置选中计数显示为 0`);
+            } else {
+                console.error(`无法找到选中计数元素进行重置: ${itemId}_selectedCount`);
             }
             
         } catch (error) {
@@ -726,11 +812,11 @@ export class Panel4Manager {
      * 显示状态消息
      */
     static showStatus(itemId: string, message: string, type: 'info' | 'success' | 'error') {
-        // 使用容器上下文查找元素
-        const container = _panel4Elements.moveItemsContainer;
-        const doc = container?.ownerDocument || document;
-        const statusElement = doc.getElementById(`${itemId}_status`);
-        if (!statusElement) return;
+        const statusElement = this.getElement(`${itemId}_status`);
+        if (!statusElement) {
+            console.warn(`无法找到状态元素: ${itemId}_status`);
+            return;
+        }
         
         statusElement.textContent = message;
         statusElement.className = `move-item-status ${type}`;
@@ -830,14 +916,9 @@ export class Panel4Manager {
      */
     static clearAllMoveItems() {
         _dynamicMoveItems.forEach(item => {
-            // 使用容器上下文查找元素
-            const container = _panel4Elements.moveItemsContainer;
-            if (container) {
-                const doc = container.ownerDocument || document;
-                const element = doc.getElementById(item.id) || container.querySelector(`#${item.id}`);
-                if (element) {
-                    element.remove();
-                }
+            const element = this.getElement(item.id);
+            if (element) {
+                element.remove();
             }
         });
         _dynamicMoveItems = [];

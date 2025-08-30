@@ -48,6 +48,48 @@ class Panel4Manager {
         _dataCache = dataCache;
     }
     /**
+     * 获取元素 - 使用类似 index.ts 的方式
+     */
+    static getElement(id) {
+        const container = _panel4Elements.moveItemsContainer;
+        if (!container) {
+            console.warn('容器不存在，无法查找元素:', id);
+            return null;
+        }
+        // 优先使用容器的 querySelector，这是最可靠的方法
+        const element = container.querySelector(`#${id}`);
+        if (element) {
+            return element;
+        }
+        console.warn(`无法找到元素: ${id}`);
+        return null;
+    }
+    /**
+     * 获取计数元素 - 专门用于按钮中的计数显示
+     */
+    static getCountElement(itemId, type) {
+        const container = _panel4Elements.moveItemsContainer;
+        if (!container) {
+            return null;
+        }
+        // 直接通过选择器查找
+        const element = container.querySelector(`#${itemId}_${type}`);
+        if (element) {
+            return element;
+        }
+        // 如果直接查找失败，通过按钮查找
+        const actionAttr = type === 'matchCount' ? 'preview' : 'previewSelected';
+        const button = container.querySelector(`[data-action="${actionAttr}"][data-item-id="${itemId}"]`);
+        if (button) {
+            const span = button.querySelector('span');
+            if (span) {
+                return span;
+            }
+        }
+        console.warn(`无法找到计数元素: ${itemId}_${type}`);
+        return null;
+    }
+    /**
      * 添加新的移动项
      */
     static addMoveItem() {
@@ -308,11 +350,10 @@ class Panel4Manager {
             return;
         }
         console.log(`找到移动项，当前正则: "${moveItem.regex}"`);
-        // 使用容器上下文查找元素
-        const container = _panel4Elements.moveItemsContainer;
-        const doc = (container === null || container === void 0 ? void 0 : container.ownerDocument) || document;
-        const countElement = doc.getElementById(`${itemId}_matchCount`);
+        // 使用新的元素获取方法
+        const countElement = this.getCountElement(itemId, 'matchCount');
         console.log(`查找计数元素结果:`, countElement);
+        console.log(`尝试查找的元素ID: ${itemId}_matchCount`);
         if (!moveItem.regex.trim()) {
             console.log(`正则表达式为空，设置计数为 0`);
             if (countElement) {
@@ -353,6 +394,9 @@ class Panel4Manager {
                 countElement.style.color = '';
                 // 强制刷新DOM显示
                 countElement.offsetHeight;
+            }
+            else {
+                console.error(`无法找到计数元素，无法更新显示。尝试查找的ID: ${itemId}_matchCount`);
             }
             console.log(`正则 "${moveItem.regex}" 匹配到 ${moveItem.matchedImages.length} 个图片`);
         }
@@ -540,11 +584,13 @@ class Panel4Manager {
             });
             moveItem.selectedImages = selectedImages;
             // 更新选中计数显示
-            const container = _panel4Elements.moveItemsContainer;
-            const doc = (container === null || container === void 0 ? void 0 : container.ownerDocument) || document;
-            const selectedCountElement = doc.getElementById(`${itemId}_selectedCount`);
+            const selectedCountElement = this.getCountElement(itemId, 'selectedCount');
             if (selectedCountElement) {
                 selectedCountElement.textContent = selectedImages.length.toString();
+                console.log(`更新选中计数显示: ${selectedImages.length}`);
+            }
+            else {
+                console.error(`无法找到选中计数元素: ${itemId}_selectedCount`);
             }
             this.showStatus(itemId, `已选中 ${selectedImages.length} 个图片`, 'success');
             closeDialog();
@@ -570,7 +616,7 @@ class Panel4Manager {
      * 移动选中的图片
      */
     static async moveSelected(itemId) {
-        var _a, _b;
+        var _a, _b, _c, _d, _e, _f;
         const moveItem = _dynamicMoveItems.find(item => item.id === itemId);
         if (!moveItem || moveItem.selectedImages.length === 0) {
             this.showStatus(itemId, '没有选中的图片可移动', 'error');
@@ -590,23 +636,57 @@ class Panel4Manager {
                 imgPath: imagePath
             }));
             // 调用主进程的移动功能
-            const result = await ((_b = (_a = window.Editor) === null || _a === void 0 ? void 0 : _a.Message) === null || _b === void 0 ? void 0 : _b.request('assetsindex', 'handle-dynamic-message', {
-                method: 'moveBgImages',
-                spriteFrameMaps_name: _dataCache.spriteFrameMaps_name,
-                path2info: _dataCache.path2info,
-                operations: moveOperations,
-                autoRename: true,
-                preLook: false
-            }));
+            console.log('准备调用移动功能，操作数据:', moveOperations);
+            // 检查 Editor.Message 和可用方法
+            console.log('Editor.Message 对象:', (_a = window.Editor) === null || _a === void 0 ? void 0 : _a.Message);
+            console.log('可用的方法:', Object.keys(((_b = window.Editor) === null || _b === void 0 ? void 0 : _b.Message) || {}));
+            // 尝试不同的消息调用方式
+            let result;
+            try {
+                // 方式1: 直接调用扩展消息
+                result = await ((_d = (_c = window.Editor) === null || _c === void 0 ? void 0 : _c.Message) === null || _d === void 0 ? void 0 : _d.send('assetsindex', 'handle-dynamic-message', {
+                    method: 'moveBgImages',
+                    spriteFrameMaps_name: _dataCache.spriteFrameMaps_name,
+                    path2info: _dataCache.path2info,
+                    operations: moveOperations,
+                    autoRename: true,
+                    preLook: false
+                }));
+                console.log('方式1调用结果:', result);
+            }
+            catch (error1) {
+                console.log('方式1失败:', error1);
+                try {
+                    // 方式2: 使用 request
+                    result = await ((_f = (_e = window.Editor) === null || _e === void 0 ? void 0 : _e.Message) === null || _f === void 0 ? void 0 : _f.request('assetsindex', 'moveBgImages', {
+                        spriteFrameMaps_name: _dataCache.spriteFrameMaps_name,
+                        path2info: _dataCache.path2info,
+                        operations: moveOperations,
+                        autoRename: true,
+                        preLook: false
+                    }));
+                    console.log('方式2调用结果:', result);
+                }
+                catch (error2) {
+                    console.log('方式2失败:', error2);
+                    // 方式3: 简化调用
+                    result = { movedCount: 0, errorCount: moveOperations.length };
+                    console.log('使用模拟结果:', result);
+                    this.showStatus(itemId, '移动功能暂不可用，请检查扩展配置', 'error');
+                    return;
+                }
+            }
             this.showStatus(itemId, `移动完成: 成功 ${result.movedCount} 个，失败 ${result.errorCount} 个`, 'success');
             // 清空选中列表
             moveItem.selectedImages = [];
-            // 使用容器上下文查找元素
-            const container = _panel4Elements.moveItemsContainer;
-            const doc = (container === null || container === void 0 ? void 0 : container.ownerDocument) || document;
-            const selectedCountElement = doc.getElementById(`${itemId}_selectedCount`);
+            // 重置选中计数显示
+            const selectedCountElement = this.getCountElement(itemId, 'selectedCount');
             if (selectedCountElement) {
                 selectedCountElement.textContent = '0';
+                console.log(`重置选中计数显示为 0`);
+            }
+            else {
+                console.error(`无法找到选中计数元素进行重置: ${itemId}_selectedCount`);
             }
         }
         catch (error) {
@@ -618,12 +698,11 @@ class Panel4Manager {
      * 显示状态消息
      */
     static showStatus(itemId, message, type) {
-        // 使用容器上下文查找元素
-        const container = _panel4Elements.moveItemsContainer;
-        const doc = (container === null || container === void 0 ? void 0 : container.ownerDocument) || document;
-        const statusElement = doc.getElementById(`${itemId}_status`);
-        if (!statusElement)
+        const statusElement = this.getElement(`${itemId}_status`);
+        if (!statusElement) {
+            console.warn(`无法找到状态元素: ${itemId}_status`);
             return;
+        }
         statusElement.textContent = message;
         statusElement.className = `move-item-status ${type}`;
         statusElement.style.display = 'block';
@@ -699,14 +778,9 @@ class Panel4Manager {
      */
     static clearAllMoveItems() {
         _dynamicMoveItems.forEach(item => {
-            // 使用容器上下文查找元素
-            const container = _panel4Elements.moveItemsContainer;
-            if (container) {
-                const doc = container.ownerDocument || document;
-                const element = doc.getElementById(item.id) || container.querySelector(`#${item.id}`);
-                if (element) {
-                    element.remove();
-                }
+            const element = this.getElement(item.id);
+            if (element) {
+                element.remove();
             }
         });
         _dynamicMoveItems = [];
