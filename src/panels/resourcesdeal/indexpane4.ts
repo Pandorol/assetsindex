@@ -908,7 +908,7 @@ export class Panel4Manager {
                     <label class="image-checkbox-label">
                         <input type="checkbox" id="img_${index}" value="${imagePath}" ${isSelected ? 'checked' : ''} 
                                class="image-checkbox-input">
-                        <span class="image-path-text">${imagePath}</span>
+                        <span class="image-path-text clickable-path" data-path="${imagePath}" style="cursor: pointer; transition: color 0.2s;">${imagePath}</span>
                     </label>
                 </div>`;
             }).join('');
@@ -966,6 +966,43 @@ export class Panel4Manager {
         const cancelBtn = dialog.querySelector('#cancelSelection') as HTMLButtonElement;
         const confirmBtn = dialog.querySelector('#confirmSelection') as HTMLButtonElement;
         const checkboxes = dialog.querySelectorAll('input[type="checkbox"]') as NodeListOf<HTMLInputElement>;
+        
+        // 绑定路径点击事件
+        const clickablePaths = dialog.querySelectorAll('.clickable-path') as NodeListOf<HTMLElement>;
+        clickablePaths.forEach((pathElement) => {
+            const imagePath = pathElement.getAttribute('data-path');
+            if (imagePath) {
+                // 添加悬停效果
+                pathElement.addEventListener('mouseenter', () => {
+                    pathElement.style.color = '#007acc';
+                    pathElement.style.textDecoration = 'underline';
+                });
+                
+                pathElement.addEventListener('mouseleave', () => {
+                    pathElement.style.color = '';
+                    pathElement.style.textDecoration = 'none';
+                });
+                
+                // 添加点击事件
+                pathElement.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log(`在选择对话框中点击打开资源: ${imagePath}`);
+                    
+                    // 调用打开资源方法
+                    this.openAssetInEditor(imagePath);
+                    
+                    // 添加点击反馈
+                    pathElement.style.color = '#28a745';
+                    pathElement.style.fontWeight = 'bold';
+                    
+                    // 在路径前添加已查看标记
+                    if (!pathElement.textContent?.startsWith('👁️ ')) {
+                        pathElement.textContent = `👁️ ${pathElement.textContent}`;
+                    }
+                });
+            }
+        });
         
         // 全选功能
         selectAllBtn.addEventListener('click', () => {
