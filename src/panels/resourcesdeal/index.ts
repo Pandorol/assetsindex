@@ -20,6 +20,7 @@ let _singleRemainingdataCache: any = null;
 let _sameRemainingdataCache: any = null; 
 let _sizecountRemainingdataCache: any = null; 
 let _defineLargeImageCache: any = null; // 大图定义缓存
+let _defineSmallImageCache: any = null; // 小小图定义缓存
 let _defineBigImage: any = {
     width: 500,
     height: 500,
@@ -28,6 +29,14 @@ let _defineBigImage: any = {
     byHeight: false,
     byArea: true,
 };
+let _defineSSmallImage: any = {
+    width: 50,
+    height: 50,
+    threshold: 50 * 50,
+    byWidth: false,
+    byHeight: false,
+    byArea: true,
+}; // 小图定义缓存
 
 // #endregion
 
@@ -49,7 +58,23 @@ function isBigImage(width: number, height: number): boolean {
     }
     return false;
 }
+function isSSmallImage(width: number, height: number): boolean {
+    // 如果没有启用任何判断方式，默认使用面积判断
+    if (!_defineSSmallImage.byWidth && !_defineSSmallImage.byHeight && !_defineSSmallImage.byArea) {
+        return width * height >= _defineSSmallImage.threshold;
+    }
 
+    if (_defineSSmallImage.byWidth && width >= _defineSSmallImage.width) {
+        return true;
+    }
+    if (_defineSSmallImage.byHeight && height >= _defineSSmallImage.height) {
+        return true;
+    }
+    if (_defineSSmallImage.byArea && width * height >= _defineSSmallImage.threshold) {
+        return true;
+    }
+    return false;
+}
 function formatSize(bytes: number): string {
     if (bytes >= 1024 * 1024) {
         return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
@@ -96,6 +121,15 @@ module.exports = Editor.Panel.define({
         defineLargeImageByHeight: '#defineLargeImageByHeight',
         defineLargeImageByArea: '#defineLargeImageByArea',
         defineLargeImageBtn: '#defineLargeImageBtn',
+
+        //小图定义
+        defineSSmallImageWidth: '#defineSSmallImageWidth',
+        defineSSmallImageHeight: '#defineSSmallImageHeight',
+        defineSSmallImageThreshold: '#defineSSmallImageThreshold',
+        defineSSmallImageByWidth: '#defineSSmallImageByWidth',
+        defineSSmallImageByHeight: '#defineSSmallImageByHeight',
+        defineSSmallImageByArea: '#defineSSmallImageByArea',
+        defineSSmallImageBtn: '#defineSSmallImageBtn',
 
         //ignore
         ignorePattern: '#ignorePattern',
@@ -239,6 +273,12 @@ module.exports = Editor.Panel.define({
             const w = parseInt((this.$.defineLargeImageWidth as HTMLInputElement).value) || 0;
             const h = parseInt((this.$.defineLargeImageHeight as HTMLInputElement).value) || 0;
             (this.$.defineLargeImageThreshold as HTMLInputElement).value = (w * h).toString();
+        },
+
+        updateDefineSSmallImageThreshold() {
+            const w = parseInt((this.$.defineSSmallImageWidth as HTMLInputElement).value) || 0;
+            const h = parseInt((this.$.defineSSmallImageHeight as HTMLInputElement).value) || 0;
+            (this.$.defineSSmallImageThreshold as HTMLInputElement).value = (w * h).toString();
         },
         // #endregion
 
@@ -632,6 +672,13 @@ module.exports = Editor.Panel.define({
                 { key: 'resourcesdeal_defineLargeImageByWidth', element: 'defineLargeImageByWidth', defaultValue: '0', type: 'checkbox' },
                 { key: 'resourcesdeal_defineLargeImageByHeight', element: 'defineLargeImageByHeight', defaultValue: '0', type: 'checkbox' },
                 { key: 'resourcesdeal_defineLargeImageByArea', element: 'defineLargeImageByArea', defaultValue: '1', type: 'checkbox' },
+                // 小小图定义相关配置
+                { key: 'resourcesdeal_defineSSmallImageWidth', element: 'defineSSmallImageWidth', defaultValue: '50' },
+                { key: 'resourcesdeal_defineSSmallImageHeight', element: 'defineSSmallImageHeight', defaultValue: '50' },
+                { key: 'resourcesdeal_defineSSmallImageThreshold', element: 'defineSSmallImageThreshold', defaultValue: '2500' },
+                { key: 'resourcesdeal_defineSSmallImageByWidth', element: 'defineSSmallImageByWidth', defaultValue: '1', type: 'checkbox' },
+                { key: 'resourcesdeal_defineSSmallImageByHeight', element: 'defineSSmallImageByHeight', defaultValue: '1', type: 'checkbox' },
+                { key: 'resourcesdeal_defineSSmallImageByArea', element: 'defineSSmallImageByArea', defaultValue: '1', type: 'checkbox' },
             ];
 
             for (const config of configs) {
@@ -676,6 +723,29 @@ module.exports = Editor.Panel.define({
                 console.log('初始化大图定义配置:', _defineBigImage);
             } catch (error) {
                 console.warn('无法加载大图定义配置，使用默认值:', error);
+            }
+
+            // 初始化全局小小图定义配置
+            try {
+                const defineSmallWidth = parseInt(await Editor.Profile.getConfig('assetsindex', 'resourcesdeal_defineSSmallImageWidth') || '50');
+                const defineSmallHeight = parseInt(await Editor.Profile.getConfig('assetsindex', 'resourcesdeal_defineSSmallImageHeight') || '50');
+                const defineSmallThreshold = parseInt(await Editor.Profile.getConfig('assetsindex', 'resourcesdeal_defineSSmallImageThreshold') || '2500');
+                const defineSmallByWidth = (await Editor.Profile.getConfig('assetsindex', 'resourcesdeal_defineSSmallImageByWidth')) !== '0'; // 默认启用
+                const defineSmallByHeight = (await Editor.Profile.getConfig('assetsindex', 'resourcesdeal_defineSSmallImageByHeight')) !== '0'; // 默认启用
+                const defineSmallByArea = (await Editor.Profile.getConfig('assetsindex', 'resourcesdeal_defineSSmallImageByArea')) !== '0'; // 默认启用
+
+                _defineSSmallImage = {
+                    width: defineSmallWidth,
+                    height: defineSmallHeight,
+                    threshold: defineSmallThreshold,
+                    byWidth: defineSmallByWidth,
+                    byHeight: defineSmallByHeight,
+                    byArea: defineSmallByArea,
+                };
+
+                console.log('初始化小小图定义配置:', _defineSSmallImage);
+            } catch (error) {
+                console.warn('无法加载小小图定义配置，使用默认值:', error);
             }
         },
         // #endregion
@@ -737,6 +807,11 @@ module.exports = Editor.Panel.define({
             this.$.defineLargeImageWidth?.addEventListener('input', this.updateDefineLargeImageThreshold.bind(this));
             this.$.defineLargeImageHeight?.addEventListener('input', this.updateDefineLargeImageThreshold.bind(this));
             this.updateDefineLargeImageThreshold();
+
+            // 小小图定义相关事件
+            this.$.defineSSmallImageWidth?.addEventListener('input', this.updateDefineSSmallImageThreshold.bind(this));
+            this.$.defineSSmallImageHeight?.addEventListener('input', this.updateDefineSSmallImageThreshold.bind(this));
+            this.updateDefineSSmallImageThreshold();
         },
 
         bindCalculationEvents() {
@@ -767,6 +842,10 @@ module.exports = Editor.Panel.define({
             // 大图定义按钮事件
             this.$.defineLargeImageBtn?.addEventListener('click', () => {
                 this.defineLargeImages(_dataCache?.path2info);
+            });
+            // 小小图定义按钮事件
+            this.$.defineSSmallImageBtn?.addEventListener('click', () => {
+                this.defineSmallImages(_dataCache?.path2info);
             });
         },
 
@@ -1128,6 +1207,109 @@ module.exports = Editor.Panel.define({
 
             console.log('大图定义完成:', `大图 ${largeImageCount} 张, 普通图 ${normalImageCount} 张`);
             console.log('更新大图定义配置:', _defineBigImage);
+        },
+
+        defineSmallImages(path2info: any) {
+            if (!path2info) {
+                console.warn('请先构建基础数据');
+                return;
+            }
+
+            console.log('开始定义小小图');
+            
+            // 保存配置
+            Editor.Profile.setConfig('assetsindex','resourcesdeal_defineSSmallImageWidth',(this.$.defineSSmallImageWidth as HTMLInputElement).value);
+            Editor.Profile.setConfig('assetsindex','resourcesdeal_defineSSmallImageHeight',(this.$.defineSSmallImageHeight as HTMLInputElement).value);
+            Editor.Profile.setConfig('assetsindex','resourcesdeal_defineSSmallImageThreshold',(this.$.defineSSmallImageThreshold as HTMLInputElement).value);
+            Editor.Profile.setConfig('assetsindex','resourcesdeal_defineSSmallImageByWidth',(this.$.defineSSmallImageByWidth as HTMLInputElement).checked ? '1' : '0');
+            Editor.Profile.setConfig('assetsindex','resourcesdeal_defineSSmallImageByHeight',(this.$.defineSSmallImageByHeight as HTMLInputElement).checked ? '1' : '0');
+            Editor.Profile.setConfig('assetsindex','resourcesdeal_defineSSmallImageByArea',(this.$.defineSSmallImageByArea as HTMLInputElement).checked ? '1' : '0');
+
+            const width = parseInt((this.$.defineSSmallImageWidth as HTMLInputElement).value) || 50;
+            const height = parseInt((this.$.defineSSmallImageHeight as HTMLInputElement).value) || 50;
+            const areaThreshold = parseInt((this.$.defineSSmallImageThreshold as HTMLInputElement).value) || 2500;
+            
+            const byWidth = (this.$.defineSSmallImageByWidth as HTMLInputElement).checked;
+            const byHeight = (this.$.defineSSmallImageByHeight as HTMLInputElement).checked;
+            const byArea = (this.$.defineSSmallImageByArea as HTMLInputElement).checked;
+
+            if (!byWidth && !byHeight && !byArea) {
+                console.warn('请至少选择一种小小图定义方式');
+                Editor.Dialog.info('请至少选择一种小小图定义方式（按宽度、按高度或按面积）', {title: '小小图定义', buttons: ['我知道了']});
+                return;
+            }
+
+            let _remainpath2info = deepClone(path2info);
+            _remainpath2info = Object.fromEntries(Object.entries(_remainpath2info).filter(([path, info]) => (info as any).count > 0));
+
+            // 根据选择的条件筛选小小图（注意：小小图是 <= 条件）
+            const smallImages: Record<string, any> = {};
+            const normalImages: Record<string, any> = {};
+
+            Object.entries(_remainpath2info).forEach(([path, info]) => {
+                const imgInfo = info as any;
+                let isSmallImage = false;
+
+                if (byWidth && imgInfo.width <= width) {
+                    isSmallImage = true;
+                }
+                if (byHeight && imgInfo.height <= height) {
+                    isSmallImage = true;
+                }
+                if (byArea && (imgInfo.width * imgInfo.height) <= areaThreshold) {
+                    isSmallImage = true;
+                }
+
+                if (isSmallImage) {
+                    smallImages[path] = info;
+                } else {
+                    normalImages[path] = info;
+                }
+            });
+
+            // 计算统计信息
+            const smallImageCount = Object.keys(smallImages).length;
+            const normalImageCount = Object.keys(normalImages).length;
+            const smallImageSize = Object.values(smallImages).reduce((sum: number, info: any) => sum + info.size, 0);
+            const normalImageSize = Object.values(normalImages).reduce((sum: number, info: any) => sum + info.size, 0);
+
+            // 显示结果
+            const resultMessage = `小小图定义完成！\n\n定义条件：\n- 按宽度 <= ${width}px: ${byWidth ? '启用' : '禁用'}\n- 按高度 <= ${height}px: ${byHeight ? '启用' : '禁用'}\n- 按面积 <= ${areaThreshold}px²: ${byArea ? '启用' : '禁用'}\n\n结果统计：\n- 小小图: ${smallImageCount} 张，总大小 ${formatSize(smallImageSize)}\n- 普通图: ${normalImageCount} 张，总大小 ${formatSize(normalImageSize)}`;
+
+            Editor.Dialog.info(resultMessage, {title: '小小图定义结果', buttons: ['我知道了']});
+
+            // 缓存结果供其他功能使用
+            _defineSmallImageCache = {
+                smallImages: smallImages,
+                normalImages: normalImages,
+                criteria: {
+                    width: width,
+                    height: height,
+                    areaThreshold: areaThreshold,
+                    byWidth: byWidth,
+                    byHeight: byHeight,
+                    byArea: byArea
+                },
+                statistics: {
+                    smallImageCount: smallImageCount,
+                    normalImageCount: normalImageCount,
+                    smallImageSize: smallImageSize,
+                    normalImageSize: normalImageSize
+                }
+            };
+
+            // 更新全局小小图定义配置
+            _defineSSmallImage = {
+                width: width,
+                height: height,
+                threshold: areaThreshold,
+                byWidth: byWidth,
+                byHeight: byHeight,
+                byArea: byArea,
+            };
+
+            console.log('小小图定义完成:', `小小图 ${smallImageCount} 张, 普通图 ${normalImageCount} 张`);
+            console.log('更新小小图定义配置:', _defineSSmallImage);
         },
 
         calculatePreImage(path2info: any) {

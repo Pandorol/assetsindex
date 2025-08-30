@@ -145,9 +145,9 @@
                 
                 <!-- 小小图定义 - 右侧独立区域 -->
                 <div style="flex: 1; border: 1px solid #444; padding: 15px; border-radius: 5px; background-color: rgba(0, 122, 204, 0.1);">
-                    <h2 style="margin-top: 0;">小小图定义</h2>
+                    <h2 style="margin-top: 0;">小图定义</h2>
                     <div>
-                        <label for="defineSSmallImageThreshold">小小图文件尺寸:</label>
+                        <label for="defineSSmallImageThreshold">小图文件尺寸:</label>
                         <input type="number" id="defineSSmallImageWidth" value="50" style="width:60px;"/>
                         <label>X</label>
                         <input type="number" id="defineSSmallImageHeight" value="50" style="width:60px;"/>
@@ -158,13 +158,13 @@
                     <div style="display: flex;">
                         <!-- 3个复选框 宽小于就算小小图，高小于就算小小图，宽高乘积才算小小图 -->
                         <input type="checkbox" id="defineSSmallImageByWidth" checked>
-                        <label for="smallImageByWidth">宽小于就算小小图</label><br>
+                        <label for="smallImageByWidth">宽小于就算小图</label><br>
                         <input type="checkbox" id="defineSSmallImageByHeight" checked>
-                        <label for="smallImageByHeight">高小于就算小小图</label><br>
+                        <label for="smallImageByHeight">高小于就算小图</label><br>
                         <input type="checkbox" id="defineSSmallImageByArea" checked>
-                        <label for="smallImageByArea">宽高乘积小于算小小图</label>
+                        <label for="smallImageByArea">宽高乘积小于算小图</label>
                     </div>
-                    <button id="defineSSmallImageBtn" style="background-color: #007acc; color: white; border: none; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;">定义小小图(复制到单独目录)</button>
+                    <button id="defineSSmallImageBtn" style="background-color: #007acc; color: white; border: none; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;">定义小图(复制到单独目录)</button>
                 </div>
             </div>
 
@@ -242,7 +242,7 @@
             </div>
             <div style="display: table; ">
                 <div style="display: table-cell; width: 200px;">
-                    <label><input type="checkbox" id="othersmallToCommon">小小图复制多份</label>
+                    <label><input type="checkbox" id="othersmallToCommon">小图复制多份</label>
                 </div>
                 <div style="display: table-cell;width: 240px;">
                     共 <span id="othersmallTotal">0</span> 张，总大小 <span id="othersmallTotalSize">0</span> KB, 剩余 <span id="othersmallRemaining">0</span> 张待处理
@@ -343,42 +343,3 @@
     </div>
 
 </div>
-
-<script>
-    const widthInput = document.getElementById('imgWidth');
-    const heightInput = document.getElementById('imgHeight');
-    const thresholdInput = document.getElementById('largeImageThreshold');
-
-    function updateThreshold() {
-        const w = parseInt(widthInput.value) || 0;
-        const h = parseInt(heightInput.value) || 0;
-        thresholdInput.value = w * h;
-    }
-
-    
-    console.log('大图阈值输入框:', thresholdInput);
-    // 输入时更新
-    widthInput.addEventListener('input', updateThreshold);
-    heightInput.addEventListener('input', updateThreshold);
-    // 初始化计算一次
-    updateThreshold();
-
-    // 小小图定义相关的代码
-    const smallWidthInput = document.getElementById('defineSmallImageWidth');
-    const smallHeightInput = document.getElementById('defineSmallImageHeight');
-    const smallThresholdInput = document.getElementById('defineSmallImageThreshold');
-
-    function updateSmallThreshold() {
-        const w = parseInt(smallWidthInput.value) || 0;
-        const h = parseInt(smallHeightInput.value) || 0;
-        smallThresholdInput.value = w * h;
-    }
-
-    // 小小图输入时更新
-    if (smallWidthInput && smallHeightInput) {
-        smallWidthInput.addEventListener('input', updateSmallThreshold);
-        smallHeightInput.addEventListener('input', updateSmallThreshold);
-        // 初始化计算一次
-        updateSmallThreshold();
-    }
-</script>
