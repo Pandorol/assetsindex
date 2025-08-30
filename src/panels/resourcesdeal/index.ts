@@ -68,6 +68,7 @@ function isSSmallImage(width: number, height: number): boolean {
         return width * height <= _defineSSmallImage.threshold;
     }
 
+    // 所有勾选的条件都必须满足才算小小图（AND 逻辑）
     if (_defineSSmallImage.byWidth && width > _defineSSmallImage.width) {
         return false;
     }
