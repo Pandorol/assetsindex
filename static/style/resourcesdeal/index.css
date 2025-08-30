@@ -29,6 +29,8 @@
 .tab-content {
     display: none;
     padding: 20px;
+    max-height: 90vh; /* 设置最大高度为视口高度的80% */
+    overflow-y: auto; /* 垂直方向出现滚动条 */
 }
 
 .tab-content.active {

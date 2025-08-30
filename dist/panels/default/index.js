@@ -18,8 +18,10 @@ module.exports = Editor.Panel.define({
         app: '#app',
         myButton: '#myButton',
         buildFolders: '#buildFolders',
-        tabs: '#tabs',
-        content: '#content',
+        tab1: '#tab1',
+        tab2: '#tab2',
+        panel1: '#panel1',
+        panel2: '#panel2',
     },
     methods: {
         hello() {
@@ -27,19 +29,6 @@ module.exports = Editor.Panel.define({
                 this.$.app.innerHTML = 'hello';
                 console.log('[cocos-panel-html.default]: hello');
             }
-        },
-        switchTab(tabId) {
-            // 获取所有 Tab 和内容
-            const tabs = this.$.tabs.querySelectorAll('.tab-button');
-            const panels = this.$.content.querySelectorAll('.tab-content');
-            // 移除所有 Tab 和内容的 active 状态
-            tabs.forEach(tab => tab.classList.remove('active'));
-            panels.forEach(panel => panel.classList.remove('active'));
-            // 激活选中的 Tab 和内容
-            const activeTab = this.$.tabs.querySelector(`.tab-button[data-tab="${tabId}"]`);
-            const activePanel = this.$.content.querySelector(`#${tabId}`);
-            activeTab === null || activeTab === void 0 ? void 0 : activeTab.classList.add('active');
-            activePanel === null || activePanel === void 0 ? void 0 : activePanel.classList.add('active');
         },
         generateAssetsIndex() {
             var _a;
@@ -74,20 +63,32 @@ module.exports = Editor.Panel.define({
                 });
             });
         },
+        switchTab(tabId) {
+            // 移除所有 Tab 和内容的 active 状态
+            this.$.tab1 && this.$.tab1.classList.remove('active');
+            this.$.tab2 && this.$.tab2.classList.remove('active');
+            this.$.panel1 && this.$.panel1.classList.remove('active');
+            this.$.panel2 && this.$.panel2.classList.remove('active');
+            // 激活选中的 Tab 和内容
+            if (tabId === 'tab1') {
+                this.$.tab1 && this.$.tab1.classList.add('active');
+                this.$.panel1 && this.$.panel1.classList.add('active');
+            }
+            else if (tabId === 'tab2') {
+                this.$.tab2 && this.$.tab2.classList.add('active');
+                this.$.panel2 && this.$.panel2.classList.add('active');
+            }
+        },
     },
     ready() {
-        // 绑定 Tab 点击事件
-        if (this.$.tabs) {
-            const tabs = this.$.tabs.querySelectorAll('.tab-button');
-            tabs.forEach(tab => {
-                const tabId = tab.getAttribute('data-tab');
-                if (tabId) {
-                    tab.addEventListener('click', () => this.switchTab(tabId));
-                }
-            });
-        }
         if (this.$.myButton) {
             this.$.myButton.addEventListener('click', this.generateAssetsIndex.bind(this));
+        }
+        if (this.$.tab1) {
+            this.$.tab1.addEventListener('click', () => { this.switchTab('tab1'); });
+        }
+        if (this.$.tab2) {
+            this.$.tab2.addEventListener('click', () => { this.switchTab('tab2'); });
         }
         this.fetchBuildFolders(); // 初始化下拉框
     },
