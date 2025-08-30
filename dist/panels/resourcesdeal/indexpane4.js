@@ -267,22 +267,27 @@ class Panel4Manager {
      * 更新匹配数量显示
      */
     static updateMatchCount(itemId) {
+        console.log(`updateMatchCount 被调用，itemId: ${itemId}`);
         const moveItem = _dynamicMoveItems.find(item => item.id === itemId);
         if (!moveItem) {
             console.warn(`找不到移动项: ${itemId}`);
             return;
         }
+        console.log(`找到移动项，当前正则: "${moveItem.regex}"`);
         // 使用容器上下文查找元素
         const container = _panel4Elements.moveItemsContainer;
         const doc = (container === null || container === void 0 ? void 0 : container.ownerDocument) || document;
         const countElement = doc.getElementById(`${itemId}_matchCount`);
+        console.log(`查找计数元素结果:`, countElement);
         if (!moveItem.regex.trim()) {
+            console.log(`正则表达式为空，设置计数为 0`);
             if (countElement) {
                 countElement.textContent = '0';
             }
             moveItem.matchedImages = [];
             return;
         }
+        console.log(`检查数据缓存:`, _dataCache ? '存在' : '不存在');
         if (!_dataCache) {
             console.warn('数据缓存未初始化');
             if (countElement) {
@@ -291,8 +296,12 @@ class Panel4Manager {
             return;
         }
         try {
+            console.log(`创建正则表达式: "${moveItem.regex}"`);
             const regex = new RegExp(moveItem.regex);
+            console.log(`正则表达式创建成功`);
+            console.log(`获取所有图片路径`);
             const allImages = this.getAllImagePaths();
+            console.log(`获取到图片路径数量: ${allImages.length}`);
             if (allImages.length === 0) {
                 console.warn('没有可用的图片数据');
                 if (countElement) {
@@ -300,9 +309,12 @@ class Panel4Manager {
                 }
                 return;
             }
+            console.log(`开始过滤匹配的图片`);
             moveItem.matchedImages = allImages.filter(imagePath => regex.test(imagePath));
+            console.log(`过滤完成，匹配数量: ${moveItem.matchedImages.length}`);
             if (countElement) {
                 countElement.textContent = moveItem.matchedImages.length.toString();
+                console.log(`更新计数显示: ${moveItem.matchedImages.length}`);
             }
             console.log(`正则 "${moveItem.regex}" 匹配到 ${moveItem.matchedImages.length} 个图片`);
         }
@@ -335,7 +347,7 @@ class Panel4Manager {
      * 预览匹配的图片
      */
     static previewMatches(itemId) {
-        var _a, _b;
+        var _a, _b, _c;
         console.log(`previewMatches 被调用，itemId: ${itemId}`);
         console.log(`当前移动项列表:`, _dynamicMoveItems.map(item => item.id));
         const moveItem = _dynamicMoveItems.find(item => item.id === itemId);
@@ -344,31 +356,45 @@ class Panel4Manager {
             console.warn(`可用的移动项ID:`, _dynamicMoveItems.map(item => item.id));
             return;
         }
+        console.log(`找到移动项:`, moveItem);
+        console.log(`检查正则表达式: "${moveItem.regex}"`);
         if (!moveItem.regex.trim()) {
+            console.log(`正则表达式为空，显示错误状态`);
             this.showStatus(itemId, '请先输入正则表达式', 'error');
             return;
         }
         // 检查数据缓存
+        console.log(`检查数据缓存:`, _dataCache ? '存在' : '不存在');
         if (!_dataCache) {
+            console.log(`数据缓存未初始化，显示错误状态`);
             this.showStatus(itemId, '数据缓存未初始化，请先构建基础数据', 'error');
             return;
         }
         try {
+            console.log(`开始调用 updateMatchCount`);
             this.updateMatchCount(itemId);
+            console.log(`updateMatchCount 完成，匹配图片数量: ${moveItem.matchedImages.length}`);
             if (moveItem.matchedImages.length === 0) {
+                console.log(`没有匹配的图片，显示信息状态`);
                 this.showStatus(itemId, '没有找到匹配的图片', 'info');
                 return;
             }
+            console.log(`开始创建预览内容`);
             // 创建预览内容
             const previewContent = moveItem.matchedImages.slice(0, 100).map((imagePath, index) => `${index + 1}. ${imagePath}`).join('\n');
             const message = `匹配到 ${moveItem.matchedImages.length} 个图片${moveItem.matchedImages.length > 100 ? ' (仅显示前100个)' : ''}:\n\n${previewContent}`;
+            console.log(`准备显示对话框，消息长度: ${message.length}`);
+            // 检查 Editor.Dialog 是否存在
+            console.log(`检查 Editor.Dialog:`, (_a = window.Editor) === null || _a === void 0 ? void 0 : _a.Dialog);
             // 使用 Editor.Dialog 显示结果
-            (_b = (_a = window.Editor) === null || _a === void 0 ? void 0 : _a.Dialog) === null || _b === void 0 ? void 0 : _b.info(message, {
+            const result = (_c = (_b = window.Editor) === null || _b === void 0 ? void 0 : _b.Dialog) === null || _c === void 0 ? void 0 : _c.info(message, {
                 title: `预览匹配结果 - ${moveItem.name}`
             });
+            console.log(`Dialog.info 调用结果:`, result);
         }
         catch (error) {
             console.error(`预览匹配失败 (${itemId}):`, error);
+            console.error(`错误堆栈:`, error.stack);
             this.showStatus(itemId, `预览失败: ${error.message}`, 'error');
         }
     }
