@@ -1110,6 +1110,15 @@ module.exports = Editor.Panel.define({
             const byWidth = this.$.defineSSmallImageByWidth.checked;
             const byHeight = this.$.defineSSmallImageByHeight.checked;
             const byArea = this.$.defineSSmallImageByArea.checked;
+            // 更新全局配置，确保 isSSmallImage 函数使用最新设置
+            _defineSSmallImage = {
+                width: width,
+                height: height,
+                threshold: areaThreshold,
+                byWidth: byWidth,
+                byHeight: byHeight,
+                byArea: byArea,
+            };
             if (!byWidth && !byHeight && !byArea) {
                 console.warn('请至少选择一种小小图定义方式');
                 Editor.Dialog.info('请至少选择一种小小图定义方式（按宽度、按高度或按面积）', { title: '小小图定义', buttons: ['我知道了'] });
@@ -1122,16 +1131,8 @@ module.exports = Editor.Panel.define({
             const normalImages = {};
             Object.entries(_remainpath2info).forEach(([path, info]) => {
                 const imgInfo = info;
-                let isSmallImage = false;
-                if (byWidth && imgInfo.width <= width) {
-                    isSmallImage = true;
-                }
-                if (byHeight && imgInfo.height <= height) {
-                    isSmallImage = true;
-                }
-                if (byArea && (imgInfo.width * imgInfo.height) <= areaThreshold) {
-                    isSmallImage = true;
-                }
+                // 使用与 isSSmallImage 函数相同的 AND 逻辑
+                const isSmallImage = isSSmallImage(imgInfo.width, imgInfo.height);
                 if (isSmallImage) {
                     smallImages[path] = info;
                 }
