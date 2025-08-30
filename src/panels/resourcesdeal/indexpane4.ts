@@ -103,10 +103,20 @@ export class Panel4Manager {
 
         const itemElement = document.createElement('div');
         itemElement.className = 'move-item';
-        itemElement.id = moveItem.id;
         
-        console.log(`创建元素，设置 ID: "${moveItem.id}"`);
+        // 清理 ID，确保没有特殊字符
+        const cleanId = moveItem.id.replace(/[^a-zA-Z0-9_-]/g, '');
+        itemElement.id = cleanId;
+        
+        console.log(`创建元素，原始 ID: "${moveItem.id}", 清理后 ID: "${cleanId}"`);
         console.log(`创建的元素:`, itemElement);
+        
+        // 立即验证 ID 设置
+        console.log(`元素 ID 属性:`, itemElement.id);
+        console.log(`元素 getAttribute('id'):`, itemElement.getAttribute('id'));
+        
+        // 更新 moveItem 的 ID 为清理后的版本
+        moveItem.id = cleanId;
         
         itemElement.innerHTML = `
             <div class="move-item-header">
@@ -117,48 +127,53 @@ export class Panel4Manager {
             <div class="move-item-config">
                 <div class="config-group">
                     <label>正则表达式:</label>
-                    <input type="text" id="${moveItem.id}_regex" value="${moveItem.regex}" 
+                    <input type="text" id="${cleanId}_regex" value="${moveItem.regex}" 
                            placeholder="例如: .*\\.png$" />
                 </div>
                 <div class="config-group">
                     <label>目标目录:</label>
-                    <input type="text" id="${moveItem.id}_targetDir" value="${moveItem.targetDir}" 
+                    <input type="text" id="${cleanId}_targetDir" value="${moveItem.targetDir}" 
                            placeholder="例如: staticRes/ui/common/" />
                 </div>
             </div>
             
             <div class="move-item-actions">
-                <button class="btn-preview" data-action="preview" data-item-id="${moveItem.id}" type="button">
-                    🔍 预览匹配 (<span id="${moveItem.id}_matchCount">0</span>)
+                <button class="btn-preview" data-action="preview" data-item-id="${cleanId}" type="button">
+                    🔍 预览匹配 (<span id="${cleanId}_matchCount">0</span>)
                 </button>
-                <button class="btn-select" data-action="select" data-item-id="${moveItem.id}" type="button">
+                <button class="btn-select" data-action="select" data-item-id="${cleanId}" type="button">
                     ☑️ 选择匹配项
                 </button>
-                <button class="btn-preview" data-action="previewSelected" data-item-id="${moveItem.id}" type="button">
-                    📋 预览选中 (<span id="${moveItem.id}_selectedCount">0</span>)
+                <button class="btn-preview" data-action="previewSelected" data-item-id="${cleanId}" type="button">
+                    📋 预览选中 (<span id="${cleanId}_selectedCount">0</span>)
                 </button>
-                <button class="btn-move" data-action="move" data-item-id="${moveItem.id}" type="button">
+                <button class="btn-move" data-action="move" data-item-id="${cleanId}" type="button">
                     🚀 移动选中项
                 </button>
             </div>
             
-            <div class="move-item-status" id="${moveItem.id}_status"></div>
+            <div class="move-item-status" id="${cleanId}_status"></div>
         `;
         
         container.appendChild(itemElement);
         
-        // 验证元素是否成功添加到 DOM
-        const verifyElement = document.getElementById(moveItem.id);
-        console.log(`元素添加后验证查找结果:`, verifyElement);
-        if (!verifyElement) {
-            console.error(`元素添加失败！无法在 DOM 中找到 ID: ${moveItem.id}`);
-        } else {
-            console.log(`元素成功添加到 DOM，ID: ${moveItem.id}`);
-        }
+        // 使用 setTimeout 确保 DOM 更新完成后验证
+        setTimeout(() => {
+            const verifyElement = document.getElementById(cleanId);
+            console.log(`元素添加后验证查找结果 (setTimeout):`, verifyElement);
+            if (!verifyElement) {
+                console.error(`元素添加失败！无法在 DOM 中找到 ID: ${cleanId}`);
+                // 尝试直接通过容器查找
+                const directFind = container.querySelector(`#${cleanId}`);
+                console.log(`容器直接查找结果:`, directFind);
+            } else {
+                console.log(`元素成功添加到 DOM，ID: ${cleanId}`);
+            }
+        }, 0);
         
         // 绑定输入事件
-        const regexInput = document.getElementById(`${moveItem.id}_regex`) as HTMLInputElement;
-        const targetDirInput = document.getElementById(`${moveItem.id}_targetDir`) as HTMLInputElement;
+        const regexInput = document.getElementById(`${cleanId}_regex`) as HTMLInputElement;
+        const targetDirInput = document.getElementById(`${cleanId}_targetDir`) as HTMLInputElement;
         
         regexInput?.addEventListener('input', () => {
             moveItem.regex = regexInput.value;
@@ -241,36 +256,39 @@ export class Panel4Manager {
             console.warn(`在数组中找不到要删除的移动项: ${itemId}`);
         }
         
-        const element = document.getElementById(itemId);
-        console.log(`DOM 元素查找结果:`, element);
+        // 首先尝试直接查找
+        let element = document.getElementById(itemId);
+        console.log(`DOM 元素查找结果 (getElementById):`, element);
         
-        // 如果直接查找失败，尝试其他方式
+        // 如果直接查找失败，尝试通过容器查找
         if (!element) {
             console.log(`尝试在容器中查找元素...`);
             const container = _panel4Elements.moveItemsContainer;
             if (container) {
-                const allItems = container.querySelectorAll('.move-item');
-                console.log(`容器中所有 .move-item 元素:`, allItems);
+                // 使用 querySelector 查找
+                element = container.querySelector(`#${itemId}`) as HTMLElement;
+                console.log(`容器 querySelector 查找结果:`, element);
                 
-                // 遍历所有元素，查看它们的 ID
-                allItems.forEach((item, index) => {
-                    console.log(`第 ${index} 个元素 ID: "${item.id}"`);
-                });
-                
-                // 尝试通过类名和索引找到元素
-                const targetElement = Array.from(allItems).find(item => item.id === itemId);
-                if (targetElement) {
-                    console.log(`通过遍历找到了目标元素:`, targetElement);
-                    targetElement.remove();
-                    console.log(`已通过遍历删除元素: ${itemId}`);
-                    return;
+                if (!element) {
+                    // 遍历所有 .move-item 元素查找
+                    const allItems = container.querySelectorAll('.move-item');
+                    console.log(`容器中所有 .move-item 元素:`, allItems);
+                    
+                    allItems.forEach((item, index) => {
+                        console.log(`第 ${index} 个元素 ID: "${item.id}"`);
+                    });
+                    
+                    element = Array.from(allItems).find(item => item.id === itemId) as HTMLElement;
+                    if (element) {
+                        console.log(`通过遍历找到了目标元素:`, element);
+                    }
                 }
             }
         }
         
         if (element) {
             element.remove();
-            console.log(`已从 DOM 中删除元素: ${itemId}`);
+            console.log(`已删除元素: ${itemId}`);
         } else {
             console.warn(`在 DOM 中找不到要删除的元素: ${itemId}`);
         }
