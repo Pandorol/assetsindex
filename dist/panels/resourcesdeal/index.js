@@ -65,16 +65,16 @@ function isSSmallImage(width, height) {
     if (!_defineSSmallImage.byWidth && !_defineSSmallImage.byHeight && !_defineSSmallImage.byArea) {
         return width * height <= _defineSSmallImage.threshold;
     }
-    if (_defineSSmallImage.byWidth && width <= _defineSSmallImage.width) {
-        return true;
+    if (_defineSSmallImage.byWidth && width > _defineSSmallImage.width) {
+        return false;
     }
-    if (_defineSSmallImage.byHeight && height <= _defineSSmallImage.height) {
-        return true;
+    if (_defineSSmallImage.byHeight && height > _defineSSmallImage.height) {
+        return false;
     }
-    if (_defineSSmallImage.byArea && width * height <= _defineSSmallImage.threshold) {
-        return true;
+    if (_defineSSmallImage.byArea && width * height > _defineSSmallImage.threshold) {
+        return false;
     }
-    return false;
+    return true;
 }
 function formatSize(bytes) {
     if (bytes >= 1024 * 1024) {
