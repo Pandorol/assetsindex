@@ -2,6 +2,9 @@
 const fs = require('fs');
 const path = require('path');
 
+// 简化 path.basename 调用
+const basename = (filePath: string) => path.basename(filePath);
+
 /**
  * 动态图片加载分析器
  * 从项目脚本文件中查找所有动态加载的图片路径
@@ -12,36 +15,13 @@ export class DynamicPictureAnalyzer {
     
     // 图片加载相关的函数模式
     private static readonly IMAGE_LOADING_PATTERNS = [
-        // SpriteUtil.ChangeSpriteframe 系列
+        // 主要关注 SpriteUtil.ChangeSpriteframe
         /SpriteUtil\.ChangeSpriteframe\s*\(\s*([^,]+)\s*,/g,
-        /SpriteUtil\.changeSpriteframe\s*\(\s*([^,]+)\s*,/g,
-        /SpriteUtil\.setSpriteFrame\s*\(\s*([^,]+)\s*,/g,
-        
-        // cc.loader 系列
-        /cc\.loader\.loadRes\s*\(\s*([^,]+)\s*,/g,
-        /cc\.loader\.load\s*\(\s*([^,]+)\s*,/g,
-        
-        // cc.resources 系列  
-        /cc\.resources\.load\s*\(\s*([^,]+)\s*,/g,
-        /cc\.resources\.loadDir\s*\(\s*([^,]+)\s*,/g,
-        
-        // 图片框架设置
-        /\.spriteFrame\s*=\s*([^;]+)/g,
-        /\.getComponent\s*\(\s*cc\.Sprite\s*\)\s*\.spriteFrame\s*=\s*([^;]+)/g,
-        
-        // 其他可能的图片加载模式
-        /LoadUtil\.loadSprite\s*\(\s*([^,]+)\s*,/g,
-        /ImageLoader\.load\s*\(\s*([^,]+)\s*,/g,
-        /TextureLoader\.load\s*\(\s*([^,]+)\s*,/g,
     ];
 
-    // 路径构建函数模式
+    // 路径构建函数模式 - 主要关注 GameResPath 的各种方法
     private static readonly PATH_BUILDER_PATTERNS = [
-        // GameResPath.getTargetDir 等路径构建函数
-        /(\w+)\.getTargetDir\s*\(\s*([^)]+)\s*\)/g,
-        /(\w+)\.getImagePath\s*\(\s*([^)]+)\s*\)/g,
-        /(\w+)\.getTexturePath\s*\(\s*([^)]+)\s*\)/g,
-        /(\w+)\.buildPath\s*\(\s*([^)]+)\s*\)/g,
+        /GameResPath\.(\w+)\s*\(\s*([^)]+)\s*\)/g,
     ];
 
     // 字符串连接模式（用于路径拼接）
@@ -58,6 +38,7 @@ export class DynamicPictureAnalyzer {
     private foundImages: Set<string> = new Set();
     private pathBuilderFunctions: Map<string, any> = new Map();
     private variableValues: Map<string, string> = new Map();
+    private dynamicParameters: Set<string> = new Set(); // 收集动态参数
 
     constructor(scriptsPath?: string) {
         this.scriptsPath = scriptsPath || DynamicPictureAnalyzer.DEFAULT_SCRIPTS_PATH;
@@ -282,7 +263,7 @@ export class DynamicPictureAnalyzer {
         if (!expression.includes('+') && !expression.includes('(')) {
             if (this.looksLikePath(expression)) {
                 this.foundImages.add(expression);
-                console.log(`找到静态路径: ${expression} (在 ${path.basename(filePath)})`);
+                console.log(`找到静态路径: ${expression} (在 ${basename(filePath)})`);
             }
             return;
         }
@@ -304,20 +285,24 @@ export class DynamicPictureAnalyzer {
      * 处理函数调用
      */
     private processFunctionCall(expression: string, filePath: string, content: string, position: number): void {
-        // 匹配路径构建函数调用
-        for (const pattern of DynamicPictureAnalyzer.PATH_BUILDER_PATTERNS) {
-            const regex = new RegExp(pattern.source, pattern.flags);
-            let match;
+        // 专门处理 GameResPath 的方法调用
+        const gameResPathPattern = /GameResPath\.(\w+)\s*\(\s*([^)]+)\s*\)/g;
+        let match;
+        
+        while ((match = gameResPathPattern.exec(expression)) !== null) {
+            const methodName = match[1];
+            const params = match[2];
+            const fullFunctionName = `GameResPath.${methodName}`;
             
-            while ((match = regex.exec(expression)) !== null) {
-                const className = match[1];
-                const params = match[2];
-                const fullFunctionName = `${className}.getTargetDir`; // 假设主要是getTargetDir
-                
-                if (this.pathBuilderFunctions.has(fullFunctionName)) {
-                    const functionInfo = this.pathBuilderFunctions.get(fullFunctionName);
-                    this.simulateFunction(functionInfo, params, filePath);
-                }
+            console.log(`找到 GameResPath 调用: ${fullFunctionName}(${params}) (在 ${basename(filePath)})`);
+            
+            // 检查是否有对应的函数定义
+            if (this.pathBuilderFunctions.has(fullFunctionName)) {
+                const functionInfo = this.pathBuilderFunctions.get(fullFunctionName);
+                this.simulateGameResPathFunction(functionInfo, params, filePath, methodName);
+            } else {
+                // 即使没有找到函数定义，也尝试分析参数
+                this.analyzeGameResPathParams(methodName, params, filePath);
             }
         }
     }
@@ -339,10 +324,9 @@ export class DynamicPictureAnalyzer {
     }
 
     /**
-     * 模拟函数执行
+     * 模拟 GameResPath 函数执行
      */
-    private simulateFunction(functionInfo: any, params: string, filePath: string): void {
-        // 这里简化处理，基于函数体和参数尝试构建路径
+    private simulateGameResPathFunction(functionInfo: any, params: string, filePath: string, methodName: string): void {
         const body = functionInfo.body;
         
         // 查找返回语句中的路径模式
@@ -351,13 +335,159 @@ export class DynamicPictureAnalyzer {
         
         if (returnMatch) {
             const returnExpression = returnMatch[1].trim();
+            console.log(`函数 ${methodName} 返回表达式: ${returnExpression}`);
             
-            // 如果返回语句包含'texture/'等模式，尝试展开
-            if (returnExpression.includes("'texture/'") || returnExpression.includes('"texture/"')) {
-                // 简单情况：return 'texture/' + dir + "/" + img_name;
-                // 我们可以生成一些常见的可能路径
-                this.generateCommonPaths(params, filePath);
+            // 根据不同的 GameResPath 方法分析
+            this.analyzeGameResPathParams(methodName, params, filePath, returnExpression);
+        }
+    }
+
+    /**
+     * 分析 GameResPath 参数并生成可能的路径
+     */
+    private analyzeGameResPathParams(methodName: string, params: string, filePath: string, returnExpression?: string): void {
+        // 解析参数 - 分离出字符串常量和动态变量
+        const paramList = this.parseParameters(params);
+        
+        console.log(`分析 GameResPath.${methodName} 参数:`, paramList);
+        
+        // 根据方法名和参数生成可能的路径
+        switch (methodName) {
+            case 'getTargetDir':
+                this.handleGetTargetDir(paramList, filePath);
+                break;
+            case 'getCommonItemIcon':
+            case 'getHeadicon':
+            case 'getEquip':
+                this.handleIconMethods(methodName, paramList, filePath);
+                break;
+            case 'getHeroGroupBigBgPath':
+            case 'getHeroGroupIconPath':
+            case 'getHeroDutyIconPath':
+                this.handleHeroMethods(methodName, paramList, filePath);
+                break;
+            default:
+                this.handleGenericGameResPath(methodName, paramList, filePath, returnExpression);
+                break;
+        }
+    }
+
+    /**
+     * 解析参数，区分字符串常量和动态变量
+     */
+    private parseParameters(params: string): Array<{type: 'string' | 'variable', value: string}> {
+        const result: Array<{type: 'string' | 'variable', value: string}> = [];
+        
+        // 按逗号分割参数
+        const paramParts = params.split(',').map(p => p.trim());
+        
+        for (const param of paramParts) {
+            if (param.match(/^['"`].*['"`]$/)) {
+                // 字符串常量
+                const value = param.replace(/^['"`]|['"`]$/g, '');
+                result.push({type: 'string', value});
+            } else {
+                // 动态变量
+                result.push({type: 'variable', value: param});
+                this.dynamicParameters.add(param);
             }
+        }
+        
+        return result;
+    }
+
+    /**
+     * 处理 getTargetDir 方法
+     */
+    private handleGetTargetDir(paramList: Array<{type: string, value: string}>, filePath: string): void {
+        if (paramList.length >= 2) {
+            const dir = paramList[0];
+            const imageName = paramList[1];
+            
+            if (dir.type === 'string' && imageName.type === 'string') {
+                // 都是字符串常量，可以直接生成路径
+                const path = `texture/${dir.value}/${imageName.value}`;
+                this.foundImages.add(path);
+                console.log(`确定路径: ${path} (从 ${basename(filePath)})`);
+            } else if (dir.type === 'string') {
+                // 目录是常量，文件名是变量
+                const basePath = `texture/${dir.value}/`;
+                this.foundImages.add(basePath + '[动态文件名]');
+                console.log(`部分路径: ${basePath}[${imageName.value}] (从 ${basename(filePath)})`);
+            } else {
+                // 包含动态参数
+                console.log(`动态路径: texture/[${dir.value}]/[${imageName.value}] (从 ${basename(filePath)})`);
+            }
+        }
+    }
+
+    /**
+     * 处理图标相关方法
+     */
+    private handleIconMethods(methodName: string, paramList: Array<{type: string, value: string}>, filePath: string): void {
+        if (paramList.length >= 1) {
+            const param = paramList[0];
+            
+            if (param.type === 'string') {
+                let basePath = '';
+                switch (methodName) {
+                    case 'getCommonItemIcon':
+                        basePath = `gameRes/common/texture/items/${param.value}`;
+                        break;
+                    case 'getHeadicon':
+                        basePath = `gameRes/common/texture/head/headicon/${param.value}`;
+                        break;
+                    case 'getEquip':
+                        basePath = `gameRes/common/old_del/texture/equip/${param.value}`;
+                        break;
+                }
+                
+                if (basePath) {
+                    this.foundImages.add(basePath);
+                    console.log(`确定路径: ${basePath} (从 ${basename(filePath)})`);
+                }
+            } else {
+                console.log(`动态图标路径: ${methodName}([${param.value}]) (从 ${basename(filePath)})`);
+            }
+        }
+    }
+
+    /**
+     * 处理英雄相关方法
+     */
+    private handleHeroMethods(methodName: string, paramList: Array<{type: string, value: string}>, filePath: string): void {
+        if (paramList.length >= 1) {
+            const param = paramList[0];
+            
+            if (param.type === 'string') {
+                let basePath = '';
+                switch (methodName) {
+                    case 'getHeroGroupIconPath':
+                        basePath = `gameRes/common/texture/hero/camp/gg_zhenying1_${param.value}`;
+                        break;
+                    case 'getHeroDutyIconPath':
+                        basePath = `gameRes/common/old_del/texture/attrType/gg_zhiye_${param.value}`;
+                        break;
+                }
+                
+                if (basePath) {
+                    this.foundImages.add(basePath);
+                    console.log(`确定路径: ${basePath} (从 ${basename(filePath)})`);
+                }
+            } else {
+                console.log(`动态英雄路径: ${methodName}([${param.value}]) (从 ${basename(filePath)})`);
+            }
+        }
+    }
+
+    /**
+     * 处理通用 GameResPath 方法
+     */
+    private handleGenericGameResPath(methodName: string, paramList: Array<{type: string, value: string}>, filePath: string, returnExpression?: string): void {
+        console.log(`通用 GameResPath 方法: ${methodName}，参数:`, paramList.map(p => `${p.type}:${p.value}`).join(', '));
+        
+        if (returnExpression) {
+            console.log(`返回表达式: ${returnExpression}`);
         }
     }
 
@@ -381,7 +511,7 @@ export class DynamicPictureAnalyzer {
             
             for (const pathStr of possiblePaths) {
                 this.foundImages.add(pathStr);
-                console.log(`推测路径: ${pathStr} (从 ${path.basename(filePath)})`);
+                console.log(`推测路径: ${pathStr} (从 ${basename(filePath)})`);
             }
         }
     }
@@ -405,7 +535,7 @@ export class DynamicPictureAnalyzer {
             if (var1Value && var2Value) {
                 const fullPath = prefix + var1Value + middle + var2Value;
                 this.foundImages.add(fullPath);
-                console.log(`拼接路径: ${fullPath} (从 ${path.basename(filePath)})`);
+                console.log(`拼接路径: ${fullPath} (从 ${basename(filePath)})`);
             }
         } else if (match.length >= 4) {
             // 'texture/' + dir + '/filename' 模式
@@ -417,7 +547,7 @@ export class DynamicPictureAnalyzer {
             if (varValue) {
                 const fullPath = prefix + varValue + suffix;
                 this.foundImages.add(fullPath);
-                console.log(`拼接路径: ${fullPath} (从 ${path.basename(filePath)})`);
+                console.log(`拼接路径: ${fullPath} (从 ${basename(filePath)})`);
             }
         }
     }
@@ -458,8 +588,19 @@ export class DynamicPictureAnalyzer {
         
         console.log('\n=== 路径构建函数 ===');
         this.pathBuilderFunctions.forEach((info, name) => {
-            console.log(`${name} (在 ${path.basename(info.file)})`);
+            console.log(`${name} (在 ${basename(info.file)})`);
         });
+        
+        console.log('\n=== 动态参数列表 ===');
+        const sortedParams = Array.from(this.dynamicParameters).sort();
+        if (sortedParams.length > 0) {
+            console.log(`找到 ${sortedParams.length} 个动态参数:`);
+            sortedParams.forEach((param, index) => {
+                console.log(`${index + 1}. ${param}`);
+            });
+        } else {
+            console.log('未找到动态参数');
+        }
     }
 
     /**
@@ -474,7 +615,8 @@ export class DynamicPictureAnalyzer {
             totalImages: this.foundImages.size,
             images: Array.from(this.foundImages).sort(),
             pathBuilderFunctions: Object.fromEntries(this.pathBuilderFunctions),
-            variables: Object.fromEntries(this.variableValues)
+            variables: Object.fromEntries(this.variableValues),
+            dynamicParameters: Array.from(this.dynamicParameters).sort()
         };
         
         fs.writeFileSync(output, JSON.stringify(results, null, 2), 'utf-8');
