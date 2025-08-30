@@ -212,7 +212,7 @@ module.exports = Editor.Panel.define({
         lookothersmallResult: '#lookothersmallResult',
 
         processAll: '#processAll',
-
+        lookRemaining: '#lookRemaining',
         //移动图片
         preprocessIdenticalImagesBtn: '#preprocessIdenticalImagesBtn',
         lookPreprocessIdenticalImagesBtn: '#lookPreprocessIdenticalImagesBtn',
@@ -247,6 +247,7 @@ module.exports = Editor.Panel.define({
         PreLookmoveSameDirImagesBtn: '#PreLookmoveSameDirImagesBtn',
 
         
+
     },
     
     methods: {
@@ -859,6 +860,9 @@ module.exports = Editor.Panel.define({
             });
             this.$.processAll?.addEventListener('click', () => {
                 this.processAllCalculations();
+            });
+            this.$.lookRemaining?.addEventListener('click', () => {
+                this.lookRemaining(_dataCache?.path2info);
             });
             // 大图定义按钮事件
             this.$.defineLargeImageBtn?.addEventListener('click', () => {
@@ -1540,7 +1544,72 @@ module.exports = Editor.Panel.define({
             
             console.log(`预处理相同大图完成: 删除图片 ${totalDuplicateFiles} 张, 保留组 ${Object.keys(duplicateGroups).length} 组, 剩余 ${remainingCount} 张, 节省空间 ${formatSize(totalSavedSize)}`);
         },
-
+        lookRemaining(){
+            console.log('查看剩余未处理图片');
+            
+            if (!_dataCache || !_dataCache.path2info) {
+                console.warn('请先构建基础数据，双向索引表');
+                return;
+            }
+            
+            // 从下往上找最后一个有数据的缓存
+            const remainingCaches = [
+                { name: '其他小图剩余', cache: _othersmallRemainingdataCache, description: '经过其他小图筛选后的剩余图片' },
+                { name: '其他大图剩余', cache: _otherbigRemainingdataCache, description: '经过其他大图筛选后的剩余图片' },
+                { name: '按大小引用次数剩余', cache: _sizecountRemainingdataCache, description: '经过按大小引用次数筛选后的剩余图片' },
+                { name: '相同目录剩余', cache: _sameRemainingdataCache, description: '经过相同目录筛选后的剩余图片' },
+                { name: '单独文件剩余', cache: _singleRemainingdataCache, description: '经过单独文件筛选后的剩余图片' },
+                { name: 'Common图剩余', cache: _commonRemainingdataCache, description: '经过Common图筛选后的剩余图片' },
+                { name: '大图剩余', cache: _bgRemainingdataCache, description: '经过大图筛选后的剩余图片' },
+                { name: '预处理相同图剩余', cache: _preImageRemainingdataCache, description: '经过预处理相同图筛选后的剩余图片' },
+                { name: '忽略模式剩余', cache: _ignoreRemainingdataCache, description: '经过忽略模式筛选后的剩余图片' },
+            ];
+            
+            // 从下往上找第一个有数据的缓存
+            let foundCache = null;
+            for (const cacheInfo of remainingCaches) {
+                if (cacheInfo.cache && Object.keys(cacheInfo.cache).length > 0) {
+                    foundCache = cacheInfo;
+                    break;
+                }
+            }
+            
+            if (!foundCache) {
+                // 如果所有剩余缓存都没有数据，显示原始数据
+                const originalRemaining = Object.fromEntries(
+                    Object.entries(_dataCache.path2info).filter(([path, info]) => (info as any).count > 0)
+                );
+                
+                if (Object.keys(originalRemaining).length === 0) {
+                    Editor.Dialog.info('没有剩余未处理的图片', {title: '查看剩余图片', buttons: ['我知道了']});
+                    return;
+                }
+                
+                const totalSize = Number(Object.values(originalRemaining).reduce((sum: number, info: any) => sum + info.size, 0));
+                const message = `查看原始剩余图片\n\n描述：所有被引用的图片（未经过任何筛选）\n\n统计：\n- 图片数量：${Object.keys(originalRemaining).length} 张\n- 总大小：${formatSize(totalSize)}`;
+                
+                Editor.Dialog.info(message, {title: '查看剩余图片', buttons: ['查看详情', '我知道了']})
+                .then((result) => {
+                    if (result.response === 0) { // 用户点击了查看详情
+                        this.showAlert2(originalRemaining);
+                    }
+                });
+                return;
+            }
+            
+            // 显示找到的剩余数据
+            const totalSize = Number(Object.values(foundCache.cache).reduce((sum: number, info: any) => sum + info.size, 0));
+            const message = `查看${foundCache.name}\n\n描述：${foundCache.description}\n\n统计：\n- 图片数量：${Object.keys(foundCache.cache).length} 张\n- 总大小：${formatSize(totalSize)}`;
+            
+            Editor.Dialog.info(message, {title: '查看剩余图片', buttons: ['查看详情', '我知道了']})
+            .then((result) => {
+                if (result.response === 0) { // 用户点击了查看详情
+                    this.showAlert2(foundCache.cache);
+                }
+            });
+            
+            console.log(`查看剩余未处理图片完成：${foundCache.name}，共 ${Object.keys(foundCache.cache).length} 张`);
+        },
         processAllCalculations() {
             // 一键处理所有计算
             if (!_dataCache || !_dataCache.path2info) {
