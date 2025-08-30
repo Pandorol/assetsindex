@@ -760,59 +760,64 @@ export class Panel4Manager {
         try {
             this.showStatus(itemId, `正在移动 ${moveItem.selectedImages.length} 个图片...`, 'info');
             
-            // 构建移动操作数据
-            const moveOperations = moveItem.selectedImages.map(imagePath => ({
-                src: `db://assets/${imagePath}`,
-                dest: `db://assets/${moveItem.targetDir}${basename(imagePath)}`,
-                targetDir: moveItem.targetDir,
-                imgPath: imagePath
-            }));
+            // 构建移动操作数据 - 创建模拟的数据缓存，仅包含要移动的图片
+            const filteredDataCache: Record<string, any> = {};
+            moveItem.selectedImages.forEach(imagePath => {
+                if (_dataCache.path2info[imagePath]) {
+                    filteredDataCache[imagePath] = _dataCache.path2info[imagePath];
+                }
+            });
             
-            // 调用主进程的移动功能
-            console.log('准备调用移动功能，操作数据:', moveOperations);
+            console.log('准备调用移动功能，要移动的图片:', moveItem.selectedImages);
+            console.log('过滤后的数据缓存:', filteredDataCache);
             
-            // 检查 Editor.Message 和可用方法
-            console.log('Editor.Message 对象:', (window as any).Editor?.Message);
-            console.log('可用的方法:', Object.keys((window as any).Editor?.Message || {}));
+            // 预计算每个图片的大小判断结果
+            const imageSizeMap: Record<string, boolean> = {};
+            Object.entries(filteredDataCache).forEach(([imgPath, info]: [string, any]) => {
+                // 这里使用简单的大小判断，可以根据需要调整阈值
+                imageSizeMap[imgPath] = (info.width || 0) * (info.height || 0) >= 160000;
+            });
             
-            // 尝试不同的消息调用方式
+            // 使用正确的消息调用方式，参考 index.ts 中的 moveImages 方法
+            const requestParams = {
+                method: 'moveBgImages',
+                spriteFrameMaps_name: _dataCache.spriteFrameMaps_name,
+                path2info: filteredDataCache, // 只传递要移动的图片信息
+                bgTargetPattern: moveItem.targetDir, // 使用目标目录作为模式
+                imageSizeMap: imageSizeMap, // 传递预计算的大小判断结果
+                keepOld: false, // 不保留旧文件
+                preLook: false, // 不是预览模式
+                autoRename: true // 自动重命名
+            };
+            
+            console.log('调用参数:', requestParams);
+            
             let result;
             try {
-                // 方式1: 直接调用扩展消息
-                result = await (window as any).Editor?.Message?.send('assetsindex', 'handle-dynamic-message', {
-                    method: 'moveBgImages',
-                    spriteFrameMaps_name: _dataCache.spriteFrameMaps_name,
-                    path2info: _dataCache.path2info,
-                    operations: moveOperations,
-                    autoRename: true,
-                    preLook: false
-                });
-                console.log('方式1调用结果:', result);
-            } catch (error1) {
-                console.log('方式1失败:', error1);
+                // 使用与 index.ts 相同的调用方式
+                result = await (window as any).Editor?.Message?.request('assetsindex', 'dynamic-message', requestParams);
+                console.log('消息调用成功，结果:', result);
                 
-                try {
-                    // 方式2: 使用 request
-                    result = await (window as any).Editor?.Message?.request('assetsindex', 'moveBgImages', {
-                        spriteFrameMaps_name: _dataCache.spriteFrameMaps_name,
-                        path2info: _dataCache.path2info,
-                        operations: moveOperations,
-                        autoRename: true,
-                        preLook: false
-                    });
-                    console.log('方式2调用结果:', result);
-                } catch (error2) {
-                    console.log('方式2失败:', error2);
-                    
-                    // 方式3: 简化调用
-                    result = { movedCount: 0, errorCount: moveOperations.length };
-                    console.log('使用模拟结果:', result);
-                    this.showStatus(itemId, '移动功能暂不可用，请检查扩展配置', 'error');
-                    return;
+                if (!result) {
+                    throw new Error('消息调用返回 undefined，可能是主进程处理失败');
                 }
+                
+                // 检查结果结构
+                if (typeof result !== 'object') {
+                    throw new Error(`期望返回对象，但得到: ${typeof result}`);
+                }
+                
+                // 确保有必要的字段
+                const movedCount = result.movedCount || 0;
+                const errorCount = result.errorCount || 0;
+                
+                this.showStatus(itemId, `移动完成: 成功 ${movedCount} 个，失败 ${errorCount} 个`, 'success');
+                
+            } catch (error) {
+                console.error('消息调用失败:', error);
+                this.showStatus(itemId, `移动失败: ${(error as Error).message}`, 'error');
+                return;
             }
-            
-            this.showStatus(itemId, `移动完成: 成功 ${result.movedCount} 个，失败 ${result.errorCount} 个`, 'success');
             
             // 清空选中列表
             moveItem.selectedImages = [];
