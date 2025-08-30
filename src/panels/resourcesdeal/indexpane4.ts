@@ -760,63 +760,82 @@ export class Panel4Manager {
         try {
             this.showStatus(itemId, `正在移动 ${moveItem.selectedImages.length} 个图片...`, 'info');
             
-            // 构建移动操作数据 - 创建模拟的数据缓存，仅包含要移动的图片
-            const filteredDataCache: Record<string, any> = {};
-            moveItem.selectedImages.forEach(imagePath => {
-                if (_dataCache.path2info[imagePath]) {
-                    filteredDataCache[imagePath] = _dataCache.path2info[imagePath];
-                }
-            });
+            let movedCount = 0;
+            let errorCount = 0;
+            const errors: string[] = [];
             
-            console.log('准备调用移动功能，要移动的图片:', moveItem.selectedImages);
-            console.log('过滤后的数据缓存:', filteredDataCache);
+            console.log('准备直接移动文件，不使用复杂的主进程方法');
+            console.log('要移动的图片:', moveItem.selectedImages);
             
-            // 预计算每个图片的大小判断结果
-            const imageSizeMap: Record<string, boolean> = {};
-            Object.entries(filteredDataCache).forEach(([imgPath, info]: [string, any]) => {
-                // 这里使用简单的大小判断，可以根据需要调整阈值
-                imageSizeMap[imgPath] = (info.width || 0) * (info.height || 0) >= 160000;
-            });
+            // 确保目标目录存在
+            const targetDirPath = moveItem.targetDir.endsWith('/') ? moveItem.targetDir.slice(0, -1) : moveItem.targetDir;
+            const targetDbPath = `db://assets/${targetDirPath}`;
             
-            // 使用正确的消息调用方式，参考 index.ts 中的 moveImages 方法
-            const requestParams = {
-                method: 'moveBgImages',
-                spriteFrameMaps_name: _dataCache.spriteFrameMaps_name,
-                path2info: filteredDataCache, // 只传递要移动的图片信息
-                bgTargetPattern: moveItem.targetDir, // 使用目标目录作为模式
-                imageSizeMap: imageSizeMap, // 传递预计算的大小判断结果
-                keepOld: false, // 不保留旧文件
-                preLook: false, // 不是预览模式
-                autoRename: true // 自动重命名
-            };
-            
-            console.log('调用参数:', requestParams);
-            
-            let result;
             try {
-                // 使用与 index.ts 相同的调用方式
-                result = await (window as any).Editor?.Message?.request('assetsindex', 'dynamic-message', requestParams);
-                console.log('消息调用成功，结果:', result);
-                
-                if (!result) {
-                    throw new Error('消息调用返回 undefined，可能是主进程处理失败');
+                // 检查目标目录是否存在
+                const dirExists = await (window as any).Editor?.Message?.request('asset-db', 'query-asset-info', targetDbPath);
+                if (!dirExists) {
+                    console.log(`目标目录不存在，尝试创建: ${targetDirPath}`);
+                    // 如果目录不存在，尝试创建（这里可能需要逐级创建）
+                    const fs = require('fs');
+                    const path = require('path');
+                    const assetsPath = path.join((window as any).Editor?.Project?.path || '', 'assets');
+                    const fullTargetPath = path.join(assetsPath, targetDirPath);
+                    
+                    if (!fs.existsSync(fullTargetPath)) {
+                        fs.mkdirSync(fullTargetPath, { recursive: true });
+                        console.log(`成功创建目录: ${targetDirPath}`);
+                        
+                        // 刷新资源数据库以识别新创建的目录
+                        await (window as any).Editor?.Message?.send('asset-db', 'refresh-asset', targetDbPath);
+                    }
                 }
+            } catch (dirError) {
+                console.warn('检查/创建目录时出错:', dirError);
+                // 继续执行，让移动操作自己处理目录创建
+            }
+            
+            // 直接使用 asset-db API 移动每个文件
+            for (let i = 0; i < moveItem.selectedImages.length; i++) {
+                const imagePath = moveItem.selectedImages[i];
+                const fileName = basename(imagePath);
+                const src = `db://assets/${imagePath}`;
+                const dest = `db://assets/${moveItem.targetDir}${fileName}`;
                 
-                // 检查结果结构
-                if (typeof result !== 'object') {
-                    throw new Error(`期望返回对象，但得到: ${typeof result}`);
+                console.log(`[${i + 1}/${moveItem.selectedImages.length}] 移动: ${fileName}`);
+                console.log(`从: ${src}`);
+                console.log(`到: ${dest}`);
+                
+                try {
+                    // 构建移动选项 - 启用自动重命名避免冲突
+                    const moveOptions = { rename: true };
+                    
+                    // 直接调用 asset-db 的 move-asset API
+                    const result = await (window as any).Editor?.Message?.request('asset-db', 'move-asset', src, dest, moveOptions);
+                    console.log(`[${i + 1}/${moveItem.selectedImages.length}] 移动成功: ${fileName}`, result);
+                    movedCount++;
+                    
+                } catch (error) {
+                    console.error(`[${i + 1}/${moveItem.selectedImages.length}] 移动失败: ${fileName}`, error);
+                    errorCount++;
+                    errors.push(`移动失败: ${fileName} - ${(error as Error).message}`);
                 }
-                
-                // 确保有必要的字段
-                const movedCount = result.movedCount || 0;
-                const errorCount = result.errorCount || 0;
-                
-                this.showStatus(itemId, `移动完成: 成功 ${movedCount} 个，失败 ${errorCount} 个`, 'success');
-                
-            } catch (error) {
-                console.error('消息调用失败:', error);
-                this.showStatus(itemId, `移动失败: ${(error as Error).message}`, 'error');
-                return;
+            }
+            
+            // 显示移动结果
+            if (errorCount === 0) {
+                this.showStatus(itemId, `移动完成: 成功移动 ${movedCount} 个图片`, 'success');
+            } else {
+                this.showStatus(itemId, `移动完成: 成功 ${movedCount} 个，失败 ${errorCount} 个`, 'error');
+                console.error('移动错误详情:', errors);
+            }
+            
+            // 移动完成后刷新资源数据库
+            try {
+                await (window as any).Editor?.Message?.send('asset-db', 'refresh-asset', 'db://assets');
+                console.log('资源数据库刷新完成');
+            } catch (refreshError) {
+                console.warn('刷新资源数据库失败:', refreshError);
             }
             
             // 清空选中列表
