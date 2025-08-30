@@ -389,7 +389,7 @@ module.exports = Editor.Panel.define({
             modal.style.cssText = `
                 position: fixed;
                 top: 50px; left: 50px;
-                width: 600px;
+                width: 700px;
                 height: 500px;
                 overflow: auto;
                 background: white;
@@ -514,7 +514,7 @@ module.exports = Editor.Panel.define({
                         preview = ` {${firstValue}...}`;
                     }
                 }
-                label.textContent = `${key}: ${preview}..等${keys.length}项`;
+                label.textContent = `${key}: ${preview}..(${keys.length})`;
                 const childContainer = document.createElement('div');
                 childContainer.style.display = (keys.length === 0) ? 'none' : (isRoot ? 'block' : 'none');
                 if (keys.length === 0) {
