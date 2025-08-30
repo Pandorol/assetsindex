@@ -224,6 +224,10 @@ module.exports = Editor.Panel.define({
         bigsameDirTargetPattern: '#bigsameDirTargetPattern',
         moveSameDirImagesBtn: '#moveSameDirImagesBtn',
         PreLookmoveSameDirImagesBtn: '#PreLookmoveSameDirImagesBtn',
+        //移动其他大图
+        otherbigTargetPattern: '#otherbigTargetPattern',
+        moveOtherbigImagesBtn: '#moveOtherbigImagesBtn',
+        PreLookmoveOtherbigImagesBtn: '#PreLookmoveOtherbigImagesBtn',
     },
     methods: {
         // #region 基础功能方法
@@ -653,6 +657,8 @@ module.exports = Editor.Panel.define({
                 { key: 'resourcesdeal_defineSSmallImageByWidth', element: 'defineSSmallImageByWidth', defaultValue: '1', type: 'checkbox' },
                 { key: 'resourcesdeal_defineSSmallImageByHeight', element: 'defineSSmallImageByHeight', defaultValue: '1', type: 'checkbox' },
                 { key: 'resourcesdeal_defineSSmallImageByArea', element: 'defineSSmallImageByArea', defaultValue: '1', type: 'checkbox' },
+                // 移动其他大图相关配置
+                { key: 'resourcesdeal_otherbigTargetPattern', element: 'otherbigTargetPattern', defaultValue: 'remotemain/staticRes/common/bg/' },
             ];
             for (const config of configs) {
                 try {
@@ -846,17 +852,19 @@ module.exports = Editor.Panel.define({
             });
         },
         bindMoveEvents() {
-            var _a, _b, _c, _d, _e, _f, _g, _h;
+            var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k;
             // 预览移动
             (_a = this.$.PreLookmoveBgImagesBtn) === null || _a === void 0 ? void 0 : _a.addEventListener('click', () => this.moveBgImage(true));
             (_b = this.$.PreLookmoveCommonImagesBtn) === null || _b === void 0 ? void 0 : _b.addEventListener('click', () => this.moveCommonImage(true));
             (_c = this.$.PreLookmoveSingleImagesBtn) === null || _c === void 0 ? void 0 : _c.addEventListener('click', () => this.moveSingleImage(true));
             (_d = this.$.PreLookmoveSameDirImagesBtn) === null || _d === void 0 ? void 0 : _d.addEventListener('click', () => this.moveSameImage(true));
+            (_e = this.$.PreLookmoveOtherbigImagesBtn) === null || _e === void 0 ? void 0 : _e.addEventListener('click', () => this.moveOtherbigImage(true));
             // 实际移动
-            (_e = this.$.moveBgImagesBtn) === null || _e === void 0 ? void 0 : _e.addEventListener('click', () => this.moveBgImage());
-            (_f = this.$.moveCommonImagesBtn) === null || _f === void 0 ? void 0 : _f.addEventListener('click', () => this.moveCommonImage());
-            (_g = this.$.moveSingleImagesBtn) === null || _g === void 0 ? void 0 : _g.addEventListener('click', () => this.moveSingleImage());
-            (_h = this.$.moveSameDirImagesBtn) === null || _h === void 0 ? void 0 : _h.addEventListener('click', () => this.moveSameImage());
+            (_f = this.$.moveBgImagesBtn) === null || _f === void 0 ? void 0 : _f.addEventListener('click', () => this.moveBgImage());
+            (_g = this.$.moveCommonImagesBtn) === null || _g === void 0 ? void 0 : _g.addEventListener('click', () => this.moveCommonImage());
+            (_h = this.$.moveSingleImagesBtn) === null || _h === void 0 ? void 0 : _h.addEventListener('click', () => this.moveSingleImage());
+            (_j = this.$.moveSameDirImagesBtn) === null || _j === void 0 ? void 0 : _j.addEventListener('click', () => this.moveSameImage());
+            (_k = this.$.moveOtherbigImagesBtn) === null || _k === void 0 ? void 0 : _k.addEventListener('click', () => this.moveOtherbigImage());
         },
         bindPreprocessEvents() {
             var _a;
@@ -1553,6 +1561,18 @@ module.exports = Editor.Panel.define({
                 configKeys: ['sameDirPrefabRegex', 'sameDirTargetPattern', 'bigsameDirTargetPattern'],
                 title: '相同目录图',
                 checkMessage: '请先计算相同目录文件设置',
+                preLook
+            });
+        },
+        moveOtherbigImage(preLook = false) {
+            const otherbigTargetPattern = this.$.otherbigTargetPattern.value;
+            this.moveImages({
+                type: 'common',
+                dataCache: _otherbigdataCache,
+                targetPattern: otherbigTargetPattern,
+                configKeys: ['otherbigTargetPattern'],
+                title: '其他大图',
+                checkMessage: '请先计算其他大图设置',
                 preLook
             });
         },

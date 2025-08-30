@@ -246,7 +246,10 @@ module.exports = Editor.Panel.define({
         moveSameDirImagesBtn: '#moveSameDirImagesBtn',
         PreLookmoveSameDirImagesBtn: '#PreLookmoveSameDirImagesBtn',
 
-        
+        //移动其他大图
+        otherbigTargetPattern: '#otherbigTargetPattern',
+        moveOtherbigImagesBtn: '#moveOtherbigImagesBtn',
+        PreLookmoveOtherbigImagesBtn: '#PreLookmoveOtherbigImagesBtn',
 
     },
     
@@ -722,6 +725,8 @@ module.exports = Editor.Panel.define({
                 { key: 'resourcesdeal_defineSSmallImageByWidth', element: 'defineSSmallImageByWidth', defaultValue: '1', type: 'checkbox' },
                 { key: 'resourcesdeal_defineSSmallImageByHeight', element: 'defineSSmallImageByHeight', defaultValue: '1', type: 'checkbox' },
                 { key: 'resourcesdeal_defineSSmallImageByArea', element: 'defineSSmallImageByArea', defaultValue: '1', type: 'checkbox' },
+                // 移动其他大图相关配置
+                { key: 'resourcesdeal_otherbigTargetPattern', element: 'otherbigTargetPattern', defaultValue: 'remotemain/staticRes/common/bg/' },
             ];
 
             for (const config of configs) {
@@ -934,12 +939,14 @@ module.exports = Editor.Panel.define({
             this.$.PreLookmoveCommonImagesBtn?.addEventListener('click', () => this.moveCommonImage(true));
             this.$.PreLookmoveSingleImagesBtn?.addEventListener('click', () => this.moveSingleImage(true));
             this.$.PreLookmoveSameDirImagesBtn?.addEventListener('click', () => this.moveSameImage(true));
+            this.$.PreLookmoveOtherbigImagesBtn?.addEventListener('click', () => this.moveOtherbigImage(true));
 
             // 实际移动
             this.$.moveBgImagesBtn?.addEventListener('click', () => this.moveBgImage());
             this.$.moveCommonImagesBtn?.addEventListener('click', () => this.moveCommonImage());
             this.$.moveSingleImagesBtn?.addEventListener('click', () => this.moveSingleImage());
             this.$.moveSameDirImagesBtn?.addEventListener('click', () => this.moveSameImage());
+            this.$.moveOtherbigImagesBtn?.addEventListener('click', () => this.moveOtherbigImage());
         },
 
         bindPreprocessEvents() {
@@ -1797,6 +1804,19 @@ module.exports = Editor.Panel.define({
                 configKeys: ['sameDirPrefabRegex', 'sameDirTargetPattern', 'bigsameDirTargetPattern'],
                 title: '相同目录图',
                 checkMessage: '请先计算相同目录文件设置',
+                preLook
+            });
+        },
+
+        moveOtherbigImage(preLook = false) {
+            const otherbigTargetPattern = (this.$.otherbigTargetPattern as HTMLInputElement).value;
+            this.moveImages({
+                type: 'common',
+                dataCache: _otherbigdataCache,
+                targetPattern: otherbigTargetPattern,
+                configKeys: ['otherbigTargetPattern'],
+                title: '其他大图',
+                checkMessage: '请先计算其他大图设置',
                 preLook
             });
         },
