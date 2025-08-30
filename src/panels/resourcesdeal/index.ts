@@ -12,13 +12,17 @@ let _commondataCache: any = null;
 let _singledataCache: any = null; 
 let _samedataCache: any = null; 
 let _sizecountdataCache: any = null; 
+let _otherbigdataCache: any = null;
+let _othersmalldataCache: any = null;
 let _ignoreRemainingdataCache: any = null; 
 let _preImageRemainingdataCache: any = null; 
 let _bgRemainingdataCache: any = null; 
 let _commonRemainingdataCache: any = null; 
 let _singleRemainingdataCache: any = null; 
 let _sameRemainingdataCache: any = null; 
-let _sizecountRemainingdataCache: any = null; 
+let _sizecountRemainingdataCache: any = null;
+let _otherbigRemainingdataCache: any = null;
+let _othersmallRemainingdataCache: any = null;
 let _defineLargeImageCache: any = null; // 大图定义缓存
 let _defineSmallImageCache: any = null; // 小小图定义缓存
 let _defineBigImage: any = {
@@ -61,16 +65,16 @@ function isBigImage(width: number, height: number): boolean {
 function isSSmallImage(width: number, height: number): boolean {
     // 如果没有启用任何判断方式，默认使用面积判断
     if (!_defineSSmallImage.byWidth && !_defineSSmallImage.byHeight && !_defineSSmallImage.byArea) {
-        return width * height >= _defineSSmallImage.threshold;
+        return width * height <= _defineSSmallImage.threshold;
     }
 
-    if (_defineSSmallImage.byWidth && width >= _defineSSmallImage.width) {
+    if (_defineSSmallImage.byWidth && width <= _defineSSmallImage.width) {
         return true;
     }
-    if (_defineSSmallImage.byHeight && height >= _defineSSmallImage.height) {
+    if (_defineSSmallImage.byHeight && height <= _defineSSmallImage.height) {
         return true;
     }
-    if (_defineSSmallImage.byArea && width * height >= _defineSSmallImage.threshold) {
+    if (_defineSSmallImage.byArea && width * height <= _defineSSmallImage.threshold) {
         return true;
     }
     return false;
@@ -192,6 +196,20 @@ module.exports = Editor.Panel.define({
         sizeCountRemaining: '#sizeCountRemaining',
         lookSizeCountResult: '#lookSizeCountResult',
 
+        //其他大图
+        otherbigToCommonBtn: '#otherbigToCommonBtn',
+        otherbigTotal: '#otherbigTotal',
+        otherbigTotalSize: '#otherbigTotalSize',
+        otherbigRemaining: '#otherbigRemaining',
+        lookotherbigResult: '#lookotherbigResult',
+
+        //其他小图
+        othersmallToCopyMoreBtn: '#othersmallToCopyMoreBtn',
+        othersmallTotal: '#othersmallTotal',
+        othersmallTotalSize: '#othersmallTotalSize',
+        othersmallRemaining: '#othersmallRemaining',
+        lookothersmallResult: '#lookothersmallResult',
+
         processAll: '#processAll',
 
         //移动图片
@@ -226,6 +244,8 @@ module.exports = Editor.Panel.define({
         bigsameDirTargetPattern: '#bigsameDirTargetPattern',
         moveSameDirImagesBtn: '#moveSameDirImagesBtn',
         PreLookmoveSameDirImagesBtn: '#PreLookmoveSameDirImagesBtn',
+
+        
     },
     
     methods: {
@@ -847,6 +867,14 @@ module.exports = Editor.Panel.define({
             this.$.defineSSmallImageBtn?.addEventListener('click', () => {
                 this.defineSmallImages(_dataCache?.path2info);
             });
+            // 其他大图按钮事件
+            this.$.otherbigToCommonBtn?.addEventListener('click', () => {
+                this.calculateOtherBigImages(_sameRemainingdataCache || _dataCache?.path2info);
+            });
+            // 其他小图按钮事件
+            this.$.othersmallToCopyMoreBtn?.addEventListener('click', () => {
+                this.calculateOtherSmallImages(_otherbigRemainingdataCache || _sameRemainingdataCache || _dataCache?.path2info);
+            });
         },
 
         bindViewResultEvents() {
@@ -858,6 +886,8 @@ module.exports = Editor.Panel.define({
                 { button: 'lookSingleResult', cache: () => _singledataCache, message: '请先计算单独文件夹图片数量' },
                 { button: 'lookSameDirResult', cache: () => _samedataCache, message: '请先计算相同目录文件夹图片数量' },
                 { button: 'lookSizeCountResult', cache: () => _sizecountdataCache, message: '请先计算按大小引用次数图片数量' },
+                { button: 'lookotherbigResult', cache: () => _otherbigdataCache, message: '请先计算其他大图数量' },
+                { button: 'lookothersmallResult', cache: () => _othersmalldataCache, message: '请先计算其他小图数量' },
             ];
 
             viewResultButtons.forEach(({ button, cache, message, useAlert2 }) => {
@@ -1310,6 +1340,74 @@ module.exports = Editor.Panel.define({
 
             console.log('小小图定义完成:', `小小图 ${smallImageCount} 张, 普通图 ${normalImageCount} 张`);
             console.log('更新小小图定义配置:', _defineSSmallImage);
+        },
+
+        calculateOtherBigImages(path2info: any) {
+            if (!path2info) {
+                console.warn('请先构建基础数据');
+                return;
+            }
+
+            console.log('开始计算其他大图');
+            
+            let _remainpath2info = deepClone(path2info);
+            _remainpath2info = Object.fromEntries(Object.entries(_remainpath2info).filter(([path, info]) => (info as any).count > 0));
+            
+            // 使用isBigImage函数筛选大图
+            _otherbigdataCache = Object.fromEntries(Object.entries(_remainpath2info).filter(([path, info]) => {
+                const imgInfo = info as any;
+                return isBigImage(imgInfo.width, imgInfo.height);
+            }));
+            
+            _otherbigRemainingdataCache = Object.fromEntries(Object.entries(_remainpath2info).filter(([path, info]) => {
+                const imgInfo = info as any;
+                return !isBigImage(imgInfo.width, imgInfo.height);
+            }));
+            
+            const num_otherbigTotal = Object.keys(_otherbigdataCache).length;
+            const num_otherbigRemaining = Object.keys(_otherbigRemainingdataCache).length;
+            
+            (this.$.otherbigTotal as HTMLInputElement).textContent = num_otherbigTotal.toString();
+            (this.$.otherbigRemaining as HTMLInputElement).textContent = num_otherbigRemaining.toString();
+
+            const totalSize = Number(Object.values(_otherbigdataCache).reduce((sum: number, info: any) => sum + info.size, 0));
+            (this.$.otherbigTotalSize as HTMLInputElement).textContent = formatSize(totalSize);
+            
+            console.log('计算其他大图完成,共:', num_otherbigTotal, '剩余:', num_otherbigRemaining);
+        },
+
+        calculateOtherSmallImages(path2info: any) {
+            if (!path2info) {
+                console.warn('请先构建基础数据');
+                return;
+            }
+
+            console.log('开始计算其他小图');
+            
+            let _remainpath2info = deepClone(path2info);
+            _remainpath2info = Object.fromEntries(Object.entries(_remainpath2info).filter(([path, info]) => (info as any).count > 0));
+            
+            // 使用isSSmallImage函数筛选小图
+            _othersmalldataCache = Object.fromEntries(Object.entries(_remainpath2info).filter(([path, info]) => {
+                const imgInfo = info as any;
+                return isSSmallImage(imgInfo.width, imgInfo.height);
+            }));
+            
+            _othersmallRemainingdataCache = Object.fromEntries(Object.entries(_remainpath2info).filter(([path, info]) => {
+                const imgInfo = info as any;
+                return !isSSmallImage(imgInfo.width, imgInfo.height);
+            }));
+            
+            const num_othersmallTotal = Object.keys(_othersmalldataCache).length;
+            const num_othersmallRemaining = Object.keys(_othersmallRemainingdataCache).length;
+            
+            (this.$.othersmallTotal as HTMLInputElement).textContent = num_othersmallTotal.toString();
+            (this.$.othersmallRemaining as HTMLInputElement).textContent = num_othersmallRemaining.toString();
+
+            const totalSize = Number(Object.values(_othersmalldataCache).reduce((sum: number, info: any) => sum + info.size, 0));
+            (this.$.othersmallTotalSize as HTMLInputElement).textContent = formatSize(totalSize);
+            
+            console.log('计算其他小图完成,共:', num_othersmallTotal, '剩余:', num_othersmallRemaining);
         },
 
         calculatePreImage(path2info: any) {

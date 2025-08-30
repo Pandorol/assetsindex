@@ -13,6 +13,8 @@ let _commondataCache = null;
 let _singledataCache = null;
 let _samedataCache = null;
 let _sizecountdataCache = null;
+let _otherbigdataCache = null;
+let _othersmalldataCache = null;
 let _ignoreRemainingdataCache = null;
 let _preImageRemainingdataCache = null;
 let _bgRemainingdataCache = null;
@@ -20,6 +22,8 @@ let _commonRemainingdataCache = null;
 let _singleRemainingdataCache = null;
 let _sameRemainingdataCache = null;
 let _sizecountRemainingdataCache = null;
+let _otherbigRemainingdataCache = null;
+let _othersmallRemainingdataCache = null;
 let _defineLargeImageCache = null; // 大图定义缓存
 let _defineSmallImageCache = null; // 小小图定义缓存
 let _defineBigImage = {
@@ -59,15 +63,15 @@ function isBigImage(width, height) {
 function isSSmallImage(width, height) {
     // 如果没有启用任何判断方式，默认使用面积判断
     if (!_defineSSmallImage.byWidth && !_defineSSmallImage.byHeight && !_defineSSmallImage.byArea) {
-        return width * height >= _defineSSmallImage.threshold;
+        return width * height <= _defineSSmallImage.threshold;
     }
-    if (_defineSSmallImage.byWidth && width >= _defineSSmallImage.width) {
+    if (_defineSSmallImage.byWidth && width <= _defineSSmallImage.width) {
         return true;
     }
-    if (_defineSSmallImage.byHeight && height >= _defineSSmallImage.height) {
+    if (_defineSSmallImage.byHeight && height <= _defineSSmallImage.height) {
         return true;
     }
-    if (_defineSSmallImage.byArea && width * height >= _defineSSmallImage.threshold) {
+    if (_defineSSmallImage.byArea && width * height <= _defineSSmallImage.threshold) {
         return true;
     }
     return false;
@@ -178,6 +182,18 @@ module.exports = Editor.Panel.define({
         sizeCountTotal: '#sizeCountTotal',
         sizeCountRemaining: '#sizeCountRemaining',
         lookSizeCountResult: '#lookSizeCountResult',
+        //其他大图
+        otherbigToCommonBtn: '#otherbigToCommonBtn',
+        otherbigTotal: '#otherbigTotal',
+        otherbigTotalSize: '#otherbigTotalSize',
+        otherbigRemaining: '#otherbigRemaining',
+        lookotherbigResult: '#lookotherbigResult',
+        //其他小图
+        othersmallToCopyMoreBtn: '#othersmallToCopyMoreBtn',
+        othersmallTotal: '#othersmallTotal',
+        othersmallTotalSize: '#othersmallTotalSize',
+        othersmallRemaining: '#othersmallRemaining',
+        lookothersmallResult: '#lookothersmallResult',
         processAll: '#processAll',
         //移动图片
         preprocessIdenticalImagesBtn: '#preprocessIdenticalImagesBtn',
@@ -736,7 +752,7 @@ module.exports = Editor.Panel.define({
             this.updateDefineSSmallImageThreshold();
         },
         bindCalculationEvents() {
-            var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k;
+            var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m;
             (_a = this.$.setIgnorePatternBtn) === null || _a === void 0 ? void 0 : _a.addEventListener('click', () => {
                 this.calculateIgnore(_dataCache === null || _dataCache === void 0 ? void 0 : _dataCache.path2info);
             });
@@ -769,6 +785,14 @@ module.exports = Editor.Panel.define({
             (_k = this.$.defineSSmallImageBtn) === null || _k === void 0 ? void 0 : _k.addEventListener('click', () => {
                 this.defineSmallImages(_dataCache === null || _dataCache === void 0 ? void 0 : _dataCache.path2info);
             });
+            // 其他大图按钮事件
+            (_l = this.$.otherbigToCommonBtn) === null || _l === void 0 ? void 0 : _l.addEventListener('click', () => {
+                this.calculateOtherBigImages(_sameRemainingdataCache || (_dataCache === null || _dataCache === void 0 ? void 0 : _dataCache.path2info));
+            });
+            // 其他小图按钮事件
+            (_m = this.$.othersmallToCopyMoreBtn) === null || _m === void 0 ? void 0 : _m.addEventListener('click', () => {
+                this.calculateOtherSmallImages(_otherbigRemainingdataCache || _sameRemainingdataCache || (_dataCache === null || _dataCache === void 0 ? void 0 : _dataCache.path2info));
+            });
         },
         bindViewResultEvents() {
             const viewResultButtons = [
@@ -779,6 +803,8 @@ module.exports = Editor.Panel.define({
                 { button: 'lookSingleResult', cache: () => _singledataCache, message: '请先计算单独文件夹图片数量' },
                 { button: 'lookSameDirResult', cache: () => _samedataCache, message: '请先计算相同目录文件夹图片数量' },
                 { button: 'lookSizeCountResult', cache: () => _sizecountdataCache, message: '请先计算按大小引用次数图片数量' },
+                { button: 'lookotherbigResult', cache: () => _otherbigdataCache, message: '请先计算其他大图数量' },
+                { button: 'lookothersmallResult', cache: () => _othersmalldataCache, message: '请先计算其他小图数量' },
             ];
             viewResultButtons.forEach(({ button, cache, message, useAlert2 }) => {
                 var _a;
@@ -1150,6 +1176,56 @@ module.exports = Editor.Panel.define({
             };
             console.log('小小图定义完成:', `小小图 ${smallImageCount} 张, 普通图 ${normalImageCount} 张`);
             console.log('更新小小图定义配置:', _defineSSmallImage);
+        },
+        calculateOtherBigImages(path2info) {
+            if (!path2info) {
+                console.warn('请先构建基础数据');
+                return;
+            }
+            console.log('开始计算其他大图');
+            let _remainpath2info = deepClone(path2info);
+            _remainpath2info = Object.fromEntries(Object.entries(_remainpath2info).filter(([path, info]) => info.count > 0));
+            // 使用isBigImage函数筛选大图
+            _otherbigdataCache = Object.fromEntries(Object.entries(_remainpath2info).filter(([path, info]) => {
+                const imgInfo = info;
+                return isBigImage(imgInfo.width, imgInfo.height);
+            }));
+            _otherbigRemainingdataCache = Object.fromEntries(Object.entries(_remainpath2info).filter(([path, info]) => {
+                const imgInfo = info;
+                return !isBigImage(imgInfo.width, imgInfo.height);
+            }));
+            const num_otherbigTotal = Object.keys(_otherbigdataCache).length;
+            const num_otherbigRemaining = Object.keys(_otherbigRemainingdataCache).length;
+            this.$.otherbigTotal.textContent = num_otherbigTotal.toString();
+            this.$.otherbigRemaining.textContent = num_otherbigRemaining.toString();
+            const totalSize = Number(Object.values(_otherbigdataCache).reduce((sum, info) => sum + info.size, 0));
+            this.$.otherbigTotalSize.textContent = formatSize(totalSize);
+            console.log('计算其他大图完成,共:', num_otherbigTotal, '剩余:', num_otherbigRemaining);
+        },
+        calculateOtherSmallImages(path2info) {
+            if (!path2info) {
+                console.warn('请先构建基础数据');
+                return;
+            }
+            console.log('开始计算其他小图');
+            let _remainpath2info = deepClone(path2info);
+            _remainpath2info = Object.fromEntries(Object.entries(_remainpath2info).filter(([path, info]) => info.count > 0));
+            // 使用isSSmallImage函数筛选小图
+            _othersmalldataCache = Object.fromEntries(Object.entries(_remainpath2info).filter(([path, info]) => {
+                const imgInfo = info;
+                return isSSmallImage(imgInfo.width, imgInfo.height);
+            }));
+            _othersmallRemainingdataCache = Object.fromEntries(Object.entries(_remainpath2info).filter(([path, info]) => {
+                const imgInfo = info;
+                return !isSSmallImage(imgInfo.width, imgInfo.height);
+            }));
+            const num_othersmallTotal = Object.keys(_othersmalldataCache).length;
+            const num_othersmallRemaining = Object.keys(_othersmallRemainingdataCache).length;
+            this.$.othersmallTotal.textContent = num_othersmallTotal.toString();
+            this.$.othersmallRemaining.textContent = num_othersmallRemaining.toString();
+            const totalSize = Number(Object.values(_othersmalldataCache).reduce((sum, info) => sum + info.size, 0));
+            this.$.othersmallTotalSize.textContent = formatSize(totalSize);
+            console.log('计算其他小图完成,共:', num_othersmallTotal, '剩余:', num_othersmallRemaining);
         },
         calculatePreImage(path2info) {
             if (!path2info) {
