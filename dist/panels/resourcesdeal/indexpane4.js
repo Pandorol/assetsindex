@@ -500,45 +500,61 @@ class Panel4Manager {
         }
     }
     /**
-     * 在编辑器中打开并选中资源
+     * 在编辑器中选中资源
      */
     static async openAssetInEditor(imagePath) {
-        var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k;
+        var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s, _t;
         try {
-            console.log(`尝试在编辑器中打开资源: ${imagePath}`);
+            console.log(`尝试在编辑器中选中资源: ${imagePath}`);
             // 构建 db:// 路径
             const dbPath = `db://assets/${imagePath}`;
-            // 使用 asset-db 的 open-asset API 在编辑器中打开资源
-            await ((_b = (_a = window.Editor) === null || _a === void 0 ? void 0 : _a.Message) === null || _b === void 0 ? void 0 : _b.request('asset-db', 'open-asset', dbPath));
-            console.log(`成功在编辑器中打开资源: ${imagePath}`);
+            // 首先获取资源的UUID，因为Selection.select需要UUID
+            const assetInfo = await ((_b = (_a = window.Editor) === null || _a === void 0 ? void 0 : _a.Message) === null || _b === void 0 ? void 0 : _b.request('asset-db', 'query-asset-info', dbPath));
+            if (assetInfo && assetInfo.uuid) {
+                console.log(`获取到资源UUID: ${assetInfo.uuid}`);
+                // 使用 Editor.Selection.select 在资源管理器中选中资源
+                (_d = (_c = window.Editor) === null || _c === void 0 ? void 0 : _c.Selection) === null || _d === void 0 ? void 0 : _d.select('asset', assetInfo.uuid);
+                console.log(`成功在资源管理器中选中资源: ${imagePath}`);
+                // 同时聚焦到资源面板
+                (_f = (_e = window.Editor) === null || _e === void 0 ? void 0 : _e.Panel) === null || _f === void 0 ? void 0 : _f.focus('assets');
+            }
+            else {
+                console.warn(`无法获取资源信息: ${imagePath}`);
+                // 备用方案：直接打开资源
+                await ((_h = (_g = window.Editor) === null || _g === void 0 ? void 0 : _g.Message) === null || _h === void 0 ? void 0 : _h.request('asset-db', 'open-asset', dbPath));
+            }
         }
         catch (error) {
-            console.error(`在编辑器中打开资源失败: ${imagePath}`, error);
-            // 如果 open-asset 失败，尝试在资源管理器中定位
+            console.error(`在编辑器中选中资源失败: ${imagePath}`, error);
+            // 如果Selection失败，尝试备用方案
             try {
-                console.log(`尝试在资源管理器中定位: ${imagePath}`);
+                console.log(`使用备用方案打开资源: ${imagePath}`);
                 const dbPath = `db://assets/${imagePath}`;
-                // 可以尝试使用 query-asset-info 来验证资源是否存在
-                const assetInfo = await ((_d = (_c = window.Editor) === null || _c === void 0 ? void 0 : _c.Message) === null || _d === void 0 ? void 0 : _d.request('asset-db', 'query-asset-info', dbPath));
-                if (assetInfo) {
-                    console.log(`资源存在，但无法打开预览: ${imagePath}`, assetInfo);
-                    // 显示提示信息
-                    (_f = (_e = window.Editor) === null || _e === void 0 ? void 0 : _e.Dialog) === null || _f === void 0 ? void 0 : _f.info(`资源位置: ${imagePath}\n类型: ${assetInfo.type}\n大小: ${formatSize(assetInfo.size || 0)}`, {
-                        title: '资源信息'
-                    });
-                }
-                else {
-                    console.warn(`资源不存在: ${imagePath}`);
-                    (_h = (_g = window.Editor) === null || _g === void 0 ? void 0 : _g.Dialog) === null || _h === void 0 ? void 0 : _h.warn(`资源不存在: ${imagePath}`, {
-                        title: '资源未找到'
-                    });
-                }
+                await ((_k = (_j = window.Editor) === null || _j === void 0 ? void 0 : _j.Message) === null || _k === void 0 ? void 0 : _k.request('asset-db', 'open-asset', dbPath));
+                console.log(`备用方案成功打开资源: ${imagePath}`);
             }
             catch (fallbackError) {
                 console.error(`备用方案也失败了:`, fallbackError);
-                (_k = (_j = window.Editor) === null || _j === void 0 ? void 0 : _j.Dialog) === null || _k === void 0 ? void 0 : _k.error(`无法打开资源: ${imagePath}`, {
-                    title: '打开失败'
-                });
+                // 最后的备用方案：显示资源信息
+                try {
+                    const assetInfo = await ((_m = (_l = window.Editor) === null || _l === void 0 ? void 0 : _l.Message) === null || _m === void 0 ? void 0 : _m.request('asset-db', 'query-asset-info', `db://assets/${imagePath}`));
+                    if (assetInfo) {
+                        (_p = (_o = window.Editor) === null || _o === void 0 ? void 0 : _o.Dialog) === null || _p === void 0 ? void 0 : _p.info(`资源信息:\n路径: ${imagePath}\n类型: ${assetInfo.type}\n大小: ${formatSize(assetInfo.size || 0)}`, {
+                            title: '资源详情'
+                        });
+                    }
+                    else {
+                        (_r = (_q = window.Editor) === null || _q === void 0 ? void 0 : _q.Dialog) === null || _r === void 0 ? void 0 : _r.warn(`资源不存在: ${imagePath}`, {
+                            title: '资源未找到'
+                        });
+                    }
+                }
+                catch (infoError) {
+                    console.error(`查询资源信息也失败了:`, infoError);
+                    (_t = (_s = window.Editor) === null || _s === void 0 ? void 0 : _s.Dialog) === null || _t === void 0 ? void 0 : _t.error(`无法处理资源: ${imagePath}`, {
+                        title: '操作失败'
+                    });
+                }
             }
         }
     }

@@ -579,46 +579,65 @@ export class Panel4Manager {
     }
 
     /**
-     * 在编辑器中打开并选中资源
+     * 在编辑器中选中资源
      */
     static async openAssetInEditor(imagePath: string) {
         try {
-            console.log(`尝试在编辑器中打开资源: ${imagePath}`);
+            console.log(`尝试在编辑器中选中资源: ${imagePath}`);
             
             // 构建 db:// 路径
             const dbPath = `db://assets/${imagePath}`;
             
-            // 使用 asset-db 的 open-asset API 在编辑器中打开资源
-            await (window as any).Editor?.Message?.request('asset-db', 'open-asset', dbPath);
-            console.log(`成功在编辑器中打开资源: ${imagePath}`);
+            // 首先获取资源的UUID，因为Selection.select需要UUID
+            const assetInfo = await (window as any).Editor?.Message?.request('asset-db', 'query-asset-info', dbPath);
+            
+            if (assetInfo && assetInfo.uuid) {
+                console.log(`获取到资源UUID: ${assetInfo.uuid}`);
+                
+                // 使用 Editor.Selection.select 在资源管理器中选中资源
+                (window as any).Editor?.Selection?.select('asset', assetInfo.uuid);
+                console.log(`成功在资源管理器中选中资源: ${imagePath}`);
+                
+                // 同时聚焦到资源面板
+                (window as any).Editor?.Panel?.focus('assets');
+                
+            } else {
+                console.warn(`无法获取资源信息: ${imagePath}`);
+                // 备用方案：直接打开资源
+                await (window as any).Editor?.Message?.request('asset-db', 'open-asset', dbPath);
+            }
             
         } catch (error) {
-            console.error(`在编辑器中打开资源失败: ${imagePath}`, error);
+            console.error(`在编辑器中选中资源失败: ${imagePath}`, error);
             
-            // 如果 open-asset 失败，尝试在资源管理器中定位
+            // 如果Selection失败，尝试备用方案
             try {
-                console.log(`尝试在资源管理器中定位: ${imagePath}`);
+                console.log(`使用备用方案打开资源: ${imagePath}`);
                 const dbPath = `db://assets/${imagePath}`;
+                await (window as any).Editor?.Message?.request('asset-db', 'open-asset', dbPath);
+                console.log(`备用方案成功打开资源: ${imagePath}`);
                 
-                // 可以尝试使用 query-asset-info 来验证资源是否存在
-                const assetInfo = await (window as any).Editor?.Message?.request('asset-db', 'query-asset-info', dbPath);
-                if (assetInfo) {
-                    console.log(`资源存在，但无法打开预览: ${imagePath}`, assetInfo);
-                    // 显示提示信息
-                    (window as any).Editor?.Dialog?.info(`资源位置: ${imagePath}\n类型: ${assetInfo.type}\n大小: ${formatSize(assetInfo.size || 0)}`, {
-                        title: '资源信息'
-                    });
-                } else {
-                    console.warn(`资源不存在: ${imagePath}`);
-                    (window as any).Editor?.Dialog?.warn(`资源不存在: ${imagePath}`, {
-                        title: '资源未找到'
-                    });
-                }
             } catch (fallbackError) {
                 console.error(`备用方案也失败了:`, fallbackError);
-                (window as any).Editor?.Dialog?.error(`无法打开资源: ${imagePath}`, {
-                    title: '打开失败'
-                });
+                
+                // 最后的备用方案：显示资源信息
+                try {
+                    const assetInfo = await (window as any).Editor?.Message?.request('asset-db', 'query-asset-info', `db://assets/${imagePath}`);
+                    if (assetInfo) {
+                        (window as any).Editor?.Dialog?.info(`资源信息:\n路径: ${imagePath}\n类型: ${assetInfo.type}\n大小: ${formatSize(assetInfo.size || 0)}`, {
+                            title: '资源详情'
+                        });
+                    } else {
+                        (window as any).Editor?.Dialog?.warn(`资源不存在: ${imagePath}`, {
+                            title: '资源未找到'
+                        });
+                    }
+                } catch (infoError) {
+                    console.error(`查询资源信息也失败了:`, infoError);
+                    (window as any).Editor?.Dialog?.error(`无法处理资源: ${imagePath}`, {
+                        title: '操作失败'
+                    });
+                }
             }
         }
     }
