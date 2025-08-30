@@ -26,6 +26,7 @@ let _dynamicMoveItems: MoveItem[] = [];
 let _moveItemCounter = 0;
 let _panel4Elements: Partial<Panel4Elements> = {};
 let _dataCache: any = null; // 存储主数据缓存的引用
+let _panelInstance: any = null; // 存储 panel 实例引用
 // #endregion
 
 // #region 工具函数
@@ -47,7 +48,7 @@ export class Panel4Manager {
     /**
      * 初始化 Panel4 功能
      */
-    static init(elements: any, dataCache: any) {
+    static init(elements: any, dataCache: any, panelInstance?: any) {
         _panel4Elements = {
             addMoveItemBtn: elements.addMoveItemBtn,
             moveItemsContainer: elements.moveItemsContainer,
@@ -55,6 +56,7 @@ export class Panel4Manager {
             moveAllSelectedBtn: elements.moveAllSelectedBtn
         };
         _dataCache = dataCache;
+        _panelInstance = panelInstance; // 保存 panel 实例引用，可以直接调用其方法
         
         // 不在这里绑定事件，由外部 index.ts 处理
         console.log('Panel4 动态移动功能初始化完成');
@@ -543,22 +545,44 @@ export class Panel4Manager {
                 }
                 
                 console.log(`开始创建预览内容`);
-                // 创建预览内容
-                const previewContent = moveItem.matchedImages.slice(0, 100).map((imagePath, index) => 
-                    `${index + 1}. ${imagePath}`
-                ).join('\n');
+                // 创建预览内容 - 构建数据结构供 showAlert2 使用
+                const previewData = {
+                    summary: {
+                        regex: moveItem.regex,
+                        totalMatches: moveItem.matchedImages.length,
+                        showingCount: Math.min(moveItem.matchedImages.length, 100)
+                    },
+                    matches: moveItem.matchedImages.slice(0, 100).map((imagePath, index) => ({
+                        index: index + 1,
+                        path: imagePath,
+                        info: _dataCache.path2info[imagePath] || {}
+                    }))
+                };
                 
-                const message = `匹配到 ${moveItem.matchedImages.length} 个图片${moveItem.matchedImages.length > 100 ? ' (仅显示前100个)' : ''}:\n\n${previewContent}`;
-                console.log(`准备显示对话框，消息长度: ${message.length}`);
+                console.log(`准备使用 showAlert2 显示预览数据`);
                 
-                // 检查 Editor.Dialog 是否存在
-                console.log(`检查 Editor.Dialog:`, (window as any).Editor?.Dialog);
-                
-                // 使用 Editor.Dialog 显示结果
-                const result = (window as any).Editor?.Dialog?.info(message, { 
-                    title: `预览匹配结果 - ${moveItem.name}`
-                });
-                console.log(`Dialog.info 调用结果:`, result);
+                // 优先使用 panel 实例的 showAlert2 方法
+                if (_panelInstance && typeof _panelInstance.showAlert2 === 'function') {
+                    console.log(`使用 panel 实例的 showAlert2 方法显示预览`);
+                    _panelInstance.showAlert2(previewData);
+                } else {
+                    console.log(`showAlert2 不可用，使用 Editor.Dialog 作为备用`);
+                    // 备用方案：使用简单的文本显示
+                    const previewContent = moveItem.matchedImages.slice(0, 100).map((imagePath, index) => 
+                        `${index + 1}. ${imagePath}`
+                    ).join('\n');
+                    
+                    const message = `匹配到 ${moveItem.matchedImages.length} 个图片${moveItem.matchedImages.length > 100 ? ' (仅显示前100个)' : ''}:\n\n${previewContent}`;
+                    
+                    // 检查 Editor.Dialog 是否存在
+                    console.log(`检查 Editor.Dialog:`, (window as any).Editor?.Dialog);
+                    
+                    // 使用 Editor.Dialog 显示结果
+                    const result = (window as any).Editor?.Dialog?.info(message, { 
+                        title: `预览匹配结果 - ${moveItem.name}`
+                    });
+                    console.log(`Dialog.info 调用结果:`, result);
+                }
             }, 200);
             
         } catch (error) {
@@ -848,20 +872,41 @@ export class Panel4Manager {
             return;
         }
         
-        const previewContent = allSelected.map(item => 
-            `【${item.name}】 → ${item.targetDir}\n` +
-            item.images.slice(0, 10).map(img => `  - ${img}`).join('\n') +
-            (item.images.length > 10 ? `\n  ... 还有 ${item.images.length - 10} 个` : '')
-        ).join('\n\n');
-        
         const totalCount = allSelected.reduce((sum, item) => sum + item.images.length, 0);
         
-        (window as any).Editor?.Dialog?.info(
-            `总共选中 ${totalCount} 个图片，分布在 ${allSelected.length} 个移动项中:\n\n${previewContent}`,
-            { 
-                title: '预览所有选中项'
-            }
-        );
+        // 构建数据结构供 showAlert2 使用
+        const previewData = {
+            summary: {
+                totalItems: allSelected.length,
+                totalImages: totalCount,
+                description: `共 ${allSelected.length} 个移动项，包含 ${totalCount} 个图片`
+            },
+            items: allSelected.map(item => ({
+                name: item.name,
+                targetDir: item.targetDir,
+                imageCount: item.images.length,
+                images: item.images
+            }))
+        };
+        
+        // 优先使用 panel 实例的 showAlert2 方法
+        if (_panelInstance && typeof _panelInstance.showAlert2 === 'function') {
+            _panelInstance.showAlert2(previewData);
+        } else {
+            // 备用方案：使用简单的文本显示
+            const previewContent = allSelected.map(item => 
+                `【${item.name}】 → ${item.targetDir}\n` +
+                item.images.slice(0, 10).map(img => `  - ${img}`).join('\n') +
+                (item.images.length > 10 ? `\n  ... 还有 ${item.images.length - 10} 个` : '')
+            ).join('\n\n');
+            
+            (window as any).Editor?.Dialog?.info(
+                `总共选中 ${totalCount} 个图片，分布在 ${allSelected.length} 个移动项中:\n\n${previewContent}`,
+                { 
+                    title: '预览所有选中项'
+                }
+            );
+        }
     }
 
     /**

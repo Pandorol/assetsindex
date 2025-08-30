@@ -896,7 +896,7 @@ module.exports = Editor.Panel.define({
                     moveItemsContainer: this.$.moveItemsContainer,
                     previewAllSelectedBtn: this.$.previewAllSelectedBtn,
                     moveAllSelectedBtn: this.$.moveAllSelectedBtn
-                }, _dataCache);
+                }, _dataCache, this);
                 // 绑定添加移动项按钮
                 if (this.$.addMoveItemBtn) {
                     this.$.addMoveItemBtn.addEventListener('click', () => {
