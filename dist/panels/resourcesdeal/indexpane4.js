@@ -707,10 +707,19 @@ class Panel4Manager {
             });
             // 添加点击事件
             item.addEventListener('click', () => {
+                var _a, _b;
                 console.log(`点击打开资源: ${imagePath}`);
                 this.openAssetInEditor(imagePath);
-                // 关闭预览窗口
-                document.body.removeChild(overlay);
+                // 添加点击反馈 - 改变边框颜色表示已点击
+                item.style.borderLeftColor = '#28a745';
+                item.style.background = 'rgba(40,167,69,0.1)';
+                // 在项目前添加勾选标记
+                const firstSpan = item.querySelector('span');
+                if (firstSpan && !((_a = firstSpan.textContent) === null || _a === void 0 ? void 0 : _a.includes('✓'))) {
+                    firstSpan.textContent = (_b = firstSpan.textContent) === null || _b === void 0 ? void 0 : _b.replace(/^\d+\./, (match) => `✓ ${match}`);
+                }
+                // 不再自动关闭预览窗口，用户可以连续点击多个文件
+                // document.body.removeChild(overlay);
             });
             content.appendChild(item);
         });
@@ -1142,10 +1151,19 @@ class Panel4Manager {
                 });
                 // 添加点击事件
                 fileItem.addEventListener('click', () => {
+                    var _a, _b;
                     console.log(`点击打开资源: ${imagePath}`);
                     this.openAssetInEditor(imagePath);
-                    // 关闭预览窗口
-                    document.body.removeChild(overlay);
+                    // 添加点击反馈 - 改变边框颜色和背景色表示已点击
+                    fileItem.style.borderLeftColor = '#ffc107';
+                    fileItem.style.background = 'rgba(255,193,7,0.1)';
+                    // 在序号前添加勾选标记
+                    const firstSpan = fileItem.querySelector('span');
+                    if (firstSpan && !((_a = firstSpan.textContent) === null || _a === void 0 ? void 0 : _a.includes('✓'))) {
+                        firstSpan.textContent = (_b = firstSpan.textContent) === null || _b === void 0 ? void 0 : _b.replace(/^\d+\./, (match) => `✓ ${match}`);
+                    }
+                    // 不再自动关闭预览窗口，用户可以连续点击多个文件
+                    // document.body.removeChild(overlay);
                 });
                 fileList.appendChild(fileItem);
             });

@@ -813,8 +813,19 @@ export class Panel4Manager {
             item.addEventListener('click', () => {
                 console.log(`点击打开资源: ${imagePath}`);
                 this.openAssetInEditor(imagePath);
-                // 关闭预览窗口
-                document.body.removeChild(overlay);
+                
+                // 添加点击反馈 - 改变边框颜色表示已点击
+                item.style.borderLeftColor = '#28a745';
+                item.style.background = 'rgba(40,167,69,0.1)';
+                
+                // 在项目前添加勾选标记
+                const firstSpan = item.querySelector('span');
+                if (firstSpan && !firstSpan.textContent?.includes('✓')) {
+                    firstSpan.textContent = firstSpan.textContent?.replace(/^\d+\./, (match) => `✓ ${match}`);
+                }
+                
+                // 不再自动关闭预览窗口，用户可以连续点击多个文件
+                // document.body.removeChild(overlay);
             });
             
             content.appendChild(item);
@@ -1305,8 +1316,19 @@ export class Panel4Manager {
                 fileItem.addEventListener('click', () => {
                     console.log(`点击打开资源: ${imagePath}`);
                     this.openAssetInEditor(imagePath);
-                    // 关闭预览窗口
-                    document.body.removeChild(overlay);
+                    
+                    // 添加点击反馈 - 改变边框颜色和背景色表示已点击
+                    fileItem.style.borderLeftColor = '#ffc107';
+                    fileItem.style.background = 'rgba(255,193,7,0.1)';
+                    
+                    // 在序号前添加勾选标记
+                    const firstSpan = fileItem.querySelector('span');
+                    if (firstSpan && !firstSpan.textContent?.includes('✓')) {
+                        firstSpan.textContent = firstSpan.textContent?.replace(/^\d+\./, (match) => `✓ ${match}`);
+                    }
+                    
+                    // 不再自动关闭预览窗口，用户可以连续点击多个文件
+                    // document.body.removeChild(overlay);
                 });
                 
                 fileList.appendChild(fileItem);
