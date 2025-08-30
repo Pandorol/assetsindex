@@ -349,6 +349,8 @@ class Panel4Manager {
             if (countElement) {
                 countElement.textContent = moveItem.matchedImages.length.toString();
                 console.log(`更新计数显示: ${moveItem.matchedImages.length}`);
+                // 确保计数元素样式正常
+                countElement.style.color = '';
             }
             console.log(`正则 "${moveItem.regex}" 匹配到 ${moveItem.matchedImages.length} 个图片`);
         }
@@ -381,7 +383,6 @@ class Panel4Manager {
      * 预览匹配的图片
      */
     static previewMatches(itemId) {
-        var _a, _b, _c;
         console.log(`previewMatches 被调用，itemId: ${itemId}`);
         console.log(`当前移动项列表:`, _dynamicMoveItems.map(item => item.id));
         const moveItem = _dynamicMoveItems.find(item => item.id === itemId);
@@ -408,23 +409,28 @@ class Panel4Manager {
             console.log(`开始调用 updateMatchCount`);
             this.updateMatchCount(itemId);
             console.log(`updateMatchCount 完成，匹配图片数量: ${moveItem.matchedImages.length}`);
-            if (moveItem.matchedImages.length === 0) {
-                console.log(`没有匹配的图片，显示信息状态`);
-                this.showStatus(itemId, '没有找到匹配的图片', 'info');
-                return;
-            }
-            console.log(`开始创建预览内容`);
-            // 创建预览内容
-            const previewContent = moveItem.matchedImages.slice(0, 100).map((imagePath, index) => `${index + 1}. ${imagePath}`).join('\n');
-            const message = `匹配到 ${moveItem.matchedImages.length} 个图片${moveItem.matchedImages.length > 100 ? ' (仅显示前100个)' : ''}:\n\n${previewContent}`;
-            console.log(`准备显示对话框，消息长度: ${message.length}`);
-            // 检查 Editor.Dialog 是否存在
-            console.log(`检查 Editor.Dialog:`, (_a = window.Editor) === null || _a === void 0 ? void 0 : _a.Dialog);
-            // 使用 Editor.Dialog 显示结果
-            const result = (_c = (_b = window.Editor) === null || _b === void 0 ? void 0 : _b.Dialog) === null || _c === void 0 ? void 0 : _c.info(message, {
-                title: `预览匹配结果 - ${moveItem.name}`
-            });
-            console.log(`Dialog.info 调用结果:`, result);
+            // 等一下让 DOM 更新完成
+            setTimeout(() => {
+                var _a, _b, _c;
+                console.log(`延迟后检查匹配图片数量: ${moveItem.matchedImages.length}`);
+                if (moveItem.matchedImages.length === 0) {
+                    console.log(`没有匹配的图片，显示信息状态`);
+                    this.showStatus(itemId, '没有找到匹配的图片', 'info');
+                    return;
+                }
+                console.log(`开始创建预览内容`);
+                // 创建预览内容
+                const previewContent = moveItem.matchedImages.slice(0, 100).map((imagePath, index) => `${index + 1}. ${imagePath}`).join('\n');
+                const message = `匹配到 ${moveItem.matchedImages.length} 个图片${moveItem.matchedImages.length > 100 ? ' (仅显示前100个)' : ''}:\n\n${previewContent}`;
+                console.log(`准备显示对话框，消息长度: ${message.length}`);
+                // 检查 Editor.Dialog 是否存在
+                console.log(`检查 Editor.Dialog:`, (_a = window.Editor) === null || _a === void 0 ? void 0 : _a.Dialog);
+                // 使用 Editor.Dialog 显示结果
+                const result = (_c = (_b = window.Editor) === null || _b === void 0 ? void 0 : _b.Dialog) === null || _c === void 0 ? void 0 : _c.info(message, {
+                    title: `预览匹配结果 - ${moveItem.name}`
+                });
+                console.log(`Dialog.info 调用结果:`, result);
+            }, 100);
         }
         catch (error) {
             console.error(`预览匹配失败 (${itemId}):`, error);
@@ -433,7 +439,7 @@ class Panel4Manager {
         }
     }
     /**
-     * 选择匹配项
+     * 选择匹配项 - 显示选择对话框让用户勾选
      */
     static selectMatches(itemId) {
         const moveItem = _dynamicMoveItems.find(item => item.id === itemId);
@@ -444,15 +450,105 @@ class Panel4Manager {
             this.showStatus(itemId, '没有找到匹配的图片', 'info');
             return;
         }
-        moveItem.selectedImages = [...moveItem.matchedImages];
-        // 使用容器上下文查找元素
-        const container = _panel4Elements.moveItemsContainer;
-        const doc = (container === null || container === void 0 ? void 0 : container.ownerDocument) || document;
-        const selectedCountElement = doc.getElementById(`${itemId}_selectedCount`);
-        if (selectedCountElement) {
-            selectedCountElement.textContent = moveItem.selectedImages.length.toString();
-        }
-        this.showStatus(itemId, `已选中 ${moveItem.selectedImages.length} 个图片`, 'success');
+        // 创建选择对话框内容
+        const checkboxList = moveItem.matchedImages.map((imagePath, index) => {
+            const isSelected = moveItem.selectedImages.includes(imagePath);
+            return `<div class="image-checkbox-item">
+                <label class="image-checkbox-label">
+                    <input type="checkbox" id="img_${index}" value="${imagePath}" ${isSelected ? 'checked' : ''} 
+                           class="image-checkbox-input">
+                    <span class="image-path-text">${imagePath}</span>
+                </label>
+            </div>`;
+        }).join('');
+        const dialogContent = `
+            <div style="max-height: 400px; overflow-y: auto; padding: 10px; border: 1px solid #ccc;">
+                <div style="margin-bottom: 15px;">
+                    <button id="selectAll" style="margin-right: 10px; padding: 5px 10px;">全选</button>
+                    <button id="selectNone" style="padding: 5px 10px;">全不选</button>
+                    <span style="margin-left: 20px; color: #666;">共 ${moveItem.matchedImages.length} 个匹配项</span>
+                </div>
+                ${checkboxList}
+            </div>
+        `;
+        // 显示选择对话框
+        this.showSelectionDialog(itemId, dialogContent, moveItem);
+    }
+    /**
+     * 显示图片选择对话框
+     */
+    static showSelectionDialog(itemId, content, moveItem) {
+        // 创建模态对话框
+        const overlay = document.createElement('div');
+        overlay.className = 'selection-dialog-overlay';
+        const dialog = document.createElement('div');
+        dialog.className = 'selection-dialog';
+        dialog.innerHTML = `
+            <div class="selection-dialog-header">
+                <h3 style="margin: 0; color: #333;">选择要移动的图片 - ${moveItem.name}</h3>
+                <button id="closeDialog" style="background: none; border: none; font-size: 20px; cursor: pointer;">&times;</button>
+            </div>
+            <div class="selection-dialog-content">
+                <div style="max-height: 400px; overflow-y: auto; padding: 10px; border: 1px solid #ccc;">
+                    <div style="margin-bottom: 15px;">
+                        <button id="selectAll" style="margin-right: 10px; padding: 5px 10px;">全选</button>
+                        <button id="selectNone" style="padding: 5px 10px;">全不选</button>
+                        <span style="margin-left: 20px; color: #666;">共 ${moveItem.matchedImages.length} 个匹配项</span>
+                    </div>
+                    ${content}
+                </div>
+            </div>
+            <div class="selection-dialog-footer">
+                <button id="cancelSelection" style="padding: 8px 16px; border: 1px solid #ccc; background: white; cursor: pointer;">取消</button>
+                <button id="confirmSelection" style="padding: 8px 16px; background: #007acc; color: white; border: none; cursor: pointer;">确认选择</button>
+            </div>
+        `;
+        overlay.appendChild(dialog);
+        document.body.appendChild(overlay);
+        // 绑定事件
+        const selectAllBtn = dialog.querySelector('#selectAll');
+        const selectNoneBtn = dialog.querySelector('#selectNone');
+        const closeBtn = dialog.querySelector('#closeDialog');
+        const cancelBtn = dialog.querySelector('#cancelSelection');
+        const confirmBtn = dialog.querySelector('#confirmSelection');
+        const checkboxes = dialog.querySelectorAll('input[type="checkbox"]');
+        // 全选功能
+        selectAllBtn.addEventListener('click', () => {
+            checkboxes.forEach(cb => cb.checked = true);
+        });
+        // 全不选功能
+        selectNoneBtn.addEventListener('click', () => {
+            checkboxes.forEach(cb => cb.checked = false);
+        });
+        // 关闭对话框
+        const closeDialog = () => {
+            document.body.removeChild(overlay);
+        };
+        closeBtn.addEventListener('click', closeDialog);
+        cancelBtn.addEventListener('click', closeDialog);
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay)
+                closeDialog();
+        });
+        // 确认选择
+        confirmBtn.addEventListener('click', () => {
+            const selectedImages = [];
+            checkboxes.forEach(cb => {
+                if (cb.checked) {
+                    selectedImages.push(cb.value);
+                }
+            });
+            moveItem.selectedImages = selectedImages;
+            // 更新选中计数显示
+            const container = _panel4Elements.moveItemsContainer;
+            const doc = (container === null || container === void 0 ? void 0 : container.ownerDocument) || document;
+            const selectedCountElement = doc.getElementById(`${itemId}_selectedCount`);
+            if (selectedCountElement) {
+                selectedCountElement.textContent = selectedImages.length.toString();
+            }
+            this.showStatus(itemId, `已选中 ${selectedImages.length} 个图片`, 'success');
+            closeDialog();
+        });
     }
     /**
      * 预览选中的图片
@@ -759,5 +855,82 @@ exports.panel4Styles = `
     background-color: rgba(220, 53, 69, 0.1);
     border: 1px solid #dc3545;
     color: #dc3545;
+}
+
+/* 图片选择对话框样式 */
+.selection-dialog-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 10000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.selection-dialog {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    max-width: 80%;
+    max-height: 80%;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.selection-dialog-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 10px;
+}
+
+.selection-dialog-content {
+    flex: 1;
+    overflow: hidden;
+}
+
+.selection-dialog-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid #eee;
+}
+
+.image-checkbox-item {
+    margin: 5px 0;
+    padding: 5px;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+}
+
+.image-checkbox-item:hover {
+    background-color: #f5f5f5;
+}
+
+.image-checkbox-label {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    font-size: 12px;
+}
+
+.image-checkbox-input {
+    margin-right: 10px;
+    transform: scale(1.2);
+}
+
+.image-path-text {
+    font-family: monospace;
+    word-break: break-all;
 }
 `;
