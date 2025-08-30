@@ -14193,6 +14193,22 @@
       "height": 86,
       "md5": "3b18340dfe781146f41528ac32c6951d"
     },
+    "test/test/gg_zhenying1_0.png": {
+      "count": 0,
+      "uuid": "6f5d36c8-b7f9-4b78-887d-d0c32a34a8dd@f9941",
+      "size": 3233,
+      "width": 60,
+      "height": 60,
+      "md5": "5ead86d4f2dca99c4e89ef9968aecc90"
+    },
+    "test/test/gg_zhenying1_1.png": {
+      "count": 0,
+      "uuid": "1e574f21-8dff-4f3b-b9c4-177e4589b8c9@f9941",
+      "size": 3231,
+      "width": 60,
+      "height": 60,
+      "md5": "9e54c6eaf34e76524e90f3f54890a4e8"
+    },
     "resources/gameRes/menu/icon_1.png": {
       "count": 0,
       "uuid": "1d7ddbcb-f264-4988-8723-8e9cfa3e88e3@f9941",
@@ -38680,22 +38696,6 @@
       "width": 720,
       "height": 1124,
       "md5": "0a577c0383cd5d286ef1bef4f9963429"
-    },
-    "resources/gameRes/common/old_del/camp/gg_zhenying1_0.png": {
-      "count": 0,
-      "uuid": "6f5d36c8-b7f9-4b78-887d-d0c32a34a8dd@f9941",
-      "size": 3233,
-      "width": 60,
-      "height": 60,
-      "md5": "5ead86d4f2dca99c4e89ef9968aecc90"
-    },
-    "resources/gameRes/common/old_del/camp/gg_zhenying1_1.png": {
-      "count": 0,
-      "uuid": "1e574f21-8dff-4f3b-b9c4-177e4589b8c9@f9941",
-      "size": 3231,
-      "width": 60,
-      "height": 60,
-      "md5": "9e54c6eaf34e76524e90f3f54890a4e8"
     },
     "resources/gameRes/common/old_del/camp/gg_zhenying1_2.png": {
       "count": 0,

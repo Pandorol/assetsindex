@@ -58,8 +58,73 @@ export class Panel4Manager {
         _dataCache = dataCache;
         _panelInstance = panelInstance; // 保存 panel 实例引用，可以直接调用其方法
         
+        // 加载保存的配置
+        this.loadSavedConfigs();
+        
         // 不在这里绑定事件，由外部 index.ts 处理
         console.log('Panel4 动态移动功能初始化完成');
+    }
+
+    /**
+     * 保存配置到本地存储
+     */
+    static saveConfigs() {
+        try {
+            const configs = _dynamicMoveItems.map(item => ({
+                name: item.name,
+                regex: item.regex,
+                targetDir: item.targetDir
+            }));
+            
+            if (_panelInstance && typeof _panelInstance === 'object') {
+                // 使用 Editor.Profile 保存配置
+                (window as any).Editor?.Profile?.setConfig('assetsindex', 'panel4_moveItems', configs);
+                console.log('Panel4 配置已保存:', configs);
+            }
+        } catch (error) {
+            console.error('保存 Panel4 配置失败:', error);
+        }
+    }
+
+    /**
+     * 从本地存储加载配置
+     */
+    static async loadSavedConfigs() {
+        try {
+            if (_panelInstance && typeof _panelInstance === 'object') {
+                // 使用 Editor.Profile 加载配置
+                const configs = await (window as any).Editor?.Profile?.getConfig('assetsindex', 'panel4_moveItems');
+                
+                if (configs && Array.isArray(configs) && configs.length > 0) {
+                    console.log('加载保存的 Panel4 配置:', configs);
+                    
+                    // 清空现有配置
+                    this.clearAllMoveItems();
+                    
+                    // 恢复保存的配置
+                    configs.forEach((config: any, index: number) => {
+                        const moveItem: MoveItem = {
+                            id: `moveItem_${index + 1}`,
+                            name: config.name || `移动项 ${index + 1}`,
+                            regex: config.regex || '',
+                            targetDir: config.targetDir || '',
+                            matchedImages: [],
+                            selectedImages: []
+                        };
+                        
+                        _dynamicMoveItems.push(moveItem);
+                        _moveItemCounter = Math.max(_moveItemCounter, index + 1);
+                        this.renderMoveItem(moveItem);
+                    });
+                    
+                    console.log(`成功恢复 ${configs.length} 个移动项配置`);
+                } else {
+                    console.log('没有找到保存的 Panel4 配置');
+                }
+            }
+        } catch (error) {
+            console.error('加载 Panel4 配置失败:', error);
+        }
     }
 
     /**
@@ -139,6 +204,9 @@ export class Panel4Manager {
         console.log(`添加了新的移动项: ${itemId}`, moveItem);
         console.log(`当前移动项总数: ${_dynamicMoveItems.length}`);
         this.renderMoveItem(moveItem);
+        
+        // 保存配置
+        this.saveConfigs();
     }
 
     /**
@@ -230,6 +298,29 @@ export class Panel4Manager {
             
             // 在 setTimeout 中绑定输入事件，确保 DOM 已更新
             this.bindInputEvents(moveItem, cleanId, container);
+            
+            // 如果移动项有保存的值，设置到输入框中
+            if (moveItem.regex || moveItem.targetDir) {
+                setTimeout(() => {
+                    const regexInput = container.querySelector(`#${cleanId}_regex`) as HTMLInputElement;
+                    const targetDirInput = container.querySelector(`#${cleanId}_targetDir`) as HTMLInputElement;
+                    
+                    if (regexInput && moveItem.regex) {
+                        regexInput.value = moveItem.regex;
+                        console.log(`恢复正则表达式值: ${moveItem.regex}`);
+                    }
+                    
+                    if (targetDirInput && moveItem.targetDir) {
+                        targetDirInput.value = moveItem.targetDir;
+                        console.log(`恢复目标目录值: ${moveItem.targetDir}`);
+                    }
+                    
+                    // 触发一次匹配更新
+                    if (moveItem.regex) {
+                        this.updateMatchCount(moveItem.id);
+                    }
+                }, 50);
+            }
         }, 0);
         
         // 绑定按钮事件（使用 itemElement 查找，不依赖 ID）
@@ -300,6 +391,8 @@ export class Panel4Manager {
         if (index !== -1) {
             _dynamicMoveItems.splice(index, 1);
             console.log(`已从数组中删除，删除后数量: ${_dynamicMoveItems.length}`);
+            // 保存配置
+            this.saveConfigs();
         } else {
             console.warn(`在数组中找不到要删除的移动项: ${itemId}`);
         }
@@ -382,6 +475,8 @@ export class Panel4Manager {
                 moveItem.regex = regexInput.value;
                 console.log(`更新 moveItem.regex: "${moveItem.regex}"`);
                 this.updateMatchCount(moveItem.id);
+                // 自动保存配置
+                this.saveConfigs();
             });
             console.log(`正则输入框事件绑定成功`);
         } else {
@@ -393,6 +488,8 @@ export class Panel4Manager {
                 console.log(`目标目录输入框 input 事件触发，新值: "${targetDirInput.value}"`);
                 moveItem.targetDir = targetDirInput.value;
                 console.log(`更新 moveItem.targetDir: "${moveItem.targetDir}"`);
+                // 自动保存配置
+                this.saveConfigs();
             });
             console.log(`目标目录输入框事件绑定成功`);
         } else {
