@@ -414,9 +414,9 @@ function buildMapsData(args) {
                     size,
                 };
                 path2info[imgPath] = {
+                    count: 0,
                     uuid: sub.uuid,
                     size,
-                    count: 0,
                     width,
                     height,
                     md5,

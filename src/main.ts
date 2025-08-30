@@ -375,7 +375,7 @@ function buildMapsData(args: any) {
     const projectRoot =path.join(Editor.Project.path, 'assets') ; // dir 就是 assets 目录
     console.log('projectRoot:', projectRoot);
     const uuid2info: Record<string, { path: string, size: number }> = {};
-    const path2info: Record<string, { uuid: string, size: number,count: number,width: number,height: number,md5: string }> = {};
+    const path2info: Record<string, { count: number,uuid: string, size: number,width: number,height: number,md5: string }> = {};
     const metaFiles = fg.sync('**/*.meta', {
         cwd: projectRoot,
         absolute: false,
@@ -428,9 +428,9 @@ function buildMapsData(args: any) {
                     size,
                 };
                 path2info[imgPath] = {
+                    count: 0,
                     uuid: sub.uuid,
                     size,
-                    count: 0,
                     width,
                     height,
                     md5,

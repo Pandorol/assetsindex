@@ -548,13 +548,34 @@ module.exports = Editor.Panel.define({
                 
                 const label = document.createElement('span');
                 label.style.color = '#666';
-                label.textContent = `${key}: Object{${keys.length}}`;
+                
+                // 生成对象预览
+                let preview = '';
+                if (keys.length === 0) {
+                    preview = ' {}';
+                } else {
+                    const firstKey = keys[0];
+                    const firstValue = obj[firstKey];
+                    if (typeof firstValue === 'string') {
+                        // 如果第一个值是字符串，显示前15个字符
+                        const truncatedValue = firstValue.length > 15 ? firstValue.substring(0, 15) + '...' : firstValue;
+                        preview = ` {${firstKey}: "${truncatedValue}"...}`;
+                    } else if (typeof firstValue === 'number' || typeof firstValue === 'boolean') {
+                        // 如果是数字或布尔值，直接显示
+                        preview = ` {${firstKey}: ${firstValue}...}`;
+                    } else {
+                        // 其他类型只显示键名
+                        preview = ` {${firstValue}...}`;
+                    }
+                }
+                
+                label.textContent = `${key}: ${preview}..等${keys.length}项`;
                 
                 const childContainer = document.createElement('div');
                 childContainer.style.display = (keys.length === 0) ? 'none' : (isRoot ? 'block' : 'none');
                 
                 if (keys.length === 0) {
-                    label.textContent += ' {}';
+                    // 空对象不需要额外处理，已在预览中显示
                 } else {
                     keys.forEach(objKey => {
                         childContainer.appendChild(createTreeNode(obj[objKey], objKey, level + 1, false));
