@@ -203,6 +203,7 @@ module.exports = Editor.Panel.define({
         lookPreprocessIdenticalImagesBtn: '#lookPreprocessIdenticalImagesBtn',
         caseConflictKeepOld: '#caseConflictKeepOld',
         caseConflictUseNew: '#caseConflictUseNew',
+        autoRename: '#autoRename',
         //移动大图
         moveBgImagesBtn: '#moveBgImagesBtn',
         PreLookmoveBgImagesBtn: '#PreLookmoveBgImagesBtn',
@@ -1481,6 +1482,8 @@ module.exports = Editor.Panel.define({
             Object.entries(config.dataCache).forEach(([imgPath, info]) => {
                 imageSizeMap[imgPath] = isBigImage(info.width || 0, info.height || 0);
             });
+            // 检查自动重命名选项
+            const autoRename = this.$.autoRename.checked;
             // 构建请求参数
             const requestParams = {
                 method: 'moveBgImages',
@@ -1491,6 +1494,7 @@ module.exports = Editor.Panel.define({
                 imageSizeMap: imageSizeMap,
                 keepOld: caseConflictKeepOld,
                 preLook: config.preLook || false,
+                autoRename: autoRename, // 传递自动重命名选项
             };
             // 如果有prefabRegex参数，添加到请求中
             if (config.prefabRegex) {

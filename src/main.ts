@@ -503,6 +503,9 @@ async function moveBgImages(args:any){
         caseConflictStrategy = 'useNew';
     }
     
+    // 获取自动重命名选项，默认为 true
+    const autoRename = args.autoRename !== undefined ? args.autoRename : true;
+    
     // 记录移动操作
     const recordMoveOperation = (src: string, dest: string, targetDir: string, imgPath: string) => {
         operations.push({ src, dest, targetDir, imgPath });
@@ -658,10 +661,13 @@ async function moveBgImages(args:any){
         }
         
         try {
+            // 构建移动操作的选项
+            const moveOptions = autoRename ? { rename: true } : {};
+            
             // 直接执行移动操作，不做预查询
-            console.log(`执行移动: ${fileName}`);
+            console.log(`执行移动: ${fileName}${autoRename ? '(自动重命名)' : ''}`);
             const result = await withTimeout(
-                Editor.Message.request('asset-db', 'move-asset', src, dest),
+                Editor.Message.request('asset-db', 'move-asset', src, dest, moveOptions),
                 15000 // 15秒超时
             );
             // console.log(`move-asset 返回结果: ${result}`);
@@ -715,11 +721,14 @@ async function moveBgImages(args:any){
         for (let i = 0; i < timeoutFiles.length; i++) {
             const { src, dest, imgPath, fileName } = timeoutFiles[i];
             
-            console.log(`[重试 ${i + 1}/${timeoutFiles.length}] 重新尝试移动: ${fileName}`);
+            console.log(`[重试 ${i + 1}/${timeoutFiles.length}] 重新尝试移动: ${fileName}${autoRename ? '(自动重命名)' : ''}`);
             
             try {
+                // 构建移动操作的选项
+                const moveOptions = autoRename ? { rename: true } : {};
+                
                 const result = await withTimeout(
-                    Editor.Message.request('asset-db', 'move-asset', src, dest),
+                    Editor.Message.request('asset-db', 'move-asset', src, dest, moveOptions),
                     15000 // 15秒超时
                 );
                 

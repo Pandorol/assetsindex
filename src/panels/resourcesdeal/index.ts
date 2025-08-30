@@ -219,6 +219,7 @@ module.exports = Editor.Panel.define({
 
         caseConflictKeepOld: '#caseConflictKeepOld',
         caseConflictUseNew: '#caseConflictUseNew',
+        autoRename: '#autoRename',
         
         //移动大图
         moveBgImagesBtn: '#moveBgImagesBtn',
@@ -1718,6 +1719,9 @@ module.exports = Editor.Panel.define({
                 imageSizeMap[imgPath] = isBigImage(info.width || 0, info.height || 0);
             });
 
+            // 检查自动重命名选项
+            const autoRename = (this.$.autoRename as HTMLInputElement).checked;
+
             // 构建请求参数
             const requestParams: any = {
                 method: 'moveBgImages',
@@ -1728,6 +1732,7 @@ module.exports = Editor.Panel.define({
                 imageSizeMap: imageSizeMap, // 传递预计算的大小判断结果
                 keepOld: caseConflictKeepOld,
                 preLook: config.preLook || false,
+                autoRename: autoRename, // 传递自动重命名选项
             };
 
             // 如果有prefabRegex参数，添加到请求中

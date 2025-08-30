@@ -484,6 +484,8 @@ async function moveBgImages(args) {
     if (!args.keepOld) {
         caseConflictStrategy = 'useNew';
     }
+    // 获取自动重命名选项，默认为 true
+    const autoRename = args.autoRename !== undefined ? args.autoRename : true;
     // 记录移动操作
     const recordMoveOperation = (src, dest, targetDir, imgPath) => {
         operations.push({ src, dest, targetDir, imgPath });
@@ -614,9 +616,11 @@ async function moveBgImages(args) {
             console.log(`[${currentTime}] 进度: [${i + 1}/${operations.length}] 正在处理: ${fileName}`);
         }
         try {
+            // 构建移动操作的选项
+            const moveOptions = autoRename ? { rename: true } : {};
             // 直接执行移动操作，不做预查询
-            console.log(`执行移动: ${fileName}`);
-            const result = await withTimeout(Editor.Message.request('asset-db', 'move-asset', src, dest), 15000 // 15秒超时
+            console.log(`执行移动: ${fileName}${autoRename ? '(自动重命名)' : ''}`);
+            const result = await withTimeout(Editor.Message.request('asset-db', 'move-asset', src, dest, moveOptions), 15000 // 15秒超时
             );
             // console.log(`move-asset 返回结果: ${result}`);
             movedCount++;
@@ -663,9 +667,11 @@ async function moveBgImages(args) {
         console.log(`开始重试 ${timeoutFiles.length} 个超时文件...`);
         for (let i = 0; i < timeoutFiles.length; i++) {
             const { src, dest, imgPath, fileName } = timeoutFiles[i];
-            console.log(`[重试 ${i + 1}/${timeoutFiles.length}] 重新尝试移动: ${fileName}`);
+            console.log(`[重试 ${i + 1}/${timeoutFiles.length}] 重新尝试移动: ${fileName}${autoRename ? '(自动重命名)' : ''}`);
             try {
-                const result = await withTimeout(Editor.Message.request('asset-db', 'move-asset', src, dest), 15000 // 15秒超时
+                // 构建移动操作的选项
+                const moveOptions = autoRename ? { rename: true } : {};
+                const result = await withTimeout(Editor.Message.request('asset-db', 'move-asset', src, dest, moveOptions), 15000 // 15秒超时
                 );
                 console.log(`[重试 ${i + 1}/${timeoutFiles.length}] 移动成功: ${fileName}`);
                 movedCount++;
