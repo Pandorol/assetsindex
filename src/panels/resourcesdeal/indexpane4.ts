@@ -579,6 +579,51 @@ export class Panel4Manager {
     }
 
     /**
+     * 在编辑器中打开并选中资源
+     */
+    static async openAssetInEditor(imagePath: string) {
+        try {
+            console.log(`尝试在编辑器中打开资源: ${imagePath}`);
+            
+            // 构建 db:// 路径
+            const dbPath = `db://assets/${imagePath}`;
+            
+            // 使用 asset-db 的 open-asset API 在编辑器中打开资源
+            await (window as any).Editor?.Message?.request('asset-db', 'open-asset', dbPath);
+            console.log(`成功在编辑器中打开资源: ${imagePath}`);
+            
+        } catch (error) {
+            console.error(`在编辑器中打开资源失败: ${imagePath}`, error);
+            
+            // 如果 open-asset 失败，尝试在资源管理器中定位
+            try {
+                console.log(`尝试在资源管理器中定位: ${imagePath}`);
+                const dbPath = `db://assets/${imagePath}`;
+                
+                // 可以尝试使用 query-asset-info 来验证资源是否存在
+                const assetInfo = await (window as any).Editor?.Message?.request('asset-db', 'query-asset-info', dbPath);
+                if (assetInfo) {
+                    console.log(`资源存在，但无法打开预览: ${imagePath}`, assetInfo);
+                    // 显示提示信息
+                    (window as any).Editor?.Dialog?.info(`资源位置: ${imagePath}\n类型: ${assetInfo.type}\n大小: ${formatSize(assetInfo.size || 0)}`, {
+                        title: '资源信息'
+                    });
+                } else {
+                    console.warn(`资源不存在: ${imagePath}`);
+                    (window as any).Editor?.Dialog?.warn(`资源不存在: ${imagePath}`, {
+                        title: '资源未找到'
+                    });
+                }
+            } catch (fallbackError) {
+                console.error(`备用方案也失败了:`, fallbackError);
+                (window as any).Editor?.Dialog?.error(`无法打开资源: ${imagePath}`, {
+                    title: '打开失败'
+                });
+            }
+        }
+    }
+
+    /**
      * 获取所有图片路径
      */
     static getAllImagePaths(): string[] {
@@ -642,44 +687,9 @@ export class Panel4Manager {
                 }
                 
                 console.log(`开始创建预览内容`);
-                // 创建预览内容 - 构建数据结构供 showAlert2 使用
-                const previewData = {
-                    summary: {
-                        regex: moveItem.regex,
-                        totalMatches: moveItem.matchedImages.length,
-                        showingCount: Math.min(moveItem.matchedImages.length, 100)
-                    },
-                    matches: moveItem.matchedImages.slice(0, 100).map((imagePath, index) => ({
-                        index: index + 1,
-                        path: imagePath,
-                        info: _dataCache.path2info[imagePath] || {}
-                    }))
-                };
                 
-                console.log(`准备使用 showAlert2 显示预览数据`);
-                
-                // 优先使用 panel 实例的 showAlert2 方法
-                if (_panelInstance && typeof _panelInstance.showAlert2 === 'function') {
-                    console.log(`使用 panel 实例的 showAlert2 方法显示预览`);
-                    _panelInstance.showAlert2(previewData);
-                } else {
-                    console.log(`showAlert2 不可用，使用 Editor.Dialog 作为备用`);
-                    // 备用方案：使用简单的文本显示
-                    const previewContent = moveItem.matchedImages.slice(0, 100).map((imagePath, index) => 
-                        `${index + 1}. ${imagePath}`
-                    ).join('\n');
-                    
-                    const message = `匹配到 ${moveItem.matchedImages.length} 个图片${moveItem.matchedImages.length > 100 ? ' (仅显示前100个)' : ''}:\n\n${previewContent}`;
-                    
-                    // 检查 Editor.Dialog 是否存在
-                    console.log(`检查 Editor.Dialog:`, (window as any).Editor?.Dialog);
-                    
-                    // 使用 Editor.Dialog 显示结果
-                    const result = (window as any).Editor?.Dialog?.info(message, { 
-                        title: `预览匹配结果 - ${moveItem.name}`
-                    });
-                    console.log(`Dialog.info 调用结果:`, result);
-                }
+                // 使用简单的自定义预览窗口，支持点击功能
+                this.showSimplePreview(itemId, moveItem.name, moveItem.matchedImages, moveItem.regex);
             }, 200);
             
         } catch (error) {
@@ -687,6 +697,161 @@ export class Panel4Manager {
             console.error(`错误堆栈:`, (error as Error).stack);
             this.showStatus(itemId, `预览失败: ${(error as Error).message}`, 'error');
         }
+    }
+
+    /**
+     * 显示简单的预览窗口，支持点击打开资源
+     */
+    static showSimplePreview(itemId: string, itemName: string, matchedImages: string[], regex: string) {
+        if (matchedImages.length === 0) {
+            this.showStatus(itemId, '没有找到匹配的图片', 'info');
+            return;
+        }
+        
+        // 创建预览窗口
+        const overlay = document.createElement('div');
+        overlay.className = 'simple-preview-overlay';
+        overlay.style.cssText = `
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.7);
+            z-index: 10000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        `;
+        
+        const dialog = document.createElement('div');
+        dialog.className = 'simple-preview-dialog';
+        dialog.style.cssText = `
+            background: #2d2d30;
+            color: #cccccc;
+            border-radius: 8px;
+            max-width: 80%;
+            max-height: 80%;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+        `;
+        
+        // 创建头部
+        const header = document.createElement('div');
+        header.style.cssText = `
+            padding: 15px 20px;
+            border-bottom: 1px solid #555;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        `;
+        header.innerHTML = `
+            <div>
+                <h3 style="margin:0; color:#fff;">预览匹配结果 - ${itemName}</h3>
+                <p style="margin:5px 0 0 0; color:#999; font-size:12px;">正则: ${regex} | 共 ${matchedImages.length} 个文件</p>
+            </div>
+            <button id="closePreview" style="background:none; border:none; color:#fff; font-size:24px; cursor:pointer;">&times;</button>
+        `;
+        
+        // 创建内容区域
+        const content = document.createElement('div');
+        content.style.cssText = `
+            flex: 1;
+            overflow-y: auto;
+            padding: 15px 20px;
+            max-height: 400px;
+        `;
+        
+        // 添加图片列表（限制显示前100个）
+        const displayImages = matchedImages.slice(0, 100);
+        displayImages.forEach((imagePath, index) => {
+            const item = document.createElement('div');
+            item.style.cssText = `
+                padding: 8px 12px;
+                margin: 2px 0;
+                background: rgba(255,255,255,0.05);
+                border-radius: 4px;
+                cursor: pointer;
+                border-left: 3px solid #007acc;
+                transition: all 0.2s;
+                font-family: monospace;
+                font-size: 13px;
+            `;
+            
+            item.innerHTML = `<span style="color:#569cd6;">${index + 1}.</span> ${imagePath}`;
+            
+            // 添加悬停效果
+            item.addEventListener('mouseenter', () => {
+                item.style.background = 'rgba(0,122,204,0.2)';
+                item.style.borderLeftColor = '#00ff88';
+            });
+            
+            item.addEventListener('mouseleave', () => {
+                item.style.background = 'rgba(255,255,255,0.05)';
+                item.style.borderLeftColor = '#007acc';
+            });
+            
+            // 添加点击事件
+            item.addEventListener('click', () => {
+                console.log(`点击打开资源: ${imagePath}`);
+                this.openAssetInEditor(imagePath);
+                // 关闭预览窗口
+                document.body.removeChild(overlay);
+            });
+            
+            content.appendChild(item);
+        });
+        
+        // 如果有更多文件，显示提示
+        if (matchedImages.length > 100) {
+            const moreInfo = document.createElement('div');
+            moreInfo.style.cssText = `
+                padding: 10px;
+                text-align: center;
+                color: #999;
+                font-style: italic;
+                border-top: 1px solid #555;
+            `;
+            moreInfo.textContent = `... 还有 ${matchedImages.length - 100} 个文件未显示`;
+            content.appendChild(moreInfo);
+        }
+        
+        // 创建底部
+        const footer = document.createElement('div');
+        footer.style.cssText = `
+            padding: 15px 20px;
+            border-top: 1px solid #555;
+            text-align: right;
+        `;
+        footer.innerHTML = `
+            <button id="closePreviewBtn" style="
+                padding: 8px 16px;
+                background: #555;
+                color: #fff;
+                border: none;
+                border-radius: 4px;
+                cursor: pointer;
+            ">关闭</button>
+        `;
+        
+        // 组装对话框
+        dialog.appendChild(header);
+        dialog.appendChild(content);
+        dialog.appendChild(footer);
+        overlay.appendChild(dialog);
+        
+        // 绑定关闭事件
+        const closePreview = () => document.body.removeChild(overlay);
+        
+        header.querySelector('#closePreview')?.addEventListener('click', closePreview);
+        footer.querySelector('#closePreviewBtn')?.addEventListener('click', closePreview);
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) closePreview();
+        });
+        
+        // 添加到页面
+        document.body.appendChild(overlay);
+        
+        console.log(`显示简单预览窗口: ${matchedImages.length} 个匹配项`);
     }
 
     /**
@@ -995,39 +1160,195 @@ export class Panel4Manager {
         
         const totalCount = allSelected.reduce((sum, item) => sum + item.images.length, 0);
         
-        // 构建数据结构供 showAlert2 使用
-        const previewData = {
-            summary: {
-                totalItems: allSelected.length,
-                totalImages: totalCount,
-                description: `共 ${allSelected.length} 个移动项，包含 ${totalCount} 个图片`
-            },
-            items: allSelected.map(item => ({
-                name: item.name,
-                targetDir: item.targetDir,
-                imageCount: item.images.length,
-                images: item.images
-            }))
-        };
+        // 使用简单的预览窗口
+        this.showAllSelectedPreview(allSelected, totalCount);
+    }
+
+    /**
+     * 显示所有选中项的简单预览窗口
+     */
+    static showAllSelectedPreview(allSelected: Array<{name: string, targetDir: string, images: string[]}>, totalCount: number) {
+        // 创建预览窗口
+        const overlay = document.createElement('div');
+        overlay.className = 'simple-preview-overlay';
+        overlay.style.cssText = `
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.7);
+            z-index: 10000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        `;
         
-        // 优先使用 panel 实例的 showAlert2 方法
-        if (_panelInstance && typeof _panelInstance.showAlert2 === 'function') {
-            _panelInstance.showAlert2(previewData);
-        } else {
-            // 备用方案：使用简单的文本显示
-            const previewContent = allSelected.map(item => 
-                `【${item.name}】 → ${item.targetDir}\n` +
-                item.images.slice(0, 10).map(img => `  - ${img}`).join('\n') +
-                (item.images.length > 10 ? `\n  ... 还有 ${item.images.length - 10} 个` : '')
-            ).join('\n\n');
+        const dialog = document.createElement('div');
+        dialog.className = 'simple-preview-dialog';
+        dialog.style.cssText = `
+            background: #2d2d30;
+            color: #cccccc;
+            border-radius: 8px;
+            max-width: 85%;
+            max-height: 85%;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+        `;
+        
+        // 创建头部
+        const header = document.createElement('div');
+        header.style.cssText = `
+            padding: 15px 20px;
+            border-bottom: 1px solid #555;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        `;
+        header.innerHTML = `
+            <div>
+                <h3 style="margin:0; color:#fff;">预览所有选中项</h3>
+                <p style="margin:5px 0 0 0; color:#999; font-size:12px;">共 ${allSelected.length} 个移动项 | 总计 ${totalCount} 个文件</p>
+            </div>
+            <button id="closeAllPreview" style="background:none; border:none; color:#fff; font-size:24px; cursor:pointer;">&times;</button>
+        `;
+        
+        // 创建内容区域
+        const content = document.createElement('div');
+        content.style.cssText = `
+            flex: 1;
+            overflow-y: auto;
+            padding: 15px 20px;
+            max-height: 500px;
+        `;
+        
+        // 为每个移动项创建分组显示
+        allSelected.forEach((item, groupIndex) => {
+            // 创建组标题
+            const groupHeader = document.createElement('div');
+            groupHeader.style.cssText = `
+                background: rgba(0,122,204,0.15);
+                padding: 10px 15px;
+                margin: ${groupIndex > 0 ? '20px' : '0'} 0 10px 0;
+                border-radius: 6px;
+                border-left: 4px solid #007acc;
+            `;
+            groupHeader.innerHTML = `
+                <strong style="color:#fff;">${item.name}</strong>
+                <span style="color:#999; font-size:12px; margin-left:10px;">(${item.images.length} 个文件)</span>
+                <div style="color:#ccc; font-size:11px; margin-top:5px;">目标: ${item.targetDir}</div>
+            `;
+            content.appendChild(groupHeader);
             
-            (window as any).Editor?.Dialog?.info(
-                `总共选中 ${totalCount} 个图片，分布在 ${allSelected.length} 个移动项中:\n\n${previewContent}`,
-                { 
-                    title: '预览所有选中项'
-                }
-            );
-        }
+            // 创建文件列表
+            const fileList = document.createElement('div');
+            fileList.style.cssText = `
+                margin-left: 20px;
+                margin-bottom: 10px;
+            `;
+            
+            // 显示前20个文件
+            const displayImages = item.images.slice(0, 20);
+            displayImages.forEach((imagePath, index) => {
+                const fileItem = document.createElement('div');
+                fileItem.style.cssText = `
+                    padding: 6px 10px;
+                    margin: 1px 0;
+                    background: rgba(255,255,255,0.03);
+                    border-radius: 3px;
+                    cursor: pointer;
+                    border-left: 2px solid #28a745;
+                    transition: all 0.2s;
+                    font-family: monospace;
+                    font-size: 12px;
+                `;
+                
+                const fileName = imagePath.split('/').pop() || imagePath;
+                const targetPath = item.targetDir + fileName;
+                
+                fileItem.innerHTML = `
+                    <span style="color:#569cd6;">${index + 1}.</span> 
+                    <span style="color:#fff;">${fileName}</span>
+                    <span style="color:#999; font-size:10px; margin-left:10px;">→ ${targetPath}</span>
+                `;
+                
+                // 添加悬停效果
+                fileItem.addEventListener('mouseenter', () => {
+                    fileItem.style.background = 'rgba(40,167,69,0.2)';
+                    fileItem.style.borderLeftColor = '#00ff88';
+                });
+                
+                fileItem.addEventListener('mouseleave', () => {
+                    fileItem.style.background = 'rgba(255,255,255,0.03)';
+                    fileItem.style.borderLeftColor = '#28a745';
+                });
+                
+                // 添加点击事件
+                fileItem.addEventListener('click', () => {
+                    console.log(`点击打开资源: ${imagePath}`);
+                    this.openAssetInEditor(imagePath);
+                    // 关闭预览窗口
+                    document.body.removeChild(overlay);
+                });
+                
+                fileList.appendChild(fileItem);
+            });
+            
+            // 如果有更多文件，显示提示
+            if (item.images.length > 20) {
+                const moreInfo = document.createElement('div');
+                moreInfo.style.cssText = `
+                    padding: 8px 10px;
+                    text-align: center;
+                    color: #999;
+                    font-style: italic;
+                    font-size: 11px;
+                    border-top: 1px dashed #555;
+                    margin-top: 5px;
+                `;
+                moreInfo.textContent = `... 还有 ${item.images.length - 20} 个文件`;
+                fileList.appendChild(moreInfo);
+            }
+            
+            content.appendChild(fileList);
+        });
+        
+        // 创建底部
+        const footer = document.createElement('div');
+        footer.style.cssText = `
+            padding: 15px 20px;
+            border-top: 1px solid #555;
+            text-align: right;
+        `;
+        footer.innerHTML = `
+            <button id="closeAllPreviewBtn" style="
+                padding: 8px 16px;
+                background: #555;
+                color: #fff;
+                border: none;
+                border-radius: 4px;
+                cursor: pointer;
+            ">关闭</button>
+        `;
+        
+        // 组装对话框
+        dialog.appendChild(header);
+        dialog.appendChild(content);
+        dialog.appendChild(footer);
+        overlay.appendChild(dialog);
+        
+        // 绑定关闭事件
+        const closePreview = () => document.body.removeChild(overlay);
+        
+        header.querySelector('#closeAllPreview')?.addEventListener('click', closePreview);
+        footer.querySelector('#closeAllPreviewBtn')?.addEventListener('click', closePreview);
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) closePreview();
+        });
+        
+        // 添加到页面
+        document.body.appendChild(overlay);
+        
+        console.log(`显示所有选中项预览窗口: ${allSelected.length} 个移动项，共 ${totalCount} 个文件`);
     }
 
     /**
