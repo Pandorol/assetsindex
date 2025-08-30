@@ -183,14 +183,29 @@ export class Panel4Manager {
         const regexInput = doc.getElementById(`${cleanId}_regex`) as HTMLInputElement;
         const targetDirInput = doc.getElementById(`${cleanId}_targetDir`) as HTMLInputElement;
         
-        regexInput?.addEventListener('input', () => {
-            moveItem.regex = regexInput.value;
-            this.updateMatchCount(moveItem.id);
-        });
+        console.log(`绑定输入事件 - 正则输入框:`, regexInput);
+        console.log(`绑定输入事件 - 目标目录输入框:`, targetDirInput);
         
-        targetDirInput?.addEventListener('input', () => {
-            moveItem.targetDir = targetDirInput.value;
-        });
+        if (regexInput) {
+            regexInput.addEventListener('input', () => {
+                console.log(`正则输入框 input 事件触发，新值: "${regexInput.value}"`);
+                moveItem.regex = regexInput.value;
+                console.log(`更新 moveItem.regex: "${moveItem.regex}"`);
+                this.updateMatchCount(moveItem.id);
+            });
+        } else {
+            console.error(`无法找到正则输入框: ${cleanId}_regex`);
+        }
+        
+        if (targetDirInput) {
+            targetDirInput.addEventListener('input', () => {
+                console.log(`目标目录输入框 input 事件触发，新值: "${targetDirInput.value}"`);
+                moveItem.targetDir = targetDirInput.value;
+                console.log(`更新 moveItem.targetDir: "${moveItem.targetDir}"`);
+            });
+        } else {
+            console.error(`无法找到目标目录输入框: ${cleanId}_targetDir`);
+        }
 
         // 绑定按钮事件
         const previewBtn = itemElement.querySelector('[data-action="preview"]') as HTMLButtonElement;
