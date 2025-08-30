@@ -534,10 +534,10 @@ async function moveBgImages(args) {
         const fileName = path.basename(imgPath);
         const dest = `db://assets/${targetDir}${fileName}`;
         if (src !== dest) {
-            operations.push({ src, dest, targetDir, imgPath });
+            operations.push({ src, dest, targetDir, imgPath, info });
         }
         else {
-            no_ops.push({ src, dest, targetDir, imgPath, reason: '源路径与目标路径相同' });
+            no_ops.push({ src, dest, targetDir, imgPath, reason: '源路径与目标路径相同', info });
         }
     }
     if (operations.length === 0) {
