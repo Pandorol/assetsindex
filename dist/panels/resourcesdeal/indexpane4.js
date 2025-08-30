@@ -182,32 +182,65 @@ class Panel4Manager {
      */
     static updateMatchCount(itemId) {
         const moveItem = _dynamicMoveItems.find(item => item.id === itemId);
-        if (!moveItem || !moveItem.regex)
+        if (!moveItem) {
+            console.warn(`找不到移动项: ${itemId}`);
             return;
+        }
+        const countElement = document.getElementById(`${itemId}_matchCount`);
+        if (!moveItem.regex.trim()) {
+            if (countElement) {
+                countElement.textContent = '0';
+            }
+            moveItem.matchedImages = [];
+            return;
+        }
+        if (!_dataCache) {
+            console.warn('数据缓存未初始化');
+            if (countElement) {
+                countElement.textContent = '未初始化';
+            }
+            return;
+        }
         try {
             const regex = new RegExp(moveItem.regex);
             const allImages = this.getAllImagePaths();
+            if (allImages.length === 0) {
+                console.warn('没有可用的图片数据');
+                if (countElement) {
+                    countElement.textContent = '无数据';
+                }
+                return;
+            }
             moveItem.matchedImages = allImages.filter(imagePath => regex.test(imagePath));
-            const countElement = document.getElementById(`${itemId}_matchCount`);
             if (countElement) {
                 countElement.textContent = moveItem.matchedImages.length.toString();
             }
+            console.log(`正则 "${moveItem.regex}" 匹配到 ${moveItem.matchedImages.length} 个图片`);
         }
         catch (error) {
             console.warn(`正则表达式错误 (${itemId}):`, error.message);
-            const countElement = document.getElementById(`${itemId}_matchCount`);
             if (countElement) {
-                countElement.textContent = '错误';
+                countElement.textContent = '正则错误';
+                countElement.style.color = '#dc3545';
             }
+            moveItem.matchedImages = [];
         }
     }
     /**
      * 获取所有图片路径
      */
     static getAllImagePaths() {
-        if (!_dataCache || !_dataCache.path2info)
+        if (!_dataCache) {
+            console.warn('数据缓存未初始化');
             return [];
-        return Object.keys(_dataCache.path2info);
+        }
+        if (!_dataCache.path2info) {
+            console.warn('path2info 数据不存在');
+            return [];
+        }
+        const paths = Object.keys(_dataCache.path2info);
+        console.log(`获取到 ${paths.length} 个图片路径`);
+        return paths;
     }
     /**
      * 预览匹配的图片
@@ -215,20 +248,37 @@ class Panel4Manager {
     static previewMatches(itemId) {
         var _a, _b;
         const moveItem = _dynamicMoveItems.find(item => item.id === itemId);
-        if (!moveItem)
-            return;
-        this.updateMatchCount(itemId);
-        if (moveItem.matchedImages.length === 0) {
-            this.showStatus(itemId, '没有找到匹配的图片', 'info');
+        if (!moveItem) {
+            console.warn(`找不到移动项: ${itemId}`);
             return;
         }
-        // 创建预览内容
-        const previewContent = moveItem.matchedImages.slice(0, 100).map((imagePath, index) => `${index + 1}. ${imagePath}`).join('\n');
-        const message = `匹配到 ${moveItem.matchedImages.length} 个图片${moveItem.matchedImages.length > 100 ? ' (仅显示前100个)' : ''}:\n\n${previewContent}`;
-        // 使用 Editor.Dialog 显示结果
-        (_b = (_a = window.Editor) === null || _a === void 0 ? void 0 : _a.Dialog) === null || _b === void 0 ? void 0 : _b.info(message, {
-            title: `预览匹配结果 - ${moveItem.name}`
-        });
+        if (!moveItem.regex.trim()) {
+            this.showStatus(itemId, '请先输入正则表达式', 'error');
+            return;
+        }
+        // 检查数据缓存
+        if (!_dataCache) {
+            this.showStatus(itemId, '数据缓存未初始化，请先构建基础数据', 'error');
+            return;
+        }
+        try {
+            this.updateMatchCount(itemId);
+            if (moveItem.matchedImages.length === 0) {
+                this.showStatus(itemId, '没有找到匹配的图片', 'info');
+                return;
+            }
+            // 创建预览内容
+            const previewContent = moveItem.matchedImages.slice(0, 100).map((imagePath, index) => `${index + 1}. ${imagePath}`).join('\n');
+            const message = `匹配到 ${moveItem.matchedImages.length} 个图片${moveItem.matchedImages.length > 100 ? ' (仅显示前100个)' : ''}:\n\n${previewContent}`;
+            // 使用 Editor.Dialog 显示结果
+            (_b = (_a = window.Editor) === null || _a === void 0 ? void 0 : _a.Dialog) === null || _b === void 0 ? void 0 : _b.info(message, {
+                title: `预览匹配结果 - ${moveItem.name}`
+            });
+        }
+        catch (error) {
+            console.error(`预览匹配失败 (${itemId}):`, error);
+            this.showStatus(itemId, `预览失败: ${error.message}`, 'error');
+        }
     }
     /**
      * 选择匹配项

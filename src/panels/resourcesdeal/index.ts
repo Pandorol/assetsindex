@@ -326,6 +326,9 @@ module.exports = Editor.Panel.define({
                 this.$.buildMapsDataResultContainer!.style.visibility = 'visible';
                 (this.$.buildMapsDataResultPath as HTMLInputElement).value = data.out2;
                 Editor.Profile.setConfig('assetsindex','resourcesdeal_outputdata2_directory', data.out2);
+                
+                // 更新 Panel4Manager 的数据缓存
+                Panel4Manager.updateDataCache(_dataCache);
             })
         },
         // #endregion
@@ -1025,6 +1028,9 @@ module.exports = Editor.Panel.define({
                 _spriteFrameMaps_nameCache = deepClone(_dataCache.spriteFrameMaps_name);
                 console.log('成功读取缓存数据，开始渲染图片使用表');
                 this.renderImageTable(_dataCache.spriteFrameMaps_name, _dataCache.path2info);
+                
+                // 更新 Panel4Manager 的数据缓存
+                Panel4Manager.updateDataCache(_dataCache);
             } catch (err) {
                 console.error('读取或解析数据文件失败:', err);
             }
