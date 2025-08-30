@@ -2,7 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const fs_extra_1 = require("fs-extra");
 const path_1 = require("path");
-const testfinddynamicpic_1 = require("../../testfinddynamicpic");
+const indexpane4_1 = require("./indexpane4");
 const fs = require('fs-extra');
 // #region 全局数据缓存
 let _dataCache = null;
@@ -114,7 +114,6 @@ module.exports = Editor.Panel.define({
         scrollArea: '#scrollArea',
         contentArea: '#contentArea',
         deleteEmptyFoldersBtn: '#deleteEmptyFoldersBtn',
-        testDynamicImageBtn: '#testDynamicImageBtn',
         //图集设置处理
         //大图定义
         defineLargeImageWidth: '#defineLargeImageWidth',
@@ -232,6 +231,11 @@ module.exports = Editor.Panel.define({
         otherbigTargetPattern: '#otherbigTargetPattern',
         moveOtherbigImagesBtn: '#moveOtherbigImagesBtn',
         PreLookmoveOtherbigImagesBtn: '#PreLookmoveOtherbigImagesBtn',
+        // Panel4 动态移动配置
+        addMoveItemBtn: '#addMoveItemBtn',
+        moveItemsContainer: '#moveItemsContainer',
+        previewAllSelectedBtn: '#previewAllSelectedBtn',
+        moveAllSelectedBtn: '#moveAllSelectedBtn',
     },
     methods: {
         // #region 基础功能方法
@@ -737,6 +741,7 @@ module.exports = Editor.Panel.define({
             this.bindViewResultEvents();
             this.bindMoveEvents();
             this.bindPreprocessEvents();
+            this.bindPanel4Events();
         },
         bindTabEvents() {
             if (this.$.tabs) {
@@ -766,11 +771,6 @@ module.exports = Editor.Panel.define({
             if (this.$.deleteEmptyFoldersBtn) {
                 this.$.deleteEmptyFoldersBtn.addEventListener('click', () => {
                     this.deleteEmptyFolders();
-                });
-            }
-            if (this.$.testDynamicImageBtn) {
-                this.$.testDynamicImageBtn.addEventListener('click', () => {
-                    this.testDynamicImages();
                 });
             }
         },
@@ -885,6 +885,35 @@ module.exports = Editor.Panel.define({
             (_a = this.$.preprocessIdenticalImagesBtn) === null || _a === void 0 ? void 0 : _a.addEventListener('click', () => {
                 this.preChangeImagesAndPrefabs();
             });
+        },
+        bindPanel4Events() {
+            // 初始化 Panel4Manager
+            if (this.$.moveItemsContainer) {
+                indexpane4_1.Panel4Manager.init({
+                    addMoveItemBtn: this.$.addMoveItemBtn,
+                    moveItemsContainer: this.$.moveItemsContainer,
+                    previewAllSelectedBtn: this.$.previewAllSelectedBtn,
+                    moveAllSelectedBtn: this.$.moveAllSelectedBtn
+                }, _dataCache);
+                // 绑定添加移动项按钮
+                if (this.$.addMoveItemBtn) {
+                    this.$.addMoveItemBtn.addEventListener('click', () => {
+                        indexpane4_1.Panel4Manager.addMoveItem();
+                    });
+                }
+                // 绑定预览所有选中按钮
+                if (this.$.previewAllSelectedBtn) {
+                    this.$.previewAllSelectedBtn.addEventListener('click', () => {
+                        indexpane4_1.Panel4Manager.previewAllSelected();
+                    });
+                }
+                // 绑定移动所有选中按钮
+                if (this.$.moveAllSelectedBtn) {
+                    this.$.moveAllSelectedBtn.addEventListener('click', () => {
+                        indexpane4_1.Panel4Manager.moveAllSelected();
+                    });
+                }
+            }
         },
         // #endregion
         // #region 数据生成方法
@@ -1699,36 +1728,6 @@ module.exports = Editor.Panel.define({
             catch (error) {
                 console.error('删除空文件夹时出错:', error);
                 Editor.Dialog.error(`删除失败: ${error.message}`, { title: '错误' });
-            }
-        },
-        async testDynamicImages() {
-            console.log('开始分析动态图片加载...');
-            try {
-                // 显示开始分析的提示
-                Editor.Dialog.info('正在分析动态图片加载，请稍候...', {
-                    title: '动态图片分析',
-                    buttons: ['我知道了']
-                });
-                // 调用分析函数
-                const results = await (0, testfinddynamicpic_1.analyzeDynamicPictures)();
-                // 显示分析结果
-                const resultMessage = results.length > 0
-                    ? `分析完成！\n共找到 ${results.length} 个动态加载的图片路径\n\n前10个路径:\n${results.slice(0, 10).join('\n')}\n\n完整结果已输出到控制台和JSON文件。`
-                    : '分析完成，未找到动态加载的图片路径。';
-                Editor.Dialog.info(resultMessage, {
-                    title: '动态图片分析结果',
-                    buttons: ['我知道了']
-                });
-                // 输出详细结果到控制台
-                console.log('=== 动态图片分析结果 ===');
-                console.log(`总共找到 ${results.length} 个动态加载的图片路径:`);
-                results.forEach((path, index) => {
-                    console.log(`${index + 1}. ${path}`);
-                });
-            }
-            catch (error) {
-                console.error('分析动态图片时出错:', error);
-                Editor.Dialog.error(`分析失败: ${error.message}`, { title: '错误' });
             }
         },
         // #endregion

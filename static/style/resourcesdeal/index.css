@@ -36,3 +36,178 @@
 .tab-content.active {
     display: block;
 }
+
+/* Panel4 动态移动配置样式 */
+.move-item {
+    border: 1px solid #444;
+    margin: 10px 0;
+    padding: 15px;
+    border-radius: 5px;
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+.move-item-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.move-item-title {
+    font-weight: bold;
+    color: #007acc;
+}
+
+.move-item-remove {
+    background: #d32f2f;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 3px;
+    cursor: pointer;
+}
+
+.move-item-remove:hover {
+    background: #b71c1c;
+}
+
+.form-group {
+    margin: 10px 0;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 5px;
+    color: #ccc;
+}
+
+.form-group input,
+.form-group select {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #444;
+    border-radius: 3px;
+    background-color: #2a2a2a;
+    color: white;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+    outline: none;
+    border-color: #007acc;
+}
+
+.move-item-actions {
+    margin-top: 15px;
+    display: flex;
+    gap: 10px;
+}
+
+.btn-preview {
+    background: #388e3c;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 3px;
+    cursor: pointer;
+}
+
+.btn-preview:hover {
+    background: #2e7d32;
+}
+
+.btn-move {
+    background: #1976d2;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 3px;
+    cursor: pointer;
+}
+
+.btn-move:hover {
+    background: #1565c0;
+}
+
+.btn-select-dir {
+    background: #f57c00;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 3px;
+    cursor: pointer;
+}
+
+.btn-select-dir:hover {
+    background: #ef6c00;
+}
+
+.move-item-preview {
+    margin-top: 10px;
+    padding: 10px;
+    background-color: rgba(0, 0, 0, 0.3);
+    border-radius: 3px;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.preview-image {
+    display: flex;
+    align-items: center;
+    margin: 5px 0;
+    padding: 5px;
+    background-color: rgba(255, 255, 255, 0.05);
+    border-radius: 3px;
+}
+
+.preview-image input[type="checkbox"] {
+    margin-right: 10px;
+    width: auto;
+}
+
+.preview-image span {
+    flex: 1;
+    color: #ccc;
+    font-size: 12px;
+}
+
+.button-row {
+    display: flex;
+    gap: 10px;
+    margin: 15px 0;
+}
+
+.button-row button {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+#addMoveItemBtn {
+    background: #4caf50;
+    color: white;
+}
+
+#addMoveItemBtn:hover {
+    background: #45a049;
+}
+
+#previewAllSelectedBtn {
+    background: #ff9800;
+    color: white;
+}
+
+#previewAllSelectedBtn:hover {
+    background: #f57c00;
+}
+
+#moveAllSelectedBtn {
+    background: #2196f3;
+    color: white;
+}
+
+#moveAllSelectedBtn:hover {
+    background: #1976d2;
+}

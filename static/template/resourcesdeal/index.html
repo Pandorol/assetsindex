@@ -5,7 +5,7 @@
         <button id="tab1" class="tab-button active" data-tab="panel1">图片引用数据总览</button>
         <button id="tab2" class="tab-button" data-tab="panel2">设置图集参数</button>
         <button id="tab3" class="tab-button" data-tab="panel3">处理和移动图片</button>
-        <button id="tab4" class="tab-button" data-tab="panel4">动态图处理</button>
+        <button id="tab4" class="tab-button" data-tab="panel4">动态移动配置</button>
     </div>
     <div id="content">
         <div id="panel1" class="tab-content active" >
@@ -83,7 +83,7 @@
                 <button id="lookIgnorePatternResult">查看忽略内容</button>
             </div>
             <div style="height: 20px;"></div>
-            <button id="testDynamicImageBtn">测试通过脚本找动态加载的图片</button>
+            
             <!-- 预处理区域 与 大图定义 并排显示 -->
             <div style="display: flex; gap: 20px; align-items: flex-start;">
                 <div style="flex: 1;">
@@ -367,8 +367,19 @@
                 <button id="PreLookmoveOtherbigImagesBtn">预查看需要移动的图</button>
             </div>
         </div>
+        
         <div id="panel4" class="tab-content">
-
+            <h3>动态移动配置</h3>
+            <div class="button-row">
+                <button id="addMoveItemBtn">添加移动项</button>
+            </div>
+            <div id="moveItemsContainer">
+                <!-- 动态移动项会添加到这里 -->
+            </div>
+            <div class="button-row">
+                <button id="previewAllSelectedBtn">预览所有选中</button>
+                <button id="moveAllSelectedBtn">移动所有选中</button>
+            </div>
         </div>
     </div>
 
