@@ -412,6 +412,9 @@ export class Panel4Manager {
                 
                 // 确保计数元素样式正常
                 countElement.style.color = '';
+                
+                // 强制刷新DOM显示
+                countElement.offsetHeight;
             }
             
             console.log(`正则 "${moveItem.regex}" 匹配到 ${moveItem.matchedImages.length} 个图片`);
@@ -478,9 +481,8 @@ export class Panel4Manager {
         try {
             console.log(`开始调用 updateMatchCount`);
             this.updateMatchCount(itemId);
-            console.log(`updateMatchCount 完成，匹配图片数量: ${moveItem.matchedImages.length}`);
             
-            // 等一下让 DOM 更新完成
+            // 等待 DOM 更新完成，然后再检查匹配结果并显示预览
             setTimeout(() => {
                 console.log(`延迟后检查匹配图片数量: ${moveItem.matchedImages.length}`);
                 
@@ -507,7 +509,7 @@ export class Panel4Manager {
                     title: `预览匹配结果 - ${moveItem.name}`
                 });
                 console.log(`Dialog.info 调用结果:`, result);
-            }, 100);
+            }, 200);
             
         } catch (error) {
             console.error(`预览匹配失败 (${itemId}):`, error);
@@ -523,38 +525,37 @@ export class Panel4Manager {
         const moveItem = _dynamicMoveItems.find(item => item.id === itemId);
         if (!moveItem) return;
         
+        // 先更新匹配计数
         this.updateMatchCount(itemId);
         
-        if (moveItem.matchedImages.length === 0) {
-            this.showStatus(itemId, '没有找到匹配的图片', 'info');
-            return;
-        }
-        
-        // 创建选择对话框内容
-        const checkboxList = moveItem.matchedImages.map((imagePath, index) => {
-            const isSelected = moveItem.selectedImages.includes(imagePath);
-            return `<div class="image-checkbox-item">
-                <label class="image-checkbox-label">
-                    <input type="checkbox" id="img_${index}" value="${imagePath}" ${isSelected ? 'checked' : ''} 
-                           class="image-checkbox-input">
-                    <span class="image-path-text">${imagePath}</span>
-                </label>
-            </div>`;
-        }).join('');
-        
-        const dialogContent = `
-            <div style="max-height: 400px; overflow-y: auto; padding: 10px; border: 1px solid #ccc;">
-                <div style="margin-bottom: 15px;">
-                    <button id="selectAll" style="margin-right: 10px; padding: 5px 10px;">全选</button>
-                    <button id="selectNone" style="padding: 5px 10px;">全不选</button>
-                    <span style="margin-left: 20px; color: #666;">共 ${moveItem.matchedImages.length} 个匹配项</span>
+        // 等待 DOM 更新后再显示对话框
+        setTimeout(() => {
+            if (moveItem.matchedImages.length === 0) {
+                this.showStatus(itemId, '没有找到匹配的图片', 'info');
+                return;
+            }
+            
+            // 创建选择对话框内容
+            const checkboxList = moveItem.matchedImages.map((imagePath, index) => {
+                const isSelected = moveItem.selectedImages.includes(imagePath);
+                return `<div class="image-checkbox-item">
+                    <label class="image-checkbox-label">
+                        <input type="checkbox" id="img_${index}" value="${imagePath}" ${isSelected ? 'checked' : ''} 
+                               class="image-checkbox-input">
+                        <span class="image-path-text">${imagePath}</span>
+                    </label>
+                </div>`;
+            }).join('');
+            
+            const dialogContent = `
+                <div style="max-height: 400px; overflow-y: auto; padding: 10px; border: 1px solid #ccc;">
+                    ${checkboxList}
                 </div>
-                ${checkboxList}
-            </div>
-        `;
-        
-        // 显示选择对话框
-        this.showSelectionDialog(itemId, dialogContent, moveItem);
+            `;
+            
+            // 显示选择对话框
+            this.showSelectionDialog(itemId, dialogContent, moveItem);
+        }, 100);
     }
 
     /**
