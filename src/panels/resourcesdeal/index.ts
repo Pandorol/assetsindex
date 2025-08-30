@@ -116,7 +116,7 @@ module.exports = Editor.Panel.define({
         imageStatsContent: '#imageStatsContent',
         scrollArea: '#scrollArea',
         contentArea: '#contentArea',
-
+        deleteEmptyFoldersBtn: '#deleteEmptyFoldersBtn',
         //图集设置处理
         //大图定义
         defineLargeImageWidth: '#defineLargeImageWidth',
@@ -833,6 +833,12 @@ module.exports = Editor.Panel.define({
             if (this.$.genImageTableBtn) {
                 this.$.genImageTableBtn.addEventListener('click', () => {
                     this.generateImageTable();
+                });
+            }
+
+            if (this.$.deleteEmptyFoldersBtn) {
+                this.$.deleteEmptyFoldersBtn.addEventListener('click', () => {
+                    this.deleteEmptyFolders();
                 });
             }
         },
@@ -1918,6 +1924,33 @@ module.exports = Editor.Panel.define({
                     console.error('Clusterize 初始化失败:', error);
                 }
             }, 1000);
+        },
+
+        // 删除空文件夹
+        async deleteEmptyFolders() {
+            console.log('开始删除空文件夹...');
+            
+            try {
+                const result = await Editor.Message.request('assetsindex', 'dynamic-message', {
+                    method: 'deleteEmptyFolders'
+                });
+                
+                if (result.success) {
+                    Editor.Dialog.info(
+                        `删除完成！\n删除了 ${result.deletedCount} 个空文件夹`, 
+                        { title: '删除空文件夹', buttons: ['我知道了'] }
+                    );
+                    
+                    if (result.deletedFolders && result.deletedFolders.length > 0) {
+                        console.log('已删除的空文件夹:', result.deletedFolders);
+                    }
+                } else {
+                    Editor.Dialog.error(result.message || '删除失败', { title: '错误' });
+                }
+            } catch (error) {
+                console.error('删除空文件夹时出错:', error);
+                Editor.Dialog.error(`删除失败: ${error.message}`, { title: '错误' });
+            }
         },
         // #endregion
     },

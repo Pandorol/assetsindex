@@ -111,7 +111,8 @@ exports.methods = {
         const methodMap = {
             "buildMapsData": buildMapsData,
             "moveBgImages": moveBgImages,
-            "preChangeImagesAndPrefabs": preChangeImagesAndPrefabs
+            "preChangeImagesAndPrefabs": preChangeImagesAndPrefabs,
+            "deleteEmptyFolders": deleteEmptyFolders
         };
         if (methodMap[args.method]) {
             return methodMap[args.method](args);
@@ -812,6 +813,113 @@ async function resolvePathCaseConflicts(targetPath, strategy, errors) {
         console.log(`路径解决结果: "${targetPath}" -> "${resolvedPath}"`);
     }
     return resolvedPath;
+}
+// 删除空文件夹的函数
+async function deleteEmptyFolders(args) {
+    console.log('deleteEmptyFolders called');
+    const assetsPath = path.join(Editor.Project.path, 'assets');
+    const deletedFolders = [];
+    let deletedCount = 0;
+    // 递归检查空文件夹的函数
+    async function findEmptyFoldersRecursive(dirPath) {
+        const emptyFolders = [];
+        try {
+            if (!fs.existsSync(dirPath) || !fs.statSync(dirPath).isDirectory()) {
+                return emptyFolders;
+            }
+            const items = fs.readdirSync(dirPath);
+            let hasNonEmptyItems = false;
+            // 先递归处理子目录
+            for (const item of items) {
+                const itemPath = path.join(dirPath, item);
+                const stats = fs.statSync(itemPath);
+                if (stats.isDirectory()) {
+                    const subEmptyFolders = await findEmptyFoldersRecursive(itemPath);
+                    emptyFolders.push(...subEmptyFolders);
+                    // 重新检查子目录是否还存在（可能被删除了）
+                    if (fs.existsSync(itemPath)) {
+                        hasNonEmptyItems = true;
+                    }
+                }
+                else {
+                    // 如果是文件，检查是否为孤立的 .meta 文件
+                    if (item.endsWith('.meta')) {
+                        const originalFile = item.slice(0, -5);
+                        const originalPath = path.join(dirPath, originalFile);
+                        if (fs.existsSync(originalPath)) {
+                            hasNonEmptyItems = true;
+                        }
+                    }
+                    else {
+                        hasNonEmptyItems = true;
+                    }
+                }
+            }
+            // 如果当前目录为空，添加到删除列表
+            if (!hasNonEmptyItems) {
+                emptyFolders.push(dirPath);
+            }
+        }
+        catch (error) {
+            console.error(`检查目录时出错: ${dirPath}`, error);
+        }
+        return emptyFolders;
+    }
+    try {
+        console.log(`开始检查空文件夹: ${assetsPath}`);
+        // 多轮删除，直到没有更多空文件夹
+        let maxIterations = 5;
+        let totalDeleted = 0;
+        while (maxIterations > 0) {
+            const emptyFolders = await findEmptyFoldersRecursive(assetsPath);
+            if (emptyFolders.length === 0) {
+                console.log('没有发现更多空文件夹');
+                break;
+            }
+            console.log(`第 ${6 - maxIterations} 轮：发现 ${emptyFolders.length} 个空文件夹`);
+            // 按路径长度倒序排序，先删除深层目录
+            emptyFolders.sort((a, b) => b.length - a.length);
+            let roundDeleted = 0;
+            for (const folderPath of emptyFolders) {
+                try {
+                    // 转换为相对于assets的db://路径
+                    const relativePath = path.relative(assetsPath, folderPath).replace(/\\/g, '/');
+                    const dbPath = `db://assets/${relativePath}`;
+                    console.log(`删除空文件夹: ${relativePath}`);
+                    // 使用Cocos Creator的资源管理API删除
+                    await Editor.Message.request('asset-db', 'delete-asset', dbPath);
+                    deletedFolders.push(relativePath);
+                    roundDeleted++;
+                    totalDeleted++;
+                }
+                catch (error) {
+                    console.error(`删除文件夹失败: ${folderPath}`, error);
+                }
+            }
+            console.log(`第 ${6 - maxIterations} 轮完成，删除了 ${roundDeleted} 个文件夹`);
+            if (roundDeleted === 0) {
+                console.log('本轮没有删除任何文件夹，停止');
+                break;
+            }
+            maxIterations--;
+        }
+        deletedCount = totalDeleted;
+        console.log(`删除空文件夹完成，共删除 ${deletedCount} 个文件夹`);
+        return {
+            success: true,
+            deletedCount,
+            deletedFolders,
+            message: `成功删除 ${deletedCount} 个空文件夹`
+        };
+    }
+    catch (error) {
+        console.error('删除空文件夹时出错:', error);
+        return {
+            success: false,
+            deletedCount: 0,
+            message: `删除失败: ${error.message}`
+        };
+    }
 }
 /**
  * @en Hooks triggered after extension loading is complete
