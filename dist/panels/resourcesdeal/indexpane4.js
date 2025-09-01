@@ -792,7 +792,7 @@ class Panel4Manager {
                     <label class="image-checkbox-label">
                         <input type="checkbox" id="img_${index}" value="${imagePath}" ${isSelected ? 'checked' : ''} 
                                class="image-checkbox-input">
-                        <span class="image-path-text clickable-path" data-path="${imagePath}" style="cursor: pointer; transition: color 0.2s;">${imagePath}</span>
+                        <span class="image-path-text">${imagePath}</span>
                     </label>
                 </div>`;
             }).join('');
@@ -843,37 +843,15 @@ class Panel4Manager {
         const cancelBtn = dialog.querySelector('#cancelSelection');
         const confirmBtn = dialog.querySelector('#confirmSelection');
         const checkboxes = dialog.querySelectorAll('input[type="checkbox"]');
-        // 绑定路径点击事件
-        const clickablePaths = dialog.querySelectorAll('.clickable-path');
-        clickablePaths.forEach((pathElement) => {
-            const imagePath = pathElement.getAttribute('data-path');
-            if (imagePath) {
-                // 添加悬停效果
-                pathElement.addEventListener('mouseenter', () => {
-                    pathElement.style.color = '#007acc';
-                    pathElement.style.textDecoration = 'underline';
-                });
-                pathElement.addEventListener('mouseleave', () => {
-                    pathElement.style.color = '';
-                    pathElement.style.textDecoration = 'none';
-                });
-                // 添加点击事件
-                pathElement.addEventListener('click', (e) => {
-                    var _a;
-                    e.preventDefault();
-                    e.stopPropagation();
-                    console.log(`在选择对话框中点击打开资源: ${imagePath}`);
-                    // 调用打开资源方法
+        // 绑定checkbox变化事件，勾选时选中资源
+        checkboxes.forEach((checkbox) => {
+            checkbox.addEventListener('change', (e) => {
+                const imagePath = checkbox.value;
+                if (checkbox.checked) {
+                    console.log(`勾选checkbox，选中资源: ${imagePath}`);
                     this.openAssetInEditor(imagePath);
-                    // 添加点击反馈
-                    pathElement.style.color = '#28a745';
-                    pathElement.style.fontWeight = 'bold';
-                    // 在路径前添加已查看标记
-                    if (!((_a = pathElement.textContent) === null || _a === void 0 ? void 0 : _a.startsWith('👁️ '))) {
-                        pathElement.textContent = `👁️ ${pathElement.textContent}`;
-                    }
-                });
-            }
+                }
+            });
         });
         // 全选功能
         selectAllBtn.addEventListener('click', () => {
@@ -919,17 +897,13 @@ class Panel4Manager {
      * 预览选中的图片
      */
     static previewSelected(itemId) {
-        var _a, _b;
         const moveItem = _dynamicMoveItems.find(item => item.id === itemId);
         if (!moveItem || moveItem.selectedImages.length === 0) {
             this.showStatus(itemId, '没有选中的图片', 'info');
             return;
         }
-        const previewContent = moveItem.selectedImages.slice(0, 100).map((imagePath, index) => `${index + 1}. ${imagePath} → ${moveItem.targetDir}${basename(imagePath)}`).join('\n');
-        const message = `选中 ${moveItem.selectedImages.length} 个图片${moveItem.selectedImages.length > 100 ? ' (仅显示前100个)' : ''}:\n\n${previewContent}`;
-        (_b = (_a = window.Editor) === null || _a === void 0 ? void 0 : _a.Dialog) === null || _b === void 0 ? void 0 : _b.info(message, {
-            title: `预览选中项 - ${moveItem.name}`
-        });
+        // 使用简单预览窗口显示选中的图片
+        this.showSimplePreview(itemId, `${moveItem.name} - 选中项`, moveItem.selectedImages, `选中了 ${moveItem.selectedImages.length} 个文件`);
     }
     /**
      * 移动选中的图片
