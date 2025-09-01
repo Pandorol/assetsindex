@@ -574,6 +574,58 @@ class Panel4Manager {
         }
     }
     /**
+     * 将单个资源添加到编辑器选择中（保持其他选择）
+     */
+    static async addAssetToEditorSelection(imagePath) {
+        var _a, _b, _c, _d, _e, _f;
+        try {
+            console.log(`添加资源到编辑器选择: ${imagePath}`);
+            // 构建 db:// 路径
+            const dbPath = `db://assets/${imagePath}`;
+            // 获取资源的UUID
+            const assetInfo = await ((_b = (_a = window.Editor) === null || _a === void 0 ? void 0 : _a.Message) === null || _b === void 0 ? void 0 : _b.request('asset-db', 'query-asset-info', dbPath));
+            if (assetInfo && assetInfo.uuid) {
+                console.log(`获取到资源UUID: ${assetInfo.uuid}`);
+                // 使用 Editor.Selection.select 添加到选择中，第三个参数设为true表示添加而不是替换
+                (_d = (_c = window.Editor) === null || _c === void 0 ? void 0 : _c.Selection) === null || _d === void 0 ? void 0 : _d.select('asset', assetInfo.uuid, true);
+                console.log(`成功添加资源到编辑器选择: ${imagePath}`);
+                // 聚焦到资源面板
+                (_f = (_e = window.Editor) === null || _e === void 0 ? void 0 : _e.Panel) === null || _f === void 0 ? void 0 : _f.focus('assets');
+            }
+            else {
+                console.warn(`无法获取资源信息: ${imagePath}`);
+            }
+        }
+        catch (error) {
+            console.error(`添加资源到编辑器选择失败: ${imagePath}`, error);
+        }
+    }
+    /**
+     * 从编辑器选择中移除单个资源
+     */
+    static async removeAssetFromEditorSelection(imagePath) {
+        var _a, _b, _c, _d;
+        try {
+            console.log(`从编辑器选择中移除资源: ${imagePath}`);
+            // 构建 db:// 路径
+            const dbPath = `db://assets/${imagePath}`;
+            // 获取资源的UUID
+            const assetInfo = await ((_b = (_a = window.Editor) === null || _a === void 0 ? void 0 : _a.Message) === null || _b === void 0 ? void 0 : _b.request('asset-db', 'query-asset-info', dbPath));
+            if (assetInfo && assetInfo.uuid) {
+                console.log(`获取到资源UUID: ${assetInfo.uuid}`);
+                // 使用 Editor.Selection.unselect 从选择中移除这个特定的资源
+                (_d = (_c = window.Editor) === null || _c === void 0 ? void 0 : _c.Selection) === null || _d === void 0 ? void 0 : _d.unselect('asset', assetInfo.uuid);
+                console.log(`成功从编辑器选择中移除资源: ${imagePath}`);
+            }
+            else {
+                console.warn(`无法获取资源信息: ${imagePath}`);
+            }
+        }
+        catch (error) {
+            console.error(`从编辑器选择中移除资源失败: ${imagePath}`, error);
+        }
+    }
+    /**
      * 获取所有图片路径
      */
     static getAllImagePaths() {
@@ -748,12 +800,13 @@ class Panel4Manager {
                 e.stopPropagation();
                 if (checkbox.checked) {
                     console.log(`勾选文件: ${imagePath}`);
-                    this.openAssetInEditor(imagePath);
                     item.style.borderLeftColor = '#28a745';
                     // 添加到选中列表
                     if (!moveItem.selectedImages.includes(imagePath)) {
                         moveItem.selectedImages.push(imagePath);
                     }
+                    // 勾选时：添加这个文件到编辑器选择中（不清除其他选择）
+                    this.addAssetToEditorSelection(imagePath);
                 }
                 else {
                     console.log(`取消勾选文件: ${imagePath}`);
@@ -763,17 +816,8 @@ class Panel4Manager {
                     if (index > -1) {
                         moveItem.selectedImages.splice(index, 1);
                     }
-                    // 取消选中时，如果当前选中列表为空，则清除编辑器选择
-                    // 如果还有其他文件被选中，则选中其他任意一个被选中的文件
-                    if (moveItem.selectedImages.length === 0) {
-                        this.clearAssetSelectionInEditor();
-                    }
-                    else {
-                        // 选中其他任意一个还在选中列表中的文件（这里选择第一个）
-                        moveItem.selectedImages.forEach(img => {
-                            this.openAssetInEditor(img);
-                        });
-                    }
+                    // 取消勾选时：只从编辑器中移除这个特定文件的选择
+                    this.removeAssetFromEditorSelection(imagePath);
                 }
                 // 更新选中计数显示
                 const selectedCountSpan = dialog.querySelector('#selectedCount');
@@ -834,6 +878,7 @@ class Panel4Manager {
         const checkboxes = dialog.querySelectorAll('input[type="checkbox"]');
         // 全选功能
         selectAllBtn.addEventListener('click', () => {
+            console.log('执行全选操作');
             checkboxes.forEach(cb => {
                 if (!cb.checked) {
                     cb.checked = true;
@@ -843,6 +888,7 @@ class Panel4Manager {
         });
         // 全不选功能
         selectNoneBtn.addEventListener('click', () => {
+            console.log('执行全不选操作');
             checkboxes.forEach(cb => {
                 if (cb.checked) {
                     cb.checked = false;
@@ -1209,7 +1255,8 @@ class Panel4Manager {
         overlay.className = 'simple-preview-overlay';
         overlay.style.cssText = `
             position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
             background: rgba(0,0,0,0.7);
             z-index: 10000;
             display: flex;
@@ -1512,8 +1559,7 @@ exports.panel4Styles = `
     border: none;
     border-radius: 4px;
     cursor: pointer;
-    font-size: 14px;
-    transition: background-color 0.2s;
+    font-size:
 }
 
 .btn-preview {
