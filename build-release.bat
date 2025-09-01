@@ -22,6 +22,7 @@ copy "package.json" "release\assetsindex\"
 xcopy "dist" "release\assetsindex\dist\" /E /I /Q
 xcopy "static" "release\assetsindex\static\" /E /I /Q
 xcopy "i18n" "release\assetsindex\i18n\" /E /I /Q
+xcopy "node_modules" "release\assetsindex\node_modules\" /E /I /Q
 xcopy "@types" "release\assetsindex\@types\" /E /I /Q
 copy "README.md" "release\assetsindex\" 2>nul
 copy "README-zh-CN.md" "release\assetsindex\" 2>nul
