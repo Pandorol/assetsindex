@@ -569,7 +569,7 @@ export class Panel4Manager {
             </div>
             
             <div class="move-item-actions">
-                <span class="match-count-label clickable" data-action="select" data-item-id="${cleanId}">
+                <span class="match-count-label clickable" data-action="viewMatches" data-item-id="${cleanId}">
                     匹配项: <span id="${cleanId}_matchCount">未初始化</span>
                 </span>
                 <button class="btn-select" data-action="select" data-item-id="${cleanId}" type="button">
@@ -663,7 +663,7 @@ export class Panel4Manager {
             this.selectMatches(moveItem.id);
         });
 
-        // 绑定匹配项标签点击事件
+        // 绑定匹配项标签点击事件 - 调用选择匹配项
         matchCountLabel?.addEventListener('click', (e) => {
             e.preventDefault();
             e.stopPropagation();
