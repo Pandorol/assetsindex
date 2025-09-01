@@ -1,4 +1,4 @@
 [
-["gg_pzk_.*","gameRes/hero/old_del/texture/heroIcon/bgBig"],
-["gg_pzk02_.*","gameRes/hero/old_del/texture/heroIcon/bgSmall"]
+["gg_pzk_.*","resources/gameRes/hero/old_del/texture/heroIcon/bgBig"],
+["gg_pzk02_.*","resources/gameRes/hero/old_del/texture/heroIcon/bgSmall"]
 ]
