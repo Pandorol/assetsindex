@@ -940,68 +940,71 @@ async function smallCopyMore(args) {
     }
     const absprefix = path.join(Editor.Project.path, 'assets');
     const regex = new RegExp(othersmallPrefabRegex || ".*");
-    // 记录复制操作
-    const operations = [];
-    const pathTargetMap = new Map(); // 记录每个源路径对应的目标路径，用于去重
     let copiedCount = 0;
     let errorCount = 0;
     const errors = [];
     console.log('开始分析需要复制的其他小图...');
     // 第一阶段：收集所有复制操作
+    // 记录所有需要的复制操作和预制体引用关系
+    const copyOperations = new Map(); // targetPath -> { src, dest, imgPath, targetPath, targetDir, info, relatedPrefabs }
+    const prefabToTargetMap = new Map(); // prefabPath -> { imgPath, targetPath }
     for (const [imgPath, info] of Object.entries(path2info)) {
         const prefabList = spriteFrameMaps_name[imgPath];
         if (!prefabList || prefabList.length === 0) {
             console.warn(`未被引用的图片: ${imgPath}`);
             continue;
         }
-        // 取第一个 prefab 进行匹配
-        const prefabPath = prefabList[0];
-        const match = prefabPath.match(regex);
-        if (!match) {
-            console.warn(`prefab 路径不匹配正则: ${prefabPath}`);
-            continue;
+        // 遍历每个引用该图片的预制体
+        for (const prefabPath of prefabList) {
+            const match = prefabPath.match(regex);
+            if (!match) {
+                console.warn(`prefab 路径不匹配正则: ${prefabPath}`);
+                continue;
+            }
+            // 为每个预制体计算目标目录
+            let targetDir = othersmallTargetPattern;
+            // 如果有捕获组，进行替换
+            if (match.length > 1) {
+                match.forEach((g, i) => {
+                    if (i > 0) { // 跳过完整匹配
+                        targetDir = targetDir.replace(`$${i}`, g || '');
+                    }
+                });
+            }
+            // 规范化路径分隔符并确保以 / 结尾
+            targetDir = targetDir.replace(/\\/g, '/');
+            if (!targetDir.endsWith('/')) {
+                targetDir += '/';
+            }
+            // 拼接源和目标路径
+            const fileName = path.basename(imgPath);
+            const targetPath = `${targetDir}${fileName}`;
+            // 检查是否已经在目标路径中（避免不必要的复制）
+            if (imgPath === targetPath) {
+                console.log(`图片已在目标路径中，跳过: ${imgPath} (预制体: ${prefabPath})`);
+                continue;
+            }
+            // 记录预制体到目标路径的映射
+            prefabToTargetMap.set(prefabPath, { imgPath, targetPath });
+            // 记录复制操作（如果目标路径相同，只记录一次）
+            if (!copyOperations.has(targetPath)) {
+                const src = `db://assets/${imgPath.replace(/\\/g, '/')}`;
+                const dest = `db://assets/${targetPath}`;
+                copyOperations.set(targetPath, {
+                    src,
+                    dest,
+                    imgPath,
+                    targetPath,
+                    targetDir,
+                    info,
+                    relatedPrefabs: [] // 记录所有需要这个副本的预制体
+                });
+            }
+            // 将预制体添加到相关列表中
+            copyOperations.get(targetPath).relatedPrefabs.push(prefabPath);
         }
-        // 构建新的目标目录
-        let targetDir = othersmallTargetPattern;
-        // 如果有捕获组，进行替换
-        if (match.length > 1) {
-            match.forEach((g, i) => {
-                if (i > 0) { // 跳过完整匹配
-                    targetDir = targetDir.replace(`$${i}`, g || '');
-                }
-            });
-        }
-        // 规范化路径分隔符并确保以 / 结尾
-        targetDir = targetDir.replace(/\\/g, '/');
-        if (!targetDir.endsWith('/')) {
-            targetDir += '/';
-        }
-        // 拼接源和目标路径
-        const fileName = path.basename(imgPath);
-        const targetPath = `${targetDir}${fileName}`;
-        // 检查是否已经在目标路径中（避免不必要的复制）
-        if (imgPath === targetPath) {
-            console.log(`图片已在目标路径中，跳过: ${imgPath}`);
-            continue;
-        }
-        // 去重：如果同一个源路径已经有目标路径，跳过
-        if (pathTargetMap.has(imgPath)) {
-            console.log(`图片已有目标路径，跳过重复: ${imgPath} -> ${pathTargetMap.get(imgPath)}`);
-            continue;
-        }
-        pathTargetMap.set(imgPath, targetPath);
-        const src = `db://assets/${imgPath.replace(/\\/g, '/')}`;
-        const dest = `db://assets/${targetPath}`;
-        operations.push({
-            src,
-            dest,
-            imgPath,
-            targetPath,
-            targetDir,
-            prefabList: prefabList.slice(),
-            info
-        });
     }
+    const operations = Array.from(copyOperations.values());
     if (operations.length === 0) {
         console.log('没有需要复制的文件');
         return { copiedCount: 0, errorCount: 0, errors: [], operations: [] };
@@ -1018,14 +1021,21 @@ async function smallCopyMore(args) {
                 return ({
                     src: op.imgPath,
                     dest: op.targetPath,
-                    prefabs: op.prefabList,
+                    relatedPrefabs: op.relatedPrefabs,
                     size: ((_a = op.info) === null || _a === void 0 ? void 0 : _a.size) || 0
                 });
             }),
-            tips2: '操作详情',
+            tips2: '预制体映射关系',
+            prefabMappings: Array.from(prefabToTargetMap.entries()).map(([prefab, mapping]) => ({
+                prefab,
+                srcImage: mapping.imgPath,
+                targetImage: mapping.targetPath
+            })),
+            tips3: '操作详情',
             summary: {
                 totalFiles: operations.length,
-                totalSize: operations.reduce((sum, op) => { var _a; return sum + (((_a = op.info) === null || _a === void 0 ? void 0 : _a.size) || 0); }, 0)
+                totalSize: operations.reduce((sum, op) => { var _a; return sum + (((_a = op.info) === null || _a === void 0 ? void 0 : _a.size) || 0); }, 0),
+                totalPrefabs: prefabToTargetMap.size
             }
         };
     }
@@ -1077,7 +1087,7 @@ async function smallCopyMore(args) {
     console.log('开始更新预制体引用...');
     let updatedPrefabCount = 0;
     for (const operation of operations) {
-        const { imgPath, targetPath, prefabList } = operation;
+        const { imgPath, targetPath, relatedPrefabs } = operation;
         // 获取源图片的 UUID（需要从 meta 文件读取）
         const srcMetaPath = path.join(absprefix, imgPath + '.meta');
         if (!fs.existsSync(srcMetaPath)) {
@@ -1126,8 +1136,8 @@ async function smallCopyMore(args) {
                 continue;
             }
             console.log(`找到 UUID 映射: ${imgPath} (${srcUuid}) -> ${targetPath} (${destUuid})`);
-            // 更新每个引用该图片的预制体文件
-            for (const prefabPath of prefabList) {
+            // 只更新属于这个目标路径的预制体文件
+            for (const prefabPath of relatedPrefabs) {
                 const prefabAbsPath = path.join(absprefix, prefabPath);
                 if (!fs.existsSync(prefabAbsPath)) {
                     console.warn(`预制体文件不存在: ${prefabPath}`);
