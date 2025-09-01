@@ -186,6 +186,17 @@
     font-weight: bold;
 }
 
+.match-count-label.clickable {
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.match-count-label.clickable:hover {
+    background-color: rgba(0, 122, 204, 0.2);
+    border-color: #00ff88;
+    transform: translateY(-1px);
+}
+
 .match-count-label span {
     color: #007acc;
     font-weight: bold;

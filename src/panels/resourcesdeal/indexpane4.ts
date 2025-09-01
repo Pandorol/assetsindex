@@ -569,7 +569,9 @@ export class Panel4Manager {
             </div>
             
             <div class="move-item-actions">
-                <span class="match-count-label">匹配项: <span id="${cleanId}_matchCount">0</span> 个</span>
+                <span class="match-count-label clickable" data-action="select" data-item-id="${cleanId}">
+                    匹配项: <span id="${cleanId}_matchCount">未初始化</span>
+                </span>
                 <button class="btn-select" data-action="select" data-item-id="${cleanId}" type="button">
                     ☑️ 选择匹配项 (<span id="${cleanId}_selectedCount">0</span>)
                 </button>
@@ -641,6 +643,7 @@ export class Panel4Manager {
         // 绑定按钮事件（使用 itemElement 查找，不依赖 ID）
         // const previewBtn = itemElement.querySelector('[data-action="preview"]') as HTMLButtonElement;
         const selectBtn = itemElement.querySelector('[data-action="select"]') as HTMLButtonElement;
+        const matchCountLabel = itemElement.querySelector('.match-count-label.clickable') as HTMLSpanElement;
         // const previewSelectedBtn = itemElement.querySelector('[data-action="previewSelected"]') as HTMLButtonElement;
         const moveBtn = itemElement.querySelector('[data-action="move"]') as HTMLButtonElement;
 
@@ -657,6 +660,14 @@ export class Panel4Manager {
             e.preventDefault();
             e.stopPropagation();
             console.log(`点击选择匹配项按钮: ${moveItem.id}`);
+            this.selectMatches(moveItem.id);
+        });
+
+        // 绑定匹配项标签点击事件
+        matchCountLabel?.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log(`点击匹配项标签: ${moveItem.id}`);
             this.selectMatches(moveItem.id);
         });
 
@@ -834,9 +845,9 @@ export class Panel4Manager {
         console.log(`尝试查找的元素ID: ${itemId}_matchCount`);
         
         if (!moveItem.regex.trim()) {
-            console.log(`正则表达式为空，设置计数为 0`);
+            console.log(`正则表达式为空，设置计数为未设置`);
             if (countElement) {
-                countElement.textContent = '0';
+                countElement.textContent = '未设置';
             }
             moveItem.matchedImages = [];
             return;
@@ -873,8 +884,12 @@ export class Panel4Manager {
             console.log(`过滤完成，匹配数量: ${moveItem.matchedImages.length}`);
             
             if (countElement) {
-                countElement.textContent = moveItem.matchedImages.length.toString();
-                console.log(`更新计数显示: ${moveItem.matchedImages.length}`);
+                if (moveItem.matchedImages.length === 0) {
+                    countElement.textContent = '未匹配';
+                } else {
+                    countElement.textContent = moveItem.matchedImages.length.toString();
+                }
+                console.log(`更新计数显示: ${countElement.textContent}`);
                 
                 // 确保计数元素样式正常
                 countElement.style.color = '';
