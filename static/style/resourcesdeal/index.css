@@ -168,6 +168,32 @@
     border-color: #007acc;
 }
 
+.config-group {
+    margin: 10px 0;
+}
+
+.config-group label {
+    display: block;
+    margin-bottom: 5px;
+    color: #ccc;
+}
+
+.config-group input {
+    width: 250%; /* 2.5倍宽度 */
+    max-width: 600px; /* 设置最大宽度防止过宽 */
+    padding: 8px;
+    border: 1px solid #444;
+    border-radius: 3px;
+    background-color: #2a2a2a;
+    color: white;
+    box-sizing: border-box;
+}
+
+.config-group input:focus {
+    outline: none;
+    border-color: #007acc;
+}
+
 .move-item-actions {
     margin-top: 15px;
     display: flex;
