@@ -739,9 +739,9 @@ module.exports = Editor.Panel.define({
                 { key: 'resourcesdeal_defineLargeImageByHeight', element: 'defineLargeImageByHeight', defaultValue: '0', type: 'checkbox' },
                 { key: 'resourcesdeal_defineLargeImageByArea', element: 'defineLargeImageByArea', defaultValue: '1', type: 'checkbox' },
                 // 小小图定义相关配置
-                { key: 'resourcesdeal_defineSSmallImageWidth', element: 'defineSSmallImageWidth', defaultValue: '50' },
-                { key: 'resourcesdeal_defineSSmallImageHeight', element: 'defineSSmallImageHeight', defaultValue: '50' },
-                { key: 'resourcesdeal_defineSSmallImageThreshold', element: 'defineSSmallImageThreshold', defaultValue: '2500' },
+                { key: 'resourcesdeal_defineSSmallImageWidth', element: 'defineSSmallImageWidth', defaultValue: '5' },
+                { key: 'resourcesdeal_defineSSmallImageHeight', element: 'defineSSmallImageHeight', defaultValue: '10' },
+                { key: 'resourcesdeal_defineSSmallImageThreshold', element: 'defineSSmallImageThreshold', defaultValue: '50' },
                 { key: 'resourcesdeal_defineSSmallImageByWidth', element: 'defineSSmallImageByWidth', defaultValue: '1', type: 'checkbox' },
                 { key: 'resourcesdeal_defineSSmallImageByHeight', element: 'defineSSmallImageByHeight', defaultValue: '1', type: 'checkbox' },
                 { key: 'resourcesdeal_defineSSmallImageByArea', element: 'defineSSmallImageByArea', defaultValue: '1', type: 'checkbox' },
