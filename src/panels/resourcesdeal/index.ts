@@ -970,6 +970,7 @@ module.exports = Editor.Panel.define({
             this.$.PreLookmoveSingleImagesBtn?.addEventListener('click', () => this.moveSingleImage(true));
             this.$.PreLookmoveSameDirImagesBtn?.addEventListener('click', () => this.moveSameImage(true));
             this.$.PreLookmoveOtherbigImagesBtn?.addEventListener('click', () => this.moveOtherbigImage(true));
+            this.$.PreLookmoveOthersmallImagesBtn?.addEventListener('click', () => this.moveOthersmallImage(true));
 
             // 实际移动
             this.$.moveBgImagesBtn?.addEventListener('click', () => this.moveBgImage());

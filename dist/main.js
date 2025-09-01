@@ -929,7 +929,6 @@ async function deleteEmptyFolders(args) {
     }
 }
 async function smallCopyMore(args) {
-    var _a, _b, _c, _d;
     console.log('smallCopyMore called with args:', args);
     const spriteFrameMaps_name = args.spriteFrameMaps_name;
     const path2info = args.path2info;
@@ -1088,9 +1087,19 @@ async function smallCopyMore(args) {
         try {
             const srcMetaContent = fs.readFileSync(srcMetaPath, 'utf8');
             const srcMeta = JSON.parse(srcMetaContent);
-            const srcUuid = (_b = (_a = srcMeta.subMetas) === null || _a === void 0 ? void 0 : _a['6c48a2b9-0fcc-4754-b5b0-20ef53cce5b2']) === null || _b === void 0 ? void 0 : _b.uuid;
+            // 动态查找 sprite-frame 的 UUID
+            let srcUuid = null;
+            if (srcMeta.subMetas) {
+                for (const [key, subMeta] of Object.entries(srcMeta.subMetas)) {
+                    if (subMeta.importer === 'sprite-frame' && subMeta.uuid) {
+                        srcUuid = subMeta.uuid;
+                        break;
+                    }
+                }
+            }
             if (!srcUuid) {
-                console.warn(`无法获取源图片 UUID: ${imgPath}`);
+                console.warn(`无法获取源图片 UUID: ${imgPath} - 未找到 sprite-frame`);
+                console.log(`源图片 meta 结构:`, JSON.stringify(srcMeta, null, 2));
                 continue;
             }
             // 获取目标图片的 UUID
@@ -1101,11 +1110,22 @@ async function smallCopyMore(args) {
             }
             const destMetaContent = fs.readFileSync(destMetaPath, 'utf8');
             const destMeta = JSON.parse(destMetaContent);
-            const destUuid = (_d = (_c = destMeta.subMetas) === null || _c === void 0 ? void 0 : _c['6c48a2b9-0fcc-4754-b5b0-20ef53cce5b2']) === null || _d === void 0 ? void 0 : _d.uuid;
+            // 动态查找目标图片 sprite-frame 的 UUID
+            let destUuid = null;
+            if (destMeta.subMetas) {
+                for (const [key, subMeta] of Object.entries(destMeta.subMetas)) {
+                    if (subMeta.importer === 'sprite-frame' && subMeta.uuid) {
+                        destUuid = subMeta.uuid;
+                        break;
+                    }
+                }
+            }
             if (!destUuid) {
-                console.warn(`无法获取目标图片 UUID: ${targetPath}`);
+                console.warn(`无法获取目标图片 UUID: ${targetPath} - 未找到 sprite-frame`);
+                console.log(`目标图片 meta 结构:`, JSON.stringify(destMeta, null, 2));
                 continue;
             }
+            console.log(`找到 UUID 映射: ${imgPath} (${srcUuid}) -> ${targetPath} (${destUuid})`);
             // 更新每个引用该图片的预制体文件
             for (const prefabPath of prefabList) {
                 const prefabAbsPath = path.join(absprefix, prefabPath);
@@ -1116,11 +1136,15 @@ async function smallCopyMore(args) {
                 try {
                     let prefabContent = fs.readFileSync(prefabAbsPath, 'utf8');
                     // 替换 UUID 引用
+                    const originalContent = prefabContent;
                     const updatedContent = prefabContent.replace(new RegExp(`"${srcUuid}"`, 'g'), `"${destUuid}"`);
-                    if (updatedContent !== prefabContent) {
+                    if (updatedContent !== originalContent) {
                         fs.writeFileSync(prefabAbsPath, updatedContent, 'utf8');
-                        console.log(`更新预制体引用: ${prefabPath}`);
+                        console.log(`更新预制体引用: ${prefabPath} - 替换 ${srcUuid} -> ${destUuid}`);
                         updatedPrefabCount++;
+                    }
+                    else {
+                        console.log(`预制体无需更新: ${prefabPath} - 未找到对应的 UUID 引用`);
                     }
                 }
                 catch (e) {

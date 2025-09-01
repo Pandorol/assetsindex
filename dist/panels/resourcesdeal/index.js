@@ -879,20 +879,21 @@ module.exports = Editor.Panel.define({
             });
         },
         bindMoveEvents() {
-            var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l;
+            var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m;
             // 预览移动
             (_a = this.$.PreLookmoveBgImagesBtn) === null || _a === void 0 ? void 0 : _a.addEventListener('click', () => this.moveBgImage(true));
             (_b = this.$.PreLookmoveCommonImagesBtn) === null || _b === void 0 ? void 0 : _b.addEventListener('click', () => this.moveCommonImage(true));
             (_c = this.$.PreLookmoveSingleImagesBtn) === null || _c === void 0 ? void 0 : _c.addEventListener('click', () => this.moveSingleImage(true));
             (_d = this.$.PreLookmoveSameDirImagesBtn) === null || _d === void 0 ? void 0 : _d.addEventListener('click', () => this.moveSameImage(true));
             (_e = this.$.PreLookmoveOtherbigImagesBtn) === null || _e === void 0 ? void 0 : _e.addEventListener('click', () => this.moveOtherbigImage(true));
+            (_f = this.$.PreLookmoveOthersmallImagesBtn) === null || _f === void 0 ? void 0 : _f.addEventListener('click', () => this.moveOthersmallImage(true));
             // 实际移动
-            (_f = this.$.moveBgImagesBtn) === null || _f === void 0 ? void 0 : _f.addEventListener('click', () => this.moveBgImage());
-            (_g = this.$.moveCommonImagesBtn) === null || _g === void 0 ? void 0 : _g.addEventListener('click', () => this.moveCommonImage());
-            (_h = this.$.moveSingleImagesBtn) === null || _h === void 0 ? void 0 : _h.addEventListener('click', () => this.moveSingleImage());
-            (_j = this.$.moveSameDirImagesBtn) === null || _j === void 0 ? void 0 : _j.addEventListener('click', () => this.moveSameImage());
-            (_k = this.$.moveOtherbigImagesBtn) === null || _k === void 0 ? void 0 : _k.addEventListener('click', () => this.moveOtherbigImage());
-            (_l = this.$.moveOthersmallImagesBtn) === null || _l === void 0 ? void 0 : _l.addEventListener('click', () => this.moveOthersmallImage());
+            (_g = this.$.moveBgImagesBtn) === null || _g === void 0 ? void 0 : _g.addEventListener('click', () => this.moveBgImage());
+            (_h = this.$.moveCommonImagesBtn) === null || _h === void 0 ? void 0 : _h.addEventListener('click', () => this.moveCommonImage());
+            (_j = this.$.moveSingleImagesBtn) === null || _j === void 0 ? void 0 : _j.addEventListener('click', () => this.moveSingleImage());
+            (_k = this.$.moveSameDirImagesBtn) === null || _k === void 0 ? void 0 : _k.addEventListener('click', () => this.moveSameImage());
+            (_l = this.$.moveOtherbigImagesBtn) === null || _l === void 0 ? void 0 : _l.addEventListener('click', () => this.moveOtherbigImage());
+            (_m = this.$.moveOthersmallImagesBtn) === null || _m === void 0 ? void 0 : _m.addEventListener('click', () => this.moveOthersmallImage());
         },
         bindPreprocessEvents() {
             var _a;
