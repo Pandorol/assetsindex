@@ -118,6 +118,7 @@ export const methods: { [key: string]: (...any: any) => any } = {
             "buildMapsData": buildMapsData,
             "moveBgImages": moveBgImages,
             "preChangeImagesAndPrefabs": preChangeImagesAndPrefabs,
+            "smallCopyMore": smallCopyMore,
             "deleteEmptyFolders": deleteEmptyFolders
         };
 
@@ -1029,7 +1030,271 @@ async function deleteEmptyFolders(args: any) {
     }
 }
 
+async function smallCopyMore(args: any) {
+    console.log('smallCopyMore called with args:', args);
+    
+    const spriteFrameMaps_name = args.spriteFrameMaps_name;
+    const path2info = args.path2info;
+    const othersmallPrefabRegex = args.othersmallPrefabRegex;
+    const othersmallTargetPattern = args.othersmallTargetPattern;
+    const preLook = args.preLook || false;
+    
+    if (!spriteFrameMaps_name || !path2info) {
+        throw new Error('spriteFrameMaps_name 和 path2info 参数是必需的');
+    }
+    
+    const absprefix = path.join(Editor.Project.path, 'assets');
+    const regex = new RegExp(othersmallPrefabRegex || ".*");
+    
+    // 记录复制操作
+    const operations = [];
+    const pathTargetMap = new Map(); // 记录每个源路径对应的目标路径，用于去重
+    let copiedCount = 0;
+    let errorCount = 0;
+    const errors = [];
+    
+    console.log('开始分析需要复制的其他小图...');
+    
+    // 第一阶段：收集所有复制操作
+    for (const [imgPath, info] of Object.entries(path2info)) {
+        const prefabList = spriteFrameMaps_name[imgPath];
+        if (!prefabList || prefabList.length === 0) {
+            console.warn(`未被引用的图片: ${imgPath}`);
+            continue;
+        }
 
+        // 取第一个 prefab 进行匹配
+        const prefabPath = prefabList[0];
+        const match = prefabPath.match(regex);
+        if (!match) {
+            console.warn(`prefab 路径不匹配正则: ${prefabPath}`);
+            continue;
+        }
+
+        // 构建新的目标目录
+        let targetDir = othersmallTargetPattern;
+        
+        // 如果有捕获组，进行替换
+        if (match.length > 1) {
+            match.forEach((g, i) => {
+                if (i > 0) { // 跳过完整匹配
+                    targetDir = targetDir.replace(`$${i}`, g || '');
+                }
+            });
+        }
+
+        // 规范化路径分隔符并确保以 / 结尾
+        targetDir = targetDir.replace(/\\/g, '/');
+        if (!targetDir.endsWith('/')) {
+            targetDir += '/';
+        }
+
+        // 拼接源和目标路径
+        const fileName = path.basename(imgPath);
+        const targetPath = `${targetDir}${fileName}`;
+        
+        // 检查是否已经在目标路径中（避免不必要的复制）
+        if (imgPath === targetPath) {
+            console.log(`图片已在目标路径中，跳过: ${imgPath}`);
+            continue;
+        }
+        
+        // 去重：如果同一个源路径已经有目标路径，跳过
+        if (pathTargetMap.has(imgPath)) {
+            console.log(`图片已有目标路径，跳过重复: ${imgPath} -> ${pathTargetMap.get(imgPath)}`);
+            continue;
+        }
+        
+        pathTargetMap.set(imgPath, targetPath);
+        
+        const src = `db://assets/${imgPath.replace(/\\/g, '/')}`;
+        const dest = `db://assets/${targetPath}`;
+        
+        operations.push({ 
+            src, 
+            dest, 
+            imgPath, 
+            targetPath,
+            targetDir,
+            prefabList: prefabList.slice(), // 复制引用列表
+            info
+        });
+    }
+    
+    if (operations.length === 0) {
+        console.log('没有需要复制的文件');
+        return { copiedCount: 0, errorCount: 0, errors: [], operations: [] };
+    }
+    
+    console.log(`准备复制 ${operations.length} 个文件`);
+    
+    // 如果是预览模式，返回操作详情
+    if (preLook) {
+        console.log('预览模式，返回分析结果，不进行实际复制');
+        
+        return {
+            tips1: '需要复制的其他小图',
+            totalProcessed: operations.length,
+            operations: operations.map(op => ({
+                src: op.imgPath,
+                dest: op.targetPath,
+                prefabs: op.prefabList,
+                size: op.info?.size || 0
+            })),
+            tips2: '操作详情',
+            summary: {
+                totalFiles: operations.length,
+                totalSize: operations.reduce((sum, op) => sum + (op.info?.size || 0), 0)
+            }
+        };
+    }
+    
+    // 第二阶段：创建目录
+    console.log('开始创建目标目录...');
+    const uniqueDirs = [...new Set(operations.map(op => op.targetDir))];
+    for (const dir of uniqueDirs) {
+        const absDir = path.join(absprefix, dir);
+        if (!fs.existsSync(absDir)) {
+            try {
+                fs.mkdirSync(absDir, { recursive: true });
+                console.log(`创建目录: ${dir}`);
+            } catch (e) {
+                console.error(`创建目录失败: ${dir}`, e);
+                errors.push(`创建目录失败: ${dir} - ${e.message}`);
+            }
+        }
+    }
+    
+    // 第三阶段：复制文件
+    console.log('开始复制文件...');
+    for (let i = 0; i < operations.length; i++) {
+        const { src, dest, imgPath, targetPath } = operations[i];
+        const fileName = path.basename(imgPath);
+        
+        // 输出进度
+        if (i % 5 === 0 || i === 0) {
+            const currentTime = new Date().toLocaleTimeString();
+            console.log(`[${currentTime}] 进度: [${i + 1}/${operations.length}] 正在复制: ${fileName}`);
+        }
+        
+        try {
+            // 检查目标文件是否已存在
+            const targetExists = await Editor.Message.request('asset-db', 'query-asset-info', dest);
+            if (targetExists) {
+                console.log(`目标文件已存在，跳过复制: ${targetPath}`);
+                continue;
+            }
+            
+            // 执行复制操作
+            const result = await Editor.Message.request('asset-db', 'copy-asset', src, dest);
+            console.log(`复制成功: ${fileName}`);
+            copiedCount++;
+            
+        } catch (e) {
+            console.error(`[${i + 1}/${operations.length}] 复制异常: ${fileName}`, e.message);
+            errors.push(`复制失败: ${fileName} - ${e.message}`);
+            errorCount++;
+        }
+    }
+    
+    // 第四阶段：更新引用
+    console.log('开始更新预制体引用...');
+    let updatedPrefabCount = 0;
+    
+    for (const operation of operations) {
+        const { imgPath, targetPath, prefabList } = operation;
+        
+        // 获取源图片的 UUID（需要从 meta 文件读取）
+        const srcMetaPath = path.join(absprefix, imgPath + '.meta');
+        if (!fs.existsSync(srcMetaPath)) {
+            console.warn(`源图片 meta 文件不存在: ${srcMetaPath}`);
+            continue;
+        }
+        
+        try {
+            const srcMetaContent = fs.readFileSync(srcMetaPath, 'utf8');
+            const srcMeta = JSON.parse(srcMetaContent);
+            const srcUuid = srcMeta.subMetas?.['6c48a2b9-0fcc-4754-b5b0-20ef53cce5b2']?.uuid;
+            
+            if (!srcUuid) {
+                console.warn(`无法获取源图片 UUID: ${imgPath}`);
+                continue;
+            }
+            
+            // 获取目标图片的 UUID
+            const destMetaPath = path.join(absprefix, targetPath + '.meta');
+            if (!fs.existsSync(destMetaPath)) {
+                console.warn(`目标图片 meta 文件不存在: ${destMetaPath}`);
+                continue;
+            }
+            
+            const destMetaContent = fs.readFileSync(destMetaPath, 'utf8');
+            const destMeta = JSON.parse(destMetaContent);
+            const destUuid = destMeta.subMetas?.['6c48a2b9-0fcc-4754-b5b0-20ef53cce5b2']?.uuid;
+            
+            if (!destUuid) {
+                console.warn(`无法获取目标图片 UUID: ${targetPath}`);
+                continue;
+            }
+            
+            // 更新每个引用该图片的预制体文件
+            for (const prefabPath of prefabList) {
+                const prefabAbsPath = path.join(absprefix, prefabPath);
+                if (!fs.existsSync(prefabAbsPath)) {
+                    console.warn(`预制体文件不存在: ${prefabPath}`);
+                    continue;
+                }
+                
+                try {
+                    let prefabContent = fs.readFileSync(prefabAbsPath, 'utf8');
+                    
+                    // 替换 UUID 引用
+                    const updatedContent = prefabContent.replace(
+                        new RegExp(`"${srcUuid}"`, 'g'),
+                        `"${destUuid}"`
+                    );
+                    
+                    if (updatedContent !== prefabContent) {
+                        fs.writeFileSync(prefabAbsPath, updatedContent, 'utf8');
+                        console.log(`更新预制体引用: ${prefabPath}`);
+                        updatedPrefabCount++;
+                    }
+                } catch (e) {
+                    console.error(`更新预制体引用失败: ${prefabPath}`, e);
+                    errors.push(`更新预制体引用失败: ${prefabPath} - ${e.message}`);
+                }
+            }
+            
+        } catch (e) {
+            console.error(`处理图片引用失败: ${imgPath}`, e);
+            errors.push(`处理图片引用失败: ${imgPath} - ${e.message}`);
+        }
+    }
+    
+    // 第五阶段：刷新资源数据库
+    console.log('刷新资源数据库...');
+    try {
+        await Editor.Message.send('asset-db', 'refresh-asset', 'db://assets');
+        console.log('资源数据库刷新完成');
+    } catch (e) {
+        console.warn('刷新资源数据库失败:', e);
+    }
+    
+    // 输出统计信息
+    console.log(`其他小图复制操作完成：复制 ${copiedCount} 个文件，更新 ${updatedPrefabCount} 个预制体，失败 ${errorCount} 个`);
+    if (errors.length > 0) {
+        console.error('错误汇总:', errors);
+    }
+
+    return {
+        copiedCount,
+        errorCount,
+        updatedPrefabCount,
+        errors,
+        totalProcessed: operations.length,
+        message: `成功复制 ${copiedCount} 个其他小图文件，更新 ${updatedPrefabCount} 个预制体引用`
+    };
+}
 
 
 /**

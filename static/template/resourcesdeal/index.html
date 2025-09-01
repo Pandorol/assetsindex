@@ -375,6 +375,18 @@
                 <button id="PreLookmoveOtherbigImagesBtn">预查看需要移动的图</button>
             </div>
             <h2>4.2、小图复制多份到各自目录</h2>
+            <div>
+                <label>Prefab 正则:</label>
+                <input type="text" id="othersmallPrefabRegex" value="remotemain/preb[/\\](.*)[/\\](.*)\.prefab" style="width: 400px;"/>
+            </div>
+            <div>
+                <label>目标路径模板:</label>
+                <input type="text" id="othersmallTargetPattern" value="remotemain/staticRes/$1/atlas/" style="width: 400px;"/>
+            </div>
+            <div>
+                <button id="moveOthersmallImagesBtn">移动</button>
+                <button id="PreLookmoveOthersmallImagesBtn">预查看需要移动的图</button>
+            </div>
         </div>
         
         <div id="panel4" class="tab-content">

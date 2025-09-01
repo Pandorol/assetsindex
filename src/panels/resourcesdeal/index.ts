@@ -253,6 +253,12 @@ module.exports = Editor.Panel.define({
         moveOtherbigImagesBtn: '#moveOtherbigImagesBtn',
         PreLookmoveOtherbigImagesBtn: '#PreLookmoveOtherbigImagesBtn',
 
+        //移动其他小图
+        othersmallPrefabRegex: '#othersmallPrefabRegex',
+        othersmallTargetPattern: '#othersmallTargetPattern',
+        moveOthersmallImagesBtn: '#moveOthersmallImagesBtn',
+        PreLookmoveOthersmallImagesBtn: '#PreLookmoveOthersmallImagesBtn',
+
         // Panel4 动态移动配置
         addMoveItemBtn: '#addMoveItemBtn',
         importMoveItemsBtn: '#importMoveItemsBtn',
@@ -741,6 +747,9 @@ module.exports = Editor.Panel.define({
                 { key: 'resourcesdeal_defineSSmallImageByArea', element: 'defineSSmallImageByArea', defaultValue: '1', type: 'checkbox' },
                 // 移动其他大图相关配置
                 { key: 'resourcesdeal_otherbigTargetPattern', element: 'otherbigTargetPattern', defaultValue: 'remotemain/staticRes/common/bg/' },
+                // 移动其他小图相关配置
+                { key: 'resourcesdeal_othersmallPrefabRegex', element: 'othersmallPrefabRegex', defaultValue: 'remotemain/preb[/\\\\](.*)[/\\\\](.*)\\.prefab' },
+                { key: 'resourcesdeal_othersmallTargetPattern', element: 'othersmallTargetPattern', defaultValue: 'remotemain/staticRes/$1/atlas/' },
             ];
 
             for (const config of configs) {
@@ -968,6 +977,7 @@ module.exports = Editor.Panel.define({
             this.$.moveSingleImagesBtn?.addEventListener('click', () => this.moveSingleImage());
             this.$.moveSameDirImagesBtn?.addEventListener('click', () => this.moveSameImage());
             this.$.moveOtherbigImagesBtn?.addEventListener('click', () => this.moveOtherbigImage());
+            this.$.moveOthersmallImagesBtn?.addEventListener('click', () => this.moveOthersmallImage());
         },
 
         bindPreprocessEvents() {
@@ -1911,6 +1921,48 @@ module.exports = Editor.Panel.define({
                 title: '其他大图',
                 checkMessage: '请先计算其他大图设置',
                 preLook
+            });
+        },
+
+        moveOthersmallImage(preLook = false) {
+            console.log('点击了移动其他小图按钮');
+            
+            // 检查数据缓存
+            if(!_othersmalldataCache) {
+                console.warn('请先计算其他小图设置');
+                Editor.Dialog.info('请先计算其他小图设置', {title: '其他小图提示', buttons: ['我知道了']});
+                return;
+            }
+
+            const othersmallPrefabRegex = (this.$.othersmallPrefabRegex as HTMLInputElement).value;
+            const othersmallTargetPattern = (this.$.othersmallTargetPattern as HTMLInputElement).value;
+
+            // 保存配置
+            Editor.Profile.setConfig('assetsindex','resourcesdeal_othersmallPrefabRegex', othersmallPrefabRegex);
+            Editor.Profile.setConfig('assetsindex','resourcesdeal_othersmallTargetPattern', othersmallTargetPattern);
+
+            // 准备数据给 smallCopyMore 使用
+            const requestParams = {
+                method: 'smallCopyMore',
+                spriteFrameMaps_name: _spriteFrameMaps_nameCache,
+                path2info: _othersmalldataCache,
+                othersmallPrefabRegex: othersmallPrefabRegex,
+                othersmallTargetPattern: othersmallTargetPattern,
+                preLook: preLook || false,
+            };
+
+            // 发送请求
+            Editor.Message.request('assetsindex', 'dynamic-message', requestParams)
+            .then((data)=>{
+                if(preLook) {
+                    this.showAlert2(data);
+                    return;
+                }
+                console.log('渲染进程：移动其他小图完成');
+                Editor.Dialog.info(`其他小图移动完成，已复制 ${data.copiedCount} 张图片`,{title:'移动其他小图', buttons:['我知道了']});
+            })
+            .catch(err => {
+                console.error('渲染进程：移动失败', err);
             });
         },
 
