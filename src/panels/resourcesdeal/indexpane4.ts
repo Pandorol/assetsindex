@@ -15,6 +15,9 @@ interface MoveItem {
 
 interface Panel4Elements {
     addMoveItemBtn: HTMLButtonElement;
+    importMoveItemsBtn: HTMLButtonElement;
+    exportMoveItemsBtn: HTMLButtonElement;
+    importHelpBtn?: HTMLButtonElement;  // 可选的帮助按钮
     moveItemsContainer: HTMLDivElement;
     previewAllSelectedBtn: HTMLButtonElement;
     moveAllSelectedBtn: HTMLButtonElement;
@@ -51,6 +54,9 @@ export class Panel4Manager {
     static init(elements: any, dataCache: any, panelInstance?: any) {
         _panel4Elements = {
             addMoveItemBtn: elements.addMoveItemBtn,
+            importMoveItemsBtn: elements.importMoveItemsBtn,
+            exportMoveItemsBtn: elements.exportMoveItemsBtn,
+            importHelpBtn: elements.importHelpBtn,
             moveItemsContainer: elements.moveItemsContainer,
             previewAllSelectedBtn: elements.previewAllSelectedBtn,
             moveAllSelectedBtn: elements.moveAllSelectedBtn
@@ -63,6 +69,312 @@ export class Panel4Manager {
         
         // 不在这里绑定事件，由外部 index.ts 处理
         console.log('Panel4 动态移动功能初始化完成');
+    }
+
+    /**
+     * 显示导入配置格式说明
+     */
+    static showImportFormatHelp() {
+        const helpMessage = `支持的JSON配置格式：
+
+格式1: 数组格式 (推荐)
+[
+  ["正则表达式", "目标目录"],
+  ["gg_pzk_.*", "gameRes/hero/old_del/texture/heroIcon/bgBig"],
+  ["gg_pzk02_.*", "gameRes/hero/old_del/texture/heroIcon/bgSmall"]
+]
+
+格式2: 对象格式 (更详细)
+[
+  {
+    "regex": "gg_pzk_.*",
+    "targetDir": "gameRes/hero/old_del/texture/heroIcon/bgBig",
+    "name": "英雄大图标"
+  },
+  {
+    "regex": "gg_pzk02_.*", 
+    "targetDir": "gameRes/hero/old_del/texture/heroIcon/bgSmall",
+    "name": "英雄小图标"
+  }
+]
+
+格式3: 混合格式
+[
+  ["简单格式", "目标目录"],
+  {
+    "regex": "复杂格式.*",
+    "target": "另一个目录",
+    "name": "自定义名称"
+  }
+]
+
+注意事项：
+- 正则表达式必须有效
+- 目标目录会自动添加末尾斜杠
+- 对象格式支持多种字段名：
+  * 正则: regex, pattern
+  * 目录: targetDir, target, dir, directory  
+  * 名称: name, label`;
+
+        (window as any).Editor?.Dialog?.info(helpMessage, {
+            title: '配置文件格式说明',
+            buttons: ['确定', '创建示例文件']
+        }).then((result: any) => {
+            if (result && result.response === 1) {
+                // 用户选择创建示例文件
+                this.createExampleConfigFile();
+            }
+        });
+    }
+
+    /**
+     * 创建示例配置文件
+     */
+    static async createExampleConfigFile() {
+        try {
+            const exampleData = [
+                ["gg_pzk_.*", "gameRes/hero/old_del/texture/heroIcon/bgBig", "英雄大图标"],
+                ["gg_pzk02_.*", "gameRes/hero/old_del/texture/heroIcon/bgSmall", "英雄小图标"],
+                {
+                    "regex": "ui_common_.*",
+                    "targetDir": "staticRes/ui/common/",
+                    "name": "通用UI图片"
+                },
+                {
+                    "regex": ".*\\.jpg$",
+                    "target": "staticRes/images/jpg/",
+                    "name": "JPG格式图片"
+                }
+            ];
+
+            const result = await (window as any).Editor?.Dialog?.save({
+                title: '保存示例配置文件',
+                filters: [
+                    { name: 'JSON文件', extensions: ['json'] }
+                ],
+                defaultPath: 'move-items-example.json'
+            });
+
+            if (!result || result.canceled || !result.filePath) {
+                return;
+            }
+
+            const fs = require('fs');
+            const jsonContent = JSON.stringify(exampleData, null, 2);
+            fs.writeFileSync(result.filePath, jsonContent, 'utf8');
+
+            (window as any).Editor?.Dialog?.info(
+                `示例配置文件已创建：\n${result.filePath}\n\n你可以编辑此文件后重新导入。`,
+                { title: '示例文件创建成功' }
+            );
+
+        } catch (error) {
+            console.error('创建示例文件失败:', error);
+            (window as any).Editor?.Dialog?.error('创建示例文件失败: ' + (error as Error).message);
+        }
+    }
+
+    /**
+     * 导入移动项配置
+     */
+    static async importMoveItems() {
+        try {
+            console.log('开始导入移动项配置');
+            
+            // 获取上次保存的导入路径
+            const lastImportPath = await (window as any).Editor?.Profile?.getConfig('assetsindex', 'panel4_lastImportPath') || '';
+            
+            // 打开文件选择对话框
+            const result = await (window as any).Editor?.Dialog?.select({
+                title: '选择移动项配置文件',
+                type: 'file',
+                multi: false,
+                filters: [
+                    { name: 'JSON文件', extensions: ['json'] },
+                    { name: '所有文件', extensions: ['*'] }
+                ],
+                defaultPath: lastImportPath
+            });
+            
+            if (!result || result.canceled || !result.filePaths || result.filePaths.length === 0) {
+                console.log('用户取消了文件选择');
+                return;
+            }
+            
+            const selectedPath = result.filePaths[0];
+            console.log('选择的文件路径:', selectedPath);
+            
+            // 保存路径供下次使用
+            await (window as any).Editor?.Profile?.setConfig('assetsindex', 'panel4_lastImportPath', selectedPath);
+            
+            // 读取文件内容
+            const fs = require('fs');
+            if (!fs.existsSync(selectedPath)) {
+                (window as any).Editor?.Dialog?.error('文件不存在: ' + selectedPath);
+                return;
+            }
+            
+            const fileContent = fs.readFileSync(selectedPath, 'utf8');
+            let importData: string[][];
+            
+            try {
+                importData = JSON.parse(fileContent);
+            } catch (parseError) {
+                (window as any).Editor?.Dialog?.error('JSON文件格式错误: ' + (parseError as Error).message);
+                return;
+            }
+            
+            // 验证数据格式
+            if (!Array.isArray(importData)) {
+                (window as any).Editor?.Dialog?.error('配置文件格式错误: 根元素必须是数组');
+                return;
+            }
+            
+            let validCount = 0;
+            let invalidCount = 0;
+            
+            for (let i = 0; i < importData.length; i++) {
+                const item = importData[i];
+                let regex = '';
+                let targetDir = '';
+                let name = '';
+                
+                // 支持多种格式：
+                // 1. ["regex", "targetDir"] 
+                // 2. {"regex": "xxx", "targetDir": "xxx", "name": "xxx"}
+                // 3. {"regex": "xxx", "target": "xxx"} 等变体
+                
+                if (Array.isArray(item) && item.length >= 2) {
+                    // 数组格式
+                    regex = String(item[0] || '');
+                    targetDir = String(item[1] || '');
+                    name = item[2] ? String(item[2]) : `导入项 ${i + 1}`;
+                } else if (typeof item === 'object' && item !== null && !Array.isArray(item)) {
+                    // 对象格式
+                    const obj = item as any;
+                    regex = String(obj.regex || obj.pattern || '');
+                    targetDir = String(obj.targetDir || obj.target || obj.dir || obj.directory || '');
+                    name = String(obj.name || obj.label || `导入项 ${i + 1}`);
+                } else {
+                    console.warn(`跳过无效配置项 ${i}:`, item);
+                    invalidCount++;
+                    continue;
+                }
+                
+                // 验证必需字段
+                if (!regex.trim() || !targetDir.trim()) {
+                    console.warn(`跳过无效配置项 ${i}: 正则表达式或目标目录为空`);
+                    invalidCount++;
+                    continue;
+                }
+                
+                // 验证正则表达式
+                try {
+                    new RegExp(regex);
+                } catch (regexError) {
+                    console.warn(`跳过无效配置项 ${i}: 正则表达式格式错误 "${regex}"`);
+                    invalidCount++;
+                    continue;
+                }
+                
+                // 创建移动项
+                _moveItemCounter++;
+                const itemId = `moveItem_${_moveItemCounter}`;
+                
+                const moveItem: MoveItem = {
+                    id: itemId,
+                    name: name || `导入项 ${_moveItemCounter}`,
+                    regex: regex,
+                    targetDir: targetDir.endsWith('/') ? targetDir : targetDir + '/',
+                    matchedImages: [],
+                    selectedImages: []
+                };
+                
+                _dynamicMoveItems.push(moveItem);
+                this.renderMoveItem(moveItem);
+                validCount++;
+                
+                console.log(`成功导入配置项 ${i}: ${regex} -> ${moveItem.targetDir}`);
+            }
+            
+            if (validCount > 0) {
+                // 保存配置
+                this.saveConfigs();
+                
+                (window as any).Editor?.Dialog?.info(
+                    `导入完成!\n成功导入: ${validCount} 个移动项\n${invalidCount > 0 ? `跳过无效项: ${invalidCount} 个` : ''}`,
+                    { title: '导入结果' }
+                );
+                
+                console.log(`成功导入 ${validCount} 个移动项，跳过 ${invalidCount} 个无效项`);
+            } else {
+                (window as any).Editor?.Dialog?.warn('没有找到有效的移动项配置');
+            }
+            
+        } catch (error) {
+            console.error('导入移动项失败:', error);
+            (window as any).Editor?.Dialog?.error('导入失败: ' + (error as Error).message);
+        }
+    }
+
+    /**
+     * 导出移动项配置
+     */
+    static async exportMoveItems() {
+        try {
+            console.log('开始导出移动项配置');
+            
+            if (_dynamicMoveItems.length === 0) {
+                (window as any).Editor?.Dialog?.info('没有移动项可导出');
+                return;
+            }
+            
+            // 构建导出数据
+            const exportData: string[][] = _dynamicMoveItems.map(item => [
+                item.regex,
+                item.targetDir.endsWith('/') ? item.targetDir.slice(0, -1) : item.targetDir
+            ]);
+            
+            // 获取上次保存的导出路径
+            const lastExportPath = await (window as any).Editor?.Profile?.getConfig('assetsindex', 'panel4_lastExportPath') || '';
+            
+            // 打开文件保存对话框
+            const result = await (window as any).Editor?.Dialog?.save({
+                title: '保存移动项配置文件',
+                filters: [
+                    { name: 'JSON文件', extensions: ['json'] },
+                    { name: '所有文件', extensions: ['*'] }
+                ],
+                defaultPath: lastExportPath || 'move-items-config.json'
+            });
+            
+            if (!result || result.canceled || !result.filePath) {
+                console.log('用户取消了文件保存');
+                return;
+            }
+            
+            const savePath = result.filePath;
+            console.log('保存文件路径:', savePath);
+            
+            // 保存路径供下次使用
+            await (window as any).Editor?.Profile?.setConfig('assetsindex', 'panel4_lastExportPath', savePath);
+            
+            // 写入文件
+            const fs = require('fs');
+            const jsonContent = JSON.stringify(exportData, null, 2);
+            fs.writeFileSync(savePath, jsonContent, 'utf8');
+            
+            (window as any).Editor?.Dialog?.info(
+                `导出完成!\n文件路径: ${savePath}\n导出项数: ${_dynamicMoveItems.length}`,
+                { title: '导出成功' }
+            );
+            
+            console.log(`成功导出 ${_dynamicMoveItems.length} 个移动项到 ${savePath}`);
+            
+        } catch (error) {
+            console.error('导出移动项失败:', error);
+            (window as any).Editor?.Dialog?.error('导出失败: ' + (error as Error).message);
+        }
     }
 
     /**

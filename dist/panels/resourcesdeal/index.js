@@ -233,6 +233,9 @@ module.exports = Editor.Panel.define({
         PreLookmoveOtherbigImagesBtn: '#PreLookmoveOtherbigImagesBtn',
         // Panel4 动态移动配置
         addMoveItemBtn: '#addMoveItemBtn',
+        importMoveItemsBtn: '#importMoveItemsBtn',
+        exportMoveItemsBtn: '#exportMoveItemsBtn',
+        importHelpBtn: '#importHelpBtn',
         moveItemsContainer: '#moveItemsContainer',
         previewAllSelectedBtn: '#previewAllSelectedBtn',
         moveAllSelectedBtn: '#moveAllSelectedBtn',
@@ -893,6 +896,8 @@ module.exports = Editor.Panel.define({
             if (this.$.moveItemsContainer) {
                 indexpane4_1.Panel4Manager.init({
                     addMoveItemBtn: this.$.addMoveItemBtn,
+                    importMoveItemsBtn: this.$.importMoveItemsBtn,
+                    exportMoveItemsBtn: this.$.exportMoveItemsBtn,
                     moveItemsContainer: this.$.moveItemsContainer,
                     previewAllSelectedBtn: this.$.previewAllSelectedBtn,
                     moveAllSelectedBtn: this.$.moveAllSelectedBtn
@@ -901,6 +906,31 @@ module.exports = Editor.Panel.define({
                 if (this.$.addMoveItemBtn) {
                     this.$.addMoveItemBtn.addEventListener('click', () => {
                         indexpane4_1.Panel4Manager.addMoveItem();
+                    });
+                }
+                // 绑定导入移动项按钮
+                if (this.$.importMoveItemsBtn) {
+                    this.$.importMoveItemsBtn.addEventListener('click', () => {
+                        indexpane4_1.Panel4Manager.importMoveItems();
+                    });
+                    // 右键显示格式说明
+                    this.$.importMoveItemsBtn.addEventListener('contextmenu', (e) => {
+                        e.preventDefault();
+                        indexpane4_1.Panel4Manager.showImportFormatHelp();
+                    });
+                    // 添加标题提示
+                    this.$.importMoveItemsBtn.title = '左键导入配置文件，右键查看格式说明';
+                }
+                // 绑定导出移动项按钮
+                if (this.$.exportMoveItemsBtn) {
+                    this.$.exportMoveItemsBtn.addEventListener('click', () => {
+                        indexpane4_1.Panel4Manager.exportMoveItems();
+                    });
+                }
+                // 绑定格式说明按钮
+                if (this.$.importHelpBtn) {
+                    this.$.importHelpBtn.addEventListener('click', () => {
+                        indexpane4_1.Panel4Manager.showImportFormatHelp();
                     });
                 }
                 // 绑定预览所有选中按钮
