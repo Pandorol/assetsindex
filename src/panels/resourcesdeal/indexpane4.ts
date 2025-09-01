@@ -579,6 +579,22 @@ export class Panel4Manager {
     }
 
     /**
+     * 清除编辑器中的资源选择
+     */
+    static async clearAssetSelectionInEditor() {
+        try {
+            console.log('清除编辑器中的资源选择');
+            
+            // 使用 Editor.Selection.clear 清除所有选择
+            (window as any).Editor?.Selection?.clear('asset');
+            console.log('成功清除编辑器中的资源选择');
+            
+        } catch (error) {
+            console.error('清除编辑器资源选择失败:', error);
+        }
+    }
+
+    /**
      * 在编辑器中选中资源
      */
     static async openAssetInEditor(imagePath: string) {
@@ -849,6 +865,7 @@ export class Panel4Manager {
                         moveItem.selectedImages.push(imagePath);
                     }
                 } else {
+                    console.log(`取消勾选文件: ${imagePath}`);
                     item.style.borderLeftColor = '#007acc';
                     
                     // 从选中列表移除
@@ -856,6 +873,9 @@ export class Panel4Manager {
                     if (index > -1) {
                         moveItem.selectedImages.splice(index, 1);
                     }
+                    
+                    // 取消选中时也在编辑器中清除选择
+                    this.clearAssetSelectionInEditor();
                 }
                 
                 // 更新选中计数显示
