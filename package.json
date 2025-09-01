@@ -110,7 +110,6 @@
         "resource-management",
         "image-optimization"
     ],
-    "license": "MIT",
     "editor": ">=3.7.4",
     "scripts": {
         "build": "tsc -b",
