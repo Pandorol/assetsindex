@@ -658,7 +658,7 @@ module.exports = Editor.Panel.define({
                 { key: 'resourcesdeal_preimgWidthinput', element: 'preimgWidthinput', defaultValue: '100' },
                 { key: 'resourcesdeal_preimgHeightinput', element: 'preimgHeightinput', defaultValue: '100' },
                 { key: 'resourcesdeal_preImageThreshold', element: 'preImageThreshold', defaultValue: '10000' },
-                { key: 'resourcesdeal_ignorePattern', element: 'ignorePattern', defaultValue: 'i18' },
+                { key: 'resourcesdeal_ignorePattern', element: 'ignorePattern', defaultValue: 'i18,spine' },
                 { key: 'resourcesdeal_caseConflictKeepOld', element: 'caseConflictKeepOld', defaultValue: '1', type: 'checkbox' },
                 { key: 'resourcesdeal_caseConflictUseNew', element: 'caseConflictUseNew', defaultValue: '0', type: 'checkbox' },
                 // 大图定义相关配置
