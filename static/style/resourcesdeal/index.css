@@ -184,6 +184,10 @@
     color: #cccccc;
     font-size: 14px;
     font-weight: bold;
+    height: 36px; /* 固定高度 */
+    display: flex;
+    align-items: center;
+    box-sizing: border-box;
 }
 
 .match-count-label.clickable {
@@ -200,6 +204,24 @@
 .match-count-label span {
     color: #007acc;
     font-weight: bold;
+}
+
+.btn-select {
+    background: #28a745;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    height: 36px; /* 与 match-count-label 相同高度 */
+    display: flex;
+    align-items: center;
+    box-sizing: border-box;
+}
+
+.btn-select:hover {
+    background: #1e7e34;
 }
 
 .btn-preview {
@@ -220,8 +242,13 @@
     color: white;
     border: none;
     padding: 8px 16px;
-    border-radius: 3px;
+    border-radius: 4px;
     cursor: pointer;
+    font-size: 14px;
+    height: 36px; /* 与其他按钮相同高度 */
+    display: flex;
+    align-items: center;
+    box-sizing: border-box;
 }
 
 .btn-move:hover {
