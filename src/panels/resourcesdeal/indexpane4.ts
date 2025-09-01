@@ -562,7 +562,7 @@ export class Panel4Manager {
                            placeholder="例如: .*\\.png$" />
                 </div>
                 <div class="config-group">
-                    <label>目标目录:</label>
+                    <label>目标目录(assets下):</label>
                     <input type="text" id="${cleanId}_targetDir" value="${moveItem.targetDir}" 
                            placeholder="例如: staticRes/ui/common/" />
                 </div>
