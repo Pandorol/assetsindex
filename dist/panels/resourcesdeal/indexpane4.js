@@ -763,8 +763,17 @@ class Panel4Manager {
                     if (index > -1) {
                         moveItem.selectedImages.splice(index, 1);
                     }
-                    // 取消选中时也在编辑器中清除选择
-                    this.clearAssetSelectionInEditor();
+                    // 取消选中时，如果当前选中列表为空，则清除编辑器选择
+                    // 如果还有其他文件被选中，则选中其他任意一个被选中的文件
+                    if (moveItem.selectedImages.length === 0) {
+                        this.clearAssetSelectionInEditor();
+                    }
+                    else {
+                        // 选中其他任意一个还在选中列表中的文件（这里选择第一个）
+                        moveItem.selectedImages.forEach(img => {
+                            this.openAssetInEditor(img);
+                        });
+                    }
                 }
                 // 更新选中计数显示
                 const selectedCountSpan = dialog.querySelector('#selectedCount');
