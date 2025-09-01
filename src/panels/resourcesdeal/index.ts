@@ -1762,7 +1762,11 @@ module.exports = Editor.Panel.define({
                 this.calculateSame(_singleRemainingdataCache);
             }
             if (_sameRemainingdataCache) {
-                this.calculateSizeCount(_sameRemainingdataCache);
+                // this.calculateSizeCount(_sameRemainingdataCache);
+                this.calculateOtherBigImages(_sameRemainingdataCache);
+            }
+            if(_otherbigRemainingdataCache){
+                this.calculateOtherSmallImages(_otherbigRemainingdataCache);
             }
         },
         // #endregion
