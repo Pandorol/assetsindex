@@ -623,6 +623,235 @@ class Panel4Manager {
         }
     }
     /**
+     * 显示选择预览窗口，复用预览样式但添加checkbox选择功能
+     */
+    static showSelectionPreview(itemId, itemName, matchedImages, regex, moveItem) {
+        if (matchedImages.length === 0) {
+            this.showStatus(itemId, '没有找到匹配的图片', 'info');
+            return;
+        }
+        // 创建预览窗口，使用与showSimplePreview相同的样式
+        const overlay = document.createElement('div');
+        overlay.className = 'simple-preview-overlay';
+        overlay.style.cssText = `
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.7);
+            z-index: 10000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        `;
+        const dialog = document.createElement('div');
+        dialog.className = 'simple-preview-dialog';
+        dialog.style.cssText = `
+            background: #2d2d30;
+            color: #cccccc;
+            border-radius: 8px;
+            max-width: 80%;
+            max-height: 80%;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+        `;
+        // 创建头部
+        const header = document.createElement('div');
+        header.style.cssText = `
+            padding: 15px 20px;
+            border-bottom: 1px solid #555;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        `;
+        header.innerHTML = `
+            <div>
+                <h3 style="margin:0; color:#fff;">选择要移动的图片 - ${itemName}</h3>
+                <p style="margin:5px 0 0 0; color:#999; font-size:12px;">正则: ${regex} | 共 ${matchedImages.length} 个文件</p>
+            </div>
+            <button id="closeSelection" style="background:none; border:none; color:#fff; font-size:24px; cursor:pointer;">&times;</button>
+        `;
+        // 创建操作按钮区域
+        const toolbar = document.createElement('div');
+        toolbar.style.cssText = `
+            padding: 10px 20px;
+            border-bottom: 1px solid #555;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        `;
+        toolbar.innerHTML = `
+            <button id="selectAll" style="padding: 5px 10px; background: #007acc; color: white; border: none; border-radius: 3px; cursor: pointer;">全选</button>
+            <button id="selectNone" style="padding: 5px 10px; background: #666; color: white; border: none; border-radius: 3px; cursor: pointer;">全不选</button>
+            <span style="color: #999; margin-left: 10px;" id="selectedCount">已选中 ${moveItem.selectedImages.length} 个</span>
+        `;
+        // 创建内容区域
+        const content = document.createElement('div');
+        content.style.cssText = `
+            flex: 1;
+            overflow-y: auto;
+            padding: 15px 20px;
+            max-height: 400px;
+        `;
+        // 添加图片列表（限制显示前100个），每个项前加checkbox
+        const displayImages = matchedImages.slice(0, 100);
+        displayImages.forEach((imagePath, index) => {
+            const isSelected = moveItem.selectedImages.includes(imagePath);
+            const item = document.createElement('div');
+            item.style.cssText = `
+                padding: 8px 12px;
+                margin: 2px 0;
+                background: rgba(255,255,255,0.05);
+                border-radius: 4px;
+                cursor: pointer;
+                border-left: 3px solid ${isSelected ? '#28a745' : '#007acc'};
+                transition: all 0.2s;
+                font-family: monospace;
+                font-size: 13px;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            `;
+            item.innerHTML = `
+                <input type="checkbox" ${isSelected ? 'checked' : ''} 
+                       style="cursor: pointer;" data-path="${imagePath}">
+                <span style="color:#569cd6;">${index + 1}.</span> 
+                <span style="flex: 1;">${imagePath}</span>
+            `;
+            const checkbox = item.querySelector('input[type="checkbox"]');
+            // 添加悬停效果
+            item.addEventListener('mouseenter', () => {
+                item.style.background = 'rgba(0,122,204,0.2)';
+                item.style.borderLeftColor = '#00ff88';
+            });
+            item.addEventListener('mouseleave', () => {
+                item.style.background = 'rgba(255,255,255,0.05)';
+                item.style.borderLeftColor = checkbox.checked ? '#28a745' : '#007acc';
+            });
+            // 添加checkbox变化事件
+            checkbox.addEventListener('change', (e) => {
+                e.stopPropagation();
+                if (checkbox.checked) {
+                    console.log(`勾选文件: ${imagePath}`);
+                    this.openAssetInEditor(imagePath);
+                    item.style.borderLeftColor = '#28a745';
+                    // 添加到选中列表
+                    if (!moveItem.selectedImages.includes(imagePath)) {
+                        moveItem.selectedImages.push(imagePath);
+                    }
+                }
+                else {
+                    item.style.borderLeftColor = '#007acc';
+                    // 从选中列表移除
+                    const index = moveItem.selectedImages.indexOf(imagePath);
+                    if (index > -1) {
+                        moveItem.selectedImages.splice(index, 1);
+                    }
+                }
+                // 更新选中计数显示
+                const selectedCountSpan = dialog.querySelector('#selectedCount');
+                if (selectedCountSpan) {
+                    selectedCountSpan.textContent = `已选中 ${moveItem.selectedImages.length} 个`;
+                }
+            });
+            // 点击整行也能切换checkbox
+            item.addEventListener('click', (e) => {
+                if (e.target !== checkbox) {
+                    checkbox.checked = !checkbox.checked;
+                    checkbox.dispatchEvent(new Event('change'));
+                }
+            });
+            content.appendChild(item);
+        });
+        // 如果有更多文件，显示提示
+        if (matchedImages.length > 100) {
+            const moreInfo = document.createElement('div');
+            moreInfo.style.cssText = `
+                padding: 10px;
+                text-align: center;
+                color: #999;
+                font-style: italic;
+                border-top: 1px solid #555;
+            `;
+            moreInfo.textContent = `... 还有 ${matchedImages.length - 100} 个文件未显示`;
+            content.appendChild(moreInfo);
+        }
+        // 创建底部
+        const footer = document.createElement('div');
+        footer.style.cssText = `
+            padding: 15px 20px;
+            border-top: 1px solid #555;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        `;
+        footer.innerHTML = `
+            <span style="color: #999; font-size: 12px;">勾选文件将自动在编辑器中选中</span>
+            <div style="display: flex; gap: 10px;">
+                <button id="cancelSelection" style="padding: 8px 16px; background: #666; color: #fff; border: none; border-radius: 4px; cursor: pointer;">取消</button>
+                <button id="confirmSelection" style="padding: 8px 16px; background: #007acc; color: #fff; border: none; border-radius: 4px; cursor: pointer;">确认选择</button>
+            </div>
+        `;
+        // 组装对话框
+        dialog.appendChild(header);
+        dialog.appendChild(toolbar);
+        dialog.appendChild(content);
+        dialog.appendChild(footer);
+        overlay.appendChild(dialog);
+        // 绑定事件
+        const selectAllBtn = dialog.querySelector('#selectAll');
+        const selectNoneBtn = dialog.querySelector('#selectNone');
+        const closeBtn = dialog.querySelector('#closeSelection');
+        const cancelBtn = dialog.querySelector('#cancelSelection');
+        const confirmBtn = dialog.querySelector('#confirmSelection');
+        const checkboxes = dialog.querySelectorAll('input[type="checkbox"]');
+        // 全选功能
+        selectAllBtn.addEventListener('click', () => {
+            checkboxes.forEach(cb => {
+                if (!cb.checked) {
+                    cb.checked = true;
+                    cb.dispatchEvent(new Event('change'));
+                }
+            });
+        });
+        // 全不选功能
+        selectNoneBtn.addEventListener('click', () => {
+            checkboxes.forEach(cb => {
+                if (cb.checked) {
+                    cb.checked = false;
+                    cb.dispatchEvent(new Event('change'));
+                }
+            });
+        });
+        // 关闭对话框
+        const closeDialog = () => {
+            document.body.removeChild(overlay);
+        };
+        closeBtn.addEventListener('click', closeDialog);
+        cancelBtn.addEventListener('click', closeDialog);
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay)
+                closeDialog();
+        });
+        // 确认选择
+        confirmBtn.addEventListener('click', () => {
+            // 更新选中计数显示
+            const selectedCountElement = this.getCountElement(itemId, 'selectedCount');
+            if (selectedCountElement) {
+                selectedCountElement.textContent = moveItem.selectedImages.length.toString();
+                console.log(`更新选中计数显示: ${moveItem.selectedImages.length}`);
+            }
+            else {
+                console.error(`无法找到选中计数元素: ${itemId}_selectedCount`);
+            }
+            this.showStatus(itemId, `已选中 ${moveItem.selectedImages.length} 个图片`, 'success');
+            closeDialog();
+        });
+        // 添加到页面
+        document.body.appendChild(overlay);
+        console.log(`显示选择预览窗口: ${matchedImages.length} 个匹配项, 当前已选中 ${moveItem.selectedImages.length} 个`);
+    }
+    /**
      * 显示简单的预览窗口，支持点击打开资源
      */
     static showSimplePreview(itemId, itemName, matchedImages, regex) {
@@ -785,113 +1014,9 @@ class Panel4Manager {
                 this.showStatus(itemId, '没有找到匹配的图片', 'info');
                 return;
             }
-            // 创建选择对话框内容
-            const checkboxList = moveItem.matchedImages.map((imagePath, index) => {
-                const isSelected = moveItem.selectedImages.includes(imagePath);
-                return `<div class="image-checkbox-item">
-                    <label class="image-checkbox-label">
-                        <input type="checkbox" id="img_${index}" value="${imagePath}" ${isSelected ? 'checked' : ''} 
-                               class="image-checkbox-input">
-                        <span class="image-path-text">${imagePath}</span>
-                    </label>
-                </div>`;
-            }).join('');
-            const dialogContent = `
-                <div style="max-height: 400px; overflow-y: auto; padding: 10px; border: 1px solid #ccc;">
-                    ${checkboxList}
-                </div>
-            `;
-            // 显示选择对话框
-            this.showSelectionDialog(itemId, dialogContent, moveItem);
+            // 使用预览窗口样式显示选择对话框
+            this.showSelectionPreview(itemId, moveItem.name, moveItem.matchedImages, moveItem.regex, moveItem);
         }, 100);
-    }
-    /**
-     * 显示图片选择对话框
-     */
-    static showSelectionDialog(itemId, content, moveItem) {
-        // 创建模态对话框
-        const overlay = document.createElement('div');
-        overlay.className = 'selection-dialog-overlay';
-        const dialog = document.createElement('div');
-        dialog.className = 'selection-dialog';
-        dialog.innerHTML = `
-            <div class="selection-dialog-header">
-                <h3 style="margin: 0; color: #333;">选择要移动的图片 - ${moveItem.name}</h3>
-                <button id="closeDialog" style="background: none; border: none; font-size: 20px; cursor: pointer;">&times;</button>
-            </div>
-            <div class="selection-dialog-content">
-                <div style="max-height: 400px; overflow-y: auto; padding: 10px; border: 1px solid #ccc;">
-                    <div style="margin-bottom: 15px;">
-                        <button id="selectAll" style="margin-right: 10px; padding: 5px 10px;">全选</button>
-                        <button id="selectNone" style="padding: 5px 10px;">全不选</button>
-                        <span style="margin-left: 20px; color: #666;">共 ${moveItem.matchedImages.length} 个匹配项</span>
-                    </div>
-                    ${content}
-                </div>
-            </div>
-            <div class="selection-dialog-footer">
-                <button id="cancelSelection" style="padding: 8px 16px; border: 1px solid #ccc; background: white; cursor: pointer;">取消</button>
-                <button id="confirmSelection" style="padding: 8px 16px; background: #007acc; color: white; border: none; cursor: pointer;">确认选择</button>
-            </div>
-        `;
-        overlay.appendChild(dialog);
-        document.body.appendChild(overlay);
-        // 绑定事件
-        const selectAllBtn = dialog.querySelector('#selectAll');
-        const selectNoneBtn = dialog.querySelector('#selectNone');
-        const closeBtn = dialog.querySelector('#closeDialog');
-        const cancelBtn = dialog.querySelector('#cancelSelection');
-        const confirmBtn = dialog.querySelector('#confirmSelection');
-        const checkboxes = dialog.querySelectorAll('input[type="checkbox"]');
-        // 绑定checkbox变化事件，勾选时选中资源
-        checkboxes.forEach((checkbox) => {
-            checkbox.addEventListener('change', (e) => {
-                const imagePath = checkbox.value;
-                if (checkbox.checked) {
-                    console.log(`勾选checkbox，选中资源: ${imagePath}`);
-                    this.openAssetInEditor(imagePath);
-                }
-            });
-        });
-        // 全选功能
-        selectAllBtn.addEventListener('click', () => {
-            checkboxes.forEach(cb => cb.checked = true);
-        });
-        // 全不选功能
-        selectNoneBtn.addEventListener('click', () => {
-            checkboxes.forEach(cb => cb.checked = false);
-        });
-        // 关闭对话框
-        const closeDialog = () => {
-            document.body.removeChild(overlay);
-        };
-        closeBtn.addEventListener('click', closeDialog);
-        cancelBtn.addEventListener('click', closeDialog);
-        overlay.addEventListener('click', (e) => {
-            if (e.target === overlay)
-                closeDialog();
-        });
-        // 确认选择
-        confirmBtn.addEventListener('click', () => {
-            const selectedImages = [];
-            checkboxes.forEach(cb => {
-                if (cb.checked) {
-                    selectedImages.push(cb.value);
-                }
-            });
-            moveItem.selectedImages = selectedImages;
-            // 更新选中计数显示
-            const selectedCountElement = this.getCountElement(itemId, 'selectedCount');
-            if (selectedCountElement) {
-                selectedCountElement.textContent = selectedImages.length.toString();
-                console.log(`更新选中计数显示: ${selectedImages.length}`);
-            }
-            else {
-                console.error(`无法找到选中计数元素: ${itemId}_selectedCount`);
-            }
-            this.showStatus(itemId, `已选中 ${selectedImages.length} 个图片`, 'success');
-            closeDialog();
-        });
     }
     /**
      * 预览选中的图片
