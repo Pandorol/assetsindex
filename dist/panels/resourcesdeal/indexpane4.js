@@ -484,15 +484,18 @@ class Panel4Manager {
             </div>
             
             <div class="move-item-actions">
+                <span class="match-count-label">匹配项: <span id="${cleanId}_matchCount">0</span> 个</span>
+                <button class="btn-select" data-action="select" data-item-id="${cleanId}" type="button">
+                    ☑️ 选择匹配项 (<span id="${cleanId}_selectedCount">0</span>)
+                </button>
+                <!--
                 <button class="btn-preview" data-action="preview" data-item-id="${cleanId}" type="button">
                     🔍 预览匹配 (<span id="${cleanId}_matchCount">0</span>)
-                </button>
-                <button class="btn-select" data-action="select" data-item-id="${cleanId}" type="button">
-                    ☑️ 选择匹配项
                 </button>
                 <button class="btn-preview" data-action="previewSelected" data-item-id="${cleanId}" type="button">
                     📋 预览选中 (<span id="${cleanId}_selectedCount">0</span>)
                 </button>
+                -->
                 <button class="btn-move" data-action="move" data-item-id="${cleanId}" type="button">
                     🚀 移动选中项
                 </button>
@@ -545,28 +548,32 @@ class Panel4Manager {
             }
         }, 0);
         // 绑定按钮事件（使用 itemElement 查找，不依赖 ID）
-        const previewBtn = itemElement.querySelector('[data-action="preview"]');
+        // const previewBtn = itemElement.querySelector('[data-action="preview"]') as HTMLButtonElement;
         const selectBtn = itemElement.querySelector('[data-action="select"]');
-        const previewSelectedBtn = itemElement.querySelector('[data-action="previewSelected"]');
+        // const previewSelectedBtn = itemElement.querySelector('[data-action="previewSelected"]') as HTMLButtonElement;
         const moveBtn = itemElement.querySelector('[data-action="move"]');
-        previewBtn === null || previewBtn === void 0 ? void 0 : previewBtn.addEventListener('click', (e) => {
+        /*
+        previewBtn?.addEventListener('click', (e) => {
             e.preventDefault();
             e.stopPropagation();
             console.log(`点击预览匹配按钮: ${moveItem.id}`);
             this.previewMatches(moveItem.id);
         });
+        */
         selectBtn === null || selectBtn === void 0 ? void 0 : selectBtn.addEventListener('click', (e) => {
             e.preventDefault();
             e.stopPropagation();
             console.log(`点击选择匹配项按钮: ${moveItem.id}`);
             this.selectMatches(moveItem.id);
         });
-        previewSelectedBtn === null || previewSelectedBtn === void 0 ? void 0 : previewSelectedBtn.addEventListener('click', (e) => {
+        /*
+        previewSelectedBtn?.addEventListener('click', (e) => {
             e.preventDefault();
             e.stopPropagation();
             console.log(`点击预览选中按钮: ${moveItem.id}`);
             this.previewSelected(moveItem.id);
         });
+        */
         moveBtn === null || moveBtn === void 0 ? void 0 : moveBtn.addEventListener('click', (e) => {
             e.preventDefault();
             e.stopPropagation();

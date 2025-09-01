@@ -1,0 +1,10 @@
+[
+  [
+    ".*gg_zhenying1_.*",
+    "test/test"
+  ],
+  [
+    ".*buff_icon.*",
+    "test/test"
+  ]
+]

@@ -172,6 +172,23 @@
     margin-top: 15px;
     display: flex;
     gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.match-count-label {
+    padding: 8px 12px;
+    background-color: rgba(0, 122, 204, 0.1);
+    border: 1px solid #007acc;
+    border-radius: 4px;
+    color: #cccccc;
+    font-size: 14px;
+    font-weight: bold;
+}
+
+.match-count-label span {
+    color: #007acc;
+    font-weight: bold;
 }
 
 .btn-preview {
