@@ -1,4 +1,5 @@
 @echo off
+chcp 65001 >nul
 echo 正在构建 Cocos Creator 扩展...
 
 REM 编译 TypeScript 代码
@@ -37,16 +38,16 @@ powershell -command "Compress-Archive -Path 'assetsindex' -DestinationPath 'asse
 cd ..
 
 echo.
-echo ✅ 分发包创建完成！
-echo 📁 位置：release\assetsindex-extension.zip
+echo === 分发包创建完成！===
+echo 位置：release\assetsindex-extension.zip
 echo.
-echo 📋 用户安装步骤：
+echo === 用户安装步骤：===
 echo 1. 解压 assetsindex-extension.zip
 echo 2. 将 assetsindex 文件夹放到 Cocos Creator 项目的 extensions 目录下
 echo 3. 重启 Cocos Creator 或刷新扩展管理器
-echo 4. 在菜单栏 扩展 -^> assetsindex 中找到功能
+echo 4. 在菜单栏 扩展 ^-^> assetsindex 中找到功能
 echo.
-echo 📦 包含内容：
+echo === 包含内容：===
 echo - 编译后的 JavaScript 代码
 echo - 静态资源文件
 echo - 类型定义文件
