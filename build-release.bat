@@ -22,12 +22,15 @@ copy "package.json" "release\assetsindex\"
 xcopy "dist" "release\assetsindex\dist\" /E /I /Q
 xcopy "static" "release\assetsindex\static\" /E /I /Q
 xcopy "i18n" "release\assetsindex\i18n\" /E /I /Q
-xcopy "node_modules" "release\assetsindex\node_modules\" /E /I /Q
-xcopy "src" "release\assetsindex\src\" /E /I /Q
 xcopy "@types" "release\assetsindex\@types\" /E /I /Q
 copy "README.md" "release\assetsindex\" 2>nul
 copy "README-zh-CN.md" "release\assetsindex\" 2>nul
 copy "DISTRIBUTION.md" "release\assetsindex\" 2>nul
+copy "LICENSE" "release\assetsindex\" 2>nul
+copy "使用手册.md" "release\assetsindex\" 2>nul
+copy "快速入门.md" "release\assetsindex\" 2>nul
+copy "功能特性.md" "release\assetsindex\" 2>nul
+copy "文件冲突处理说明.md" "release\assetsindex\" 2>nul
 
 REM 创建 ZIP 包
 echo 4. 创建 ZIP 包...
