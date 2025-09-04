@@ -1442,7 +1442,7 @@ function updateWithGlobalPrefabs(spriteFrameMaps_name: Record<string, string[]>,
             path2info[imgPath].count = newCount;
             
             if (oldCount !== newCount) {
-                console.log(`图片 ${imgPath} 引用次数更新: ${oldCount} -> ${newCount}`);
+                // console.log(`图片 ${imgPath} 引用次数更新: ${oldCount} -> ${newCount}`);
             }
         }
     }
