@@ -789,6 +789,11 @@ module.exports = Editor.Panel.define({
                     this.generateImageTable();
                 });
             }
+            if (this.$.genPrefabTableBtn) {
+                this.$.genPrefabTableBtn.addEventListener('click', () => {
+                    this.generatePrefabTable();
+                });
+            }
             if (this.$.deleteEmptyFoldersBtn) {
                 this.$.deleteEmptyFoldersBtn.addEventListener('click', () => {
                     this.deleteEmptyFolders();
@@ -986,6 +991,32 @@ module.exports = Editor.Panel.define({
                 _spriteFrameMaps_nameCache = deepClone(_dataCache.spriteFrameMaps_name);
                 console.log('成功读取缓存数据，开始渲染图片使用表');
                 this.renderImageTable(_dataCache.spriteFrameMaps_name, _dataCache.path2info);
+                // 更新 Panel4Manager 的数据缓存
+                indexpane4_1.Panel4Manager.updateDataCache(_dataCache);
+            }
+            catch (err) {
+                console.error('读取或解析数据文件失败:', err);
+            }
+        },
+        generatePrefabTable() {
+            var _a;
+            console.log('点击了生成预制体引用表按钮');
+            const filePath = (_a = this.$.buildMapsDataResultPath) === null || _a === void 0 ? void 0 : _a.value;
+            if (!filePath) {
+                console.warn('输出数据文件路径为空');
+                return;
+            }
+            try {
+                const raw = fs.readFileSync(filePath, 'utf8');
+                const parsed = JSON.parse(raw);
+                _dataCache = {
+                    prefabMaps_name: parsed.prefabMaps_name,
+                    spriteFrameMaps_name: parsed.spriteFrameMaps_name,
+                    path2info: parsed.path2info,
+                };
+                _spriteFrameMaps_nameCache = deepClone(_dataCache.spriteFrameMaps_name);
+                console.log('成功读取缓存数据，开始渲染预制体引用表');
+                this.renderPrefabTable(_dataCache.prefabMaps_name, _dataCache.spriteFrameMaps_name);
                 // 更新 Panel4Manager 的数据缓存
                 indexpane4_1.Panel4Manager.updateDataCache(_dataCache);
             }
