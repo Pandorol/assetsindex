@@ -409,8 +409,8 @@ module.exports = Editor.Panel.define({
                 <tr>
                     <td>${row.prefab}</td>
                     <td>${row.count}</td>
-                    <td>${row.sizes.join('<br/>')}</td>
                     <td>${row.imgs.join('<br/>')}</td>
+                    <td>${row.sizes.join('<br/>')}</td>
                 </tr>
             `);
             if (_prefabClusterize) {
@@ -424,8 +424,8 @@ module.exports = Editor.Panel.define({
                     tr.innerHTML = `
                         <td>${row.prefab}</td>
                         <td>${row.count}</td>
-                        <td>${row.sizes.join('<br/>')}</td>
                         <td>${row.imgs.join('<br/>')}</td>
+                        <td>${row.sizes.join('<br/>')}</td>
                     `;
                     tbody.appendChild(tr);
                 });
