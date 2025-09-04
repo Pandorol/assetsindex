@@ -127,6 +127,8 @@ module.exports = Editor.Panel.define({
         // 筛选相关
         imageFilter: '#imageFilter',
         applyFilterBtn: '#applyFilterBtn',
+        prefabFilter: '#prefabFilter',
+        applyPrefabFilterBtn: '#applyPrefabFilterBtn',
         //图集设置处理
         //大图定义
         defineLargeImageWidth: '#defineLargeImageWidth',
@@ -417,6 +419,8 @@ module.exports = Editor.Panel.define({
                     return a.count.length - b.count.length;
                 return a.totalSize - b.totalSize;
             });
+            // 存储原始预制体数据
+            _originalPrefabData = rows;
             const rowStrings = rows.map(row => `
                 <tr>
                     <td>${row.prefab}</td>
@@ -509,6 +513,51 @@ module.exports = Editor.Panel.define({
                 this.$.imageStatsPicUsed.textContent = `共 ${filteredRows.length} 张图片被引用, ${unusedCount} 张未被引用`;
             }
             console.log(`筛选完成: ${filteredRows.length} / ${_originalImageData.length} 张图片`);
+        },
+        applyPrefabFilter() {
+            const filterValue = this.$.prefabFilter.value.trim().toLowerCase();
+            console.log('应用预制体筛选，筛选关键词:', filterValue);
+            if (!_originalPrefabData || _originalPrefabData.length === 0) {
+                console.warn('没有原始预制体数据可以筛选');
+                return;
+            }
+            let filteredRows = _originalPrefabData;
+            // 如果有筛选关键词，进行筛选
+            if (filterValue) {
+                filteredRows = _originalPrefabData.filter(row => row.prefab.toLowerCase().includes(filterValue));
+            }
+            // 生成筛选后的表格行HTML
+            const rowStrings = filteredRows.map(row => `
+                <tr>
+                    <td>${row.prefab}</td>
+                    <td>${row.imgs.join('<br/>')}</td>
+                    <td>${row.count.join('<br/>')}</td>
+                    <td>${row.sizes.join('<br/>')}</td>
+                </tr>
+            `);
+            // 更新表格显示
+            if (_prefabClusterize) {
+                _prefabClusterize.update(rowStrings);
+            }
+            else {
+                const tbody = this.$.prefabTable.querySelector('tbody');
+                tbody.innerHTML = '';
+                filteredRows.forEach(row => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>${row.prefab}</td>
+                        <td>${row.imgs.join('<br/>')}</td>
+                        <td>${row.count.join('<br/>')}</td>
+                        <td>${row.sizes.join('<br/>')}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            }
+            // 更新显示的筛选结果数量信息（可以选择在控制台显示）
+            if (filterValue) {
+                console.log(`预制体筛选结果: ${filteredRows.length} / ${_originalPrefabData.length} 个预制体`);
+            }
+            console.log(`预制体筛选完成: ${filteredRows.length} / ${_originalPrefabData.length} 个预制体`);
         },
         // #endregion
         // #endregion
@@ -927,6 +976,12 @@ module.exports = Editor.Panel.define({
                     this.applyImageFilter();
                 });
             }
+            // 预制体筛选功能事件绑定
+            if (this.$.applyPrefabFilterBtn) {
+                this.$.applyPrefabFilterBtn.addEventListener('click', () => {
+                    this.applyPrefabFilter();
+                });
+            }
             // 筛选输入框回车事件
             if (this.$.imageFilter) {
                 this.$.imageFilter.addEventListener('keypress', (e) => {
@@ -939,6 +994,21 @@ module.exports = Editor.Panel.define({
                     const target = e.target;
                     if (target.value.trim() === '') {
                         this.applyImageFilter(); // 空字符串会显示所有数据
+                    }
+                });
+            }
+            // 预制体筛选输入框回车事件
+            if (this.$.prefabFilter) {
+                this.$.prefabFilter.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        this.applyPrefabFilter();
+                    }
+                });
+                // 输入框清空时自动重置筛选
+                this.$.prefabFilter.addEventListener('input', (e) => {
+                    const target = e.target;
+                    if (target.value.trim() === '') {
+                        this.applyPrefabFilter(); // 空字符串会显示所有数据
                     }
                 });
             }
