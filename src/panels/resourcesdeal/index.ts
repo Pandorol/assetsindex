@@ -43,6 +43,10 @@ let _defineSSmallImage: any = {
     byArea: true,
 }; // 小图定义缓存
 
+// Clusterize 实例
+let _clusterize: any = null; // 图片表格的虚拟滚动实例
+let _prefabClusterize: any = null; // 预制体表格的虚拟滚动实例
+
 // #endregion
 
 // #region 工具函数
@@ -117,6 +121,8 @@ module.exports = Editor.Panel.define({
         imageStatsContent: '#imageStatsContent',
         scrollArea: '#scrollArea',
         contentArea: '#contentArea',
+        prefabScrollArea: '#prefabScrollArea',
+        prefabContentArea: '#prefabContentArea',
         deleteEmptyFoldersBtn: '#deleteEmptyFoldersBtn',
         //图集设置处理
         //大图定义
@@ -372,8 +378,8 @@ module.exports = Editor.Panel.define({
                 </tr>
             `);
 
-            if (this._clusterize) {
-                this._clusterize.update(rowStrings);
+            if (_clusterize) {
+                _clusterize.update(rowStrings);
             } else {
                 const tbody = this.$.imageTable.querySelector('tbody')!;
                 tbody.innerHTML = '';
@@ -410,25 +416,65 @@ module.exports = Editor.Panel.define({
         },
 
         renderPrefabTable(prefabMaps_name: Record<string, string[]>, spriteFrameMaps_name: Record<string, string[]>) {
-            const tbody = this.$.prefabTable.querySelector('tbody')!;
-            tbody.innerHTML = '';
+            console.log('开始渲染预制体表格，数据量:', Object.keys(prefabMaps_name).length);
+            
+            if (!prefabMaps_name || Object.keys(prefabMaps_name).length === 0) {
+                console.warn('prefabMaps_name 数据为空');
+                return;
+            }
 
             const imgCountMap: Record<string, number> = {};
             for (const [img, prefabs] of Object.entries(spriteFrameMaps_name)) {
                 imgCountMap[img] = prefabs.length;
             }
 
+            // 将数据转换为行数组并排序
+            const rows: Array<{prefab: string, img: string, size: number, count: number}> = [];
             Object.entries(prefabMaps_name).forEach(([prefab, imgs]) => {
                 imgs.forEach(img => {
+                    const imgSize = _dataCache?.path2info?.[img]?.size || 0;
+                    rows.push({
+                        prefab,
+                        img,
+                        size: imgSize,
+                        count: imgCountMap[img] || 0
+                    });
+                });
+            });
+
+            // 按预制体名称排序
+            rows.sort((a, b) => {
+                if (a.prefab !== b.prefab) return a.prefab.localeCompare(b.prefab);
+                return a.img.localeCompare(b.img);
+            });
+
+            const rowStrings = rows.map(row => `
+                <tr>
+                    <td>${row.prefab}</td>
+                    <td>${row.img}</td>
+                    <td>${formatSize(row.size)}</td>
+                    <td>${row.count}</td>
+                </tr>
+            `);
+
+            if (_prefabClusterize) {
+                _prefabClusterize.update(rowStrings);
+            } else {
+                const tbody = this.$.prefabContentArea;
+                tbody.innerHTML = '';
+                rows.forEach(row => {
                     const tr = document.createElement('tr');
                     tr.innerHTML = `
-                        <td>${prefab}</td>
-                        <td>${img}</td>
-                        <td>${imgCountMap[img] || 0}</td>
+                        <td>${row.prefab}</td>
+                        <td>${row.img}</td>
+                        <td>${formatSize(row.size)}</td>
+                        <td>${row.count}</td>
                     `;
                     tbody.appendChild(tr);
                 });
-            });
+            }
+
+            console.log('预制体表格渲染完成，共', rows.length, '行数据');
         },
         // #endregion
 
@@ -2099,11 +2145,20 @@ module.exports = Editor.Panel.define({
                         return;
                     }
 
-                    this._clusterize = new Clusterize({
+                    // 初始化图片表格的 Clusterize
+                    _clusterize = new Clusterize({
                         scrollElem: this.$.scrollArea,
                         contentElem: this.$.contentArea,
                         rows: [],
                         no_data_text: '暂无图片引用数据',
+                    });
+
+                    // 初始化预制体表格的 Clusterize
+                    _prefabClusterize = new Clusterize({
+                        scrollElem: this.$.prefabScrollArea,
+                        contentElem: this.$.prefabContentArea,
+                        rows: [],
+                        no_data_text: '暂无预制体引用数据',
                     });
                 } catch (error) {
                     console.error('Clusterize 初始化失败:', error);

@@ -69,16 +69,17 @@
             </div>
 
             <!-- 预制体引用表 -->
-            <div style="height:300px; overflow:auto; border:1px solid #ccc; margin-top:20px;">
+            <div id="prefabScrollArea" style="height:300px; overflow:auto; border:1px solid #ccc; margin-top:20px;">
                 <table id="prefabTable" border="1" cellspacing="0" cellpadding="5" style="width:100%; color:white;">
                     <thead>
                         <tr>
                             <th>预制体路径</th>
                             <th>引用图片</th>
+                            <th>大小</th>
                             <th>图片被引用次数</th>
                         </tr>
                     </thead>
-                    <tbody></tbody>
+                    <tbody id="prefabContentArea"></tbody>
                 </table>
             </div>
 
