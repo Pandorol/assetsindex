@@ -1329,7 +1329,7 @@ module.exports = Editor.Panel.define({
                     path2info: parsed.path2info,
                 };
                 _spriteFrameMaps_nameCache = deepClone(_dataCache.spriteFrameMaps_name);
-                console.log('成功读取缓存数据，开始渲染图片使用表，', _spriteFrameMaps_nameCache);
+                console.log('成功读取缓存数据，开始渲染图片使用表，', _dataCache.path2info);
                 this.renderImageTable(_dataCache.spriteFrameMaps_name, _dataCache.path2info);
                 
                 // 更新 Panel4Manager 的数据缓存
