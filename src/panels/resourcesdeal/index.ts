@@ -429,29 +429,31 @@ module.exports = Editor.Panel.define({
             }
 
             // 将数据转换为行数组并排序，完全模拟图片表格的逻辑
-            const rows: Array<{prefab: string, imgs: string[], count: number, size: number}> = [];
+            const rows: Array<{prefab: string, imgs: string[], count: number, sizes: string[], totalSize: number}> = [];
             Object.entries(prefabMaps_name).forEach(([prefab, imgs]) => {
-                const totalSize = imgs.reduce((sum, img) => sum + (_dataCache?.path2info?.[img]?.size || 0), 0);
                 const sortedImgs = imgs.slice().sort((a, b) => a.localeCompare(b));
+                const imgSizes = sortedImgs.map(img => formatSize(_dataCache?.path2info?.[img]?.size || 0));
+                const totalSize = sortedImgs.reduce((sum, img) => sum + (_dataCache?.path2info?.[img]?.size || 0), 0);
                 rows.push({
                     prefab,
                     imgs: sortedImgs,
                     count: imgs.length,
-                    size: totalSize
+                    sizes: imgSizes,
+                    totalSize
                 });
             });
 
-            // 按引用数量和大小排序，模拟图片表格的排序逻辑
+            // 按引用数量和总大小排序，模拟图片表格的排序逻辑
             rows.sort((a, b) => {
                 if (a.count !== b.count) return a.count - b.count;
-                return a.size - b.size;
+                return a.totalSize - b.totalSize;
             });
 
             const rowStrings = rows.map(row => `
                 <tr>
                     <td>${row.prefab}</td>
                     <td>${row.count}</td>
-                    <td>${formatSize(row.size)}</td>
+                    <td>${row.sizes.join('<br/>')}</td>
                     <td>${row.imgs.join('<br/>')}</td>
                 </tr>
             `);
@@ -466,7 +468,7 @@ module.exports = Editor.Panel.define({
                     tr.innerHTML = `
                         <td>${row.prefab}</td>
                         <td>${row.count}</td>
-                        <td>${formatSize(row.size)}</td>
+                        <td>${row.sizes.join('<br/>')}</td>
                         <td>${row.imgs.join('<br/>')}</td>
                     `;
                     tbody.appendChild(tr);
