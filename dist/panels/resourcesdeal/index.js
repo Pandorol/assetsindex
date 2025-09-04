@@ -405,28 +405,87 @@ module.exports = Editor.Panel.define({
                     return a.prefab.localeCompare(b.prefab);
                 return a.img.localeCompare(b.img);
             });
-            const rowStrings = rows.map(row => `
-                <tr>
-                    <td>${row.prefab}</td>
-                    <td>${row.img}</td>
-                    <td>${formatSize(row.size)}</td>
-                    <td>${row.count}</td>
-                </tr>
-            `);
+            // 处理合并单元格的逻辑
+            const rowStrings = [];
+            let currentPrefab = '';
+            let prefabRowSpan = 0;
+            let prefabStartIndex = 0;
+            // 计算每个预制体的行数
+            const prefabRowCounts = {};
+            rows.forEach(row => {
+                prefabRowCounts[row.prefab] = (prefabRowCounts[row.prefab] || 0) + 1;
+            });
+            rows.forEach((row, index) => {
+                const isFirstRowOfPrefab = row.prefab !== currentPrefab;
+                if (isFirstRowOfPrefab) {
+                    currentPrefab = row.prefab;
+                    prefabRowSpan = prefabRowCounts[row.prefab];
+                    prefabStartIndex = index;
+                }
+                if (isFirstRowOfPrefab) {
+                    // 第一行显示预制体名称并设置rowspan
+                    rowStrings.push(`
+                        <tr>
+                            <td rowspan="${prefabRowSpan}">${row.prefab}</td>
+                            <td>${row.img}</td>
+                            <td>${formatSize(row.size)}</td>
+                            <td>${row.count}</td>
+                        </tr>
+                    `);
+                }
+                else {
+                    // 后续行不显示预制体名称
+                    rowStrings.push(`
+                        <tr>
+                            <td>${row.img}</td>
+                            <td>${formatSize(row.size)}</td>
+                            <td>${row.count}</td>
+                        </tr>
+                    `);
+                }
+            });
             if (_prefabClusterize) {
-                _prefabClusterize.update(rowStrings);
-            }
-            else {
-                const tbody = this.$.prefabContentArea;
-                tbody.innerHTML = '';
-                rows.forEach(row => {
-                    const tr = document.createElement('tr');
-                    tr.innerHTML = `
+                // 虚拟滚动模式：不支持rowspan，使用简单格式
+                const simpleRowStrings = rows.map(row => `
+                    <tr>
                         <td>${row.prefab}</td>
                         <td>${row.img}</td>
                         <td>${formatSize(row.size)}</td>
                         <td>${row.count}</td>
-                    `;
+                    </tr>
+                `);
+                _prefabClusterize.update(simpleRowStrings);
+            }
+            else {
+                const tbody = this.$.prefabContentArea;
+                tbody.innerHTML = '';
+                // 重新构建表格以支持合并单元格
+                currentPrefab = '';
+                rows.forEach((row, index) => {
+                    const isFirstRowOfPrefab = row.prefab !== currentPrefab;
+                    if (isFirstRowOfPrefab) {
+                        currentPrefab = row.prefab;
+                        prefabRowSpan = prefabRowCounts[row.prefab];
+                    }
+                    const tr = document.createElement('tr');
+                    if (isFirstRowOfPrefab) {
+                        // 第一行：显示预制体名称
+                        const prefabCell = document.createElement('td');
+                        prefabCell.textContent = row.prefab;
+                        prefabCell.rowSpan = prefabRowSpan;
+                        prefabCell.style.verticalAlign = 'top';
+                        tr.appendChild(prefabCell);
+                    }
+                    // 其他列
+                    const imgCell = document.createElement('td');
+                    imgCell.textContent = row.img;
+                    tr.appendChild(imgCell);
+                    const sizeCell = document.createElement('td');
+                    sizeCell.textContent = formatSize(row.size);
+                    tr.appendChild(sizeCell);
+                    const countCell = document.createElement('td');
+                    countCell.textContent = row.count.toString();
+                    tr.appendChild(countCell);
                     tbody.appendChild(tr);
                 });
             }
