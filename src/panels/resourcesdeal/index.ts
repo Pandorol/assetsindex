@@ -47,6 +47,12 @@ let _defineSSmallImage: any = {
 let _clusterize: any = null; // 图片表格的虚拟滚动实例
 let _prefabClusterize: any = null; // 预制体表格的虚拟滚动实例
 
+// 筛选相关
+let _originalImageData: any[] = []; // 原始图片数据
+let _originalPrefabData: any[] = []; // 原始预制体数据
+let _filteredImageData: any[] = []; // 筛选后的图片数据
+let _filteredPrefabData: any[] = []; // 筛选后的预制体数据
+
 // #endregion
 
 // #region 工具函数
@@ -124,6 +130,9 @@ module.exports = Editor.Panel.define({
         prefabScrollArea: '#prefabScrollArea',
         prefabContentArea: '#prefabContentArea',
         deleteEmptyFoldersBtn: '#deleteEmptyFoldersBtn',
+        // 筛选相关
+        imageFilter: '#imageFilter',
+        applyFilterBtn: '#applyFilterBtn',
         //图集设置处理
         //大图定义
         defineLargeImageWidth: '#defineLargeImageWidth',
@@ -369,6 +378,10 @@ module.exports = Editor.Panel.define({
                     return a.size - b.size;
                 });
 
+            // 存储原始数据
+            _originalImageData = rows;
+            
+            // 生成表格行HTML
             const rowStrings = rows.map(row => `
                 <tr>
                     <td>${row.img}</td>
@@ -478,6 +491,82 @@ module.exports = Editor.Panel.define({
 
             console.log('预制体表格渲染完成，共', rows.length, '行数据');
         },
+
+        // #region 筛选功能方法
+        applyImageFilter() {
+            const filterValue = (this.$.imageFilter as HTMLInputElement).value.trim().toLowerCase();
+            console.log('应用图片筛选，筛选关键词:', filterValue);
+            
+            if (!_originalImageData || _originalImageData.length === 0) {
+                console.warn('没有原始图片数据可以筛选');
+                return;
+            }
+
+            let filteredRows = _originalImageData;
+            
+            // 如果有筛选关键词，进行筛选
+            if (filterValue) {
+                filteredRows = _originalImageData.filter(row => 
+                    row.img.toLowerCase().includes(filterValue)
+                );
+            }
+
+            // 生成筛选后的表格行HTML
+            const rowStrings = filteredRows.map(row => `
+                <tr>
+                    <td>${row.img}</td>
+                    <td>${row.count}</td>
+                    <td>${formatSize(row.size)}</td>
+                    <td>${row.prefabs.join('<br/>')}</td>
+                </tr>
+            `);
+
+            // 更新表格显示
+            if (_clusterize) {
+                _clusterize.update(rowStrings);
+            } else {
+                const tbody = this.$.imageTable.querySelector('tbody')!;
+                tbody.innerHTML = '';
+                filteredRows.forEach(row => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>${row.img}</td>
+                        <td>${row.count}</td>
+                        <td>${formatSize(row.size)}</td>
+                        <td>${row.prefabs.join('<br/>')}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            }
+
+            // 更新统计信息
+            const statsMap: Record<number, { total: number; size: number }> = {};
+            filteredRows.forEach(row => {
+                if (!statsMap[row.count]) statsMap[row.count] = { total: 0, size: 0 };
+                statsMap[row.count].total += 1;
+                statsMap[row.count].size += row.size;
+            });
+            
+            const statsDiv = this.$.imageStatsContent!;
+            statsDiv.innerHTML = '';
+            for (const [count, info] of Object.entries(statsMap)) {
+                const div = document.createElement('div');
+                div.textContent = `${count} 次引用: ${info.total} 张图片, 总大小 ${formatSize(info.size)}`;
+                statsDiv.appendChild(div);
+            }
+            
+            // 更新显示的筛选结果数量
+            if (filterValue) {
+                this.$.imageStatsPicUsed!.textContent = `筛选结果: ${filteredRows.length} 张图片 (共 ${_originalImageData.length} 张)`;
+            } else {
+                // 如果没有筛选条件，显示原始统计
+                const unusedCount = _dataCache ? Object.values(_dataCache.path2info).filter((info: any) => info.count === 0).length : 0;
+                this.$.imageStatsPicUsed!.textContent = `共 ${filteredRows.length} 张图片被引用, ${unusedCount} 张未被引用`;
+            }
+
+            console.log(`筛选完成: ${filteredRows.length} / ${_originalImageData.length} 张图片`);
+        },
+        // #endregion
         // #endregion
 
         // #region 弹窗显示方法
@@ -924,6 +1013,30 @@ module.exports = Editor.Panel.define({
             if (this.$.deleteEmptyFoldersBtn) {
                 this.$.deleteEmptyFoldersBtn.addEventListener('click', () => {
                     this.deleteEmptyFolders();
+                });
+            }
+
+            // 筛选功能事件绑定
+            if (this.$.applyFilterBtn) {
+                this.$.applyFilterBtn.addEventListener('click', () => {
+                    this.applyImageFilter();
+                });
+            }
+
+            // 筛选输入框回车事件
+            if (this.$.imageFilter) {
+                this.$.imageFilter.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        this.applyImageFilter();
+                    }
+                });
+                
+                // 输入框清空时自动重置筛选
+                this.$.imageFilter.addEventListener('input', (e) => {
+                    const target = e.target as HTMLInputElement;
+                    if (target.value.trim() === '') {
+                        this.applyImageFilter(); // 空字符串会显示所有数据
+                    }
                 });
             }
         },
