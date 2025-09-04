@@ -1294,6 +1294,12 @@ function updateWithGlobalPrefabs(spriteFrameMaps_name, uuid2info, path2info) {
             }
         }
     }
+    //path2info 中只取 spriteFrameMaps_name 中存在的图片
+    for (const imgPath of Object.keys(path2info)) {
+        if (!spriteFrameMaps_name[imgPath]) {
+            delete path2info[imgPath];
+        }
+    }
     // 5. 更新 spriteFrameMaps_name 的数据
     for (const imgPath of Object.keys(spriteFrameMaps_name)) {
         if (updatedSpriteFrameMaps_name[imgPath]) {
