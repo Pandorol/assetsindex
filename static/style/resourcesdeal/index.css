@@ -383,3 +383,47 @@
     text-align: center;
     font-weight: bold;
 }
+
+/* 表格内容可选择样式 */
+#imageTable, #prefabTable {
+    -webkit-user-select: text;
+    -moz-user-select: text;
+    -ms-user-select: text;
+    user-select: text;
+}
+
+#imageTable td, #prefabTable td {
+    padding: 5px 8px;
+    border: 1px solid #444;
+    word-break: break-all;
+    -webkit-user-select: text;
+    -moz-user-select: text;
+    -ms-user-select: text;
+    user-select: text;
+    cursor: text;
+}
+
+#imageTable tr:hover, #prefabTable tr:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+#imageTable th, #prefabTable th {
+    background-color: #333;
+    color: white;
+    padding: 8px;
+    border: 1px solid #444;
+    text-align: center;
+    font-weight: bold;
+    -webkit-user-select: text;
+    -moz-user-select: text;
+    -ms-user-select: text;
+    user-select: text;
+}
+
+/* 确保表格容器也可以选择文本 */
+#scrollArea, #prefabScrollArea {
+    -webkit-user-select: text;
+    -moz-user-select: text;
+    -ms-user-select: text;
+    user-select: text;
+}
