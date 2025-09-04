@@ -469,6 +469,7 @@ function buildMapsData(args: any) {
         // 输出文件
         args.out = path.join(outDir, 'sprite_maps.json');
     }
+    updateWithGlobalPrefabs(spriteFrameMaps_name,uuid2info,path2info);
     const outDir = path.isAbsolute(args.out) ? args.out : path.join(Editor.Project.path, args.out);
     fs.mkdirSync(path.dirname(outDir), { recursive: true });
     const out1 = outDir.replace(/(\.json)?$/, '1.json');
@@ -1332,6 +1333,134 @@ async function smallCopyMore(args: any) {
         errors,
         totalProcessed: operations.length,
         message: `成功复制 ${copiedCount} 个其他小图文件，更新 ${updatedPrefabCount} 个预制体引用`
+    };
+}
+
+// 新增：使用全局预制体信息更新图片引用数据的方法
+function updateWithGlobalPrefabs(spriteFrameMaps_name: Record<string, string[]>, uuid2info: Record<string, { path: string, size: number }>, path2info: Record<string, { count: number,uuid: string, size: number,width: number,height: number,md5: string }>) {
+    console.log('开始使用全局预制体信息更新图片引用数据...');
+    
+    const assetsDir = path.join(Editor.Project.path, 'assets');
+    
+    // 1. 扫描全局所有预制体文件
+    const globalFiles = fg.sync('**/*.prefab', {
+        cwd: assetsDir,
+        absolute: false,
+        dot: true,
+        ignore: ['**/library/**', '**/temp/**', '**/local/**', '**/build/**', '**/.**/**'],
+    });
+    
+    console.log(`全局扫描到 ${globalFiles.length} 个预制体文件`);
+    
+    // 2. 构建全局的 spriteFrame -> prefabs 映射
+    const globalSpriteFrameToPrefabs: Record<string, Set<string>> = {};
+    
+    const addGlobalPair = (prefabRel: string, uuid: string) => {
+        if (!uuid) return;
+        if (!globalSpriteFrameToPrefabs[uuid]) globalSpriteFrameToPrefabs[uuid] = new Set();
+        globalSpriteFrameToPrefabs[uuid].add(prefabRel);
+    };
+    
+    // 3. 遍历所有全局预制体文件，提取图片引用
+    for (const rel of globalFiles) {
+        const abs = path.join(assetsDir, rel);
+        let content = '';
+        try {
+            content = fs.readFileSync(abs, 'utf8');
+        } catch (e) {
+            console.warn('[全局扫描读取错误]', rel, e.message);
+            continue;
+        }
+
+        const uuids = new Set<string>();
+
+        // JSON 解析 + 递归遍历
+        let parsed = null;
+        try {
+            parsed = JSON.parse(content);
+        } catch (_) {
+            // 兜底：正则查找 spriteFrame 的 __uuid__
+            const patterns = [
+                /"_N?\$?spriteFrame"\s*:\s*\{\s*"__uuid__"\s*:\s*"([^"]+)"\s*\}/g,
+                /"_spriteFrame"\s*:\s*\{\s*"__uuid__"\s*:\s*"([^"]+)"\s*\}/g,
+                /"spriteFrame"\s*:\s*\{\s*"__uuid__"\s*:\s*"([^"]+)"\s*\}/g,
+            ];
+            for (const re of patterns) {
+                let m;
+                while ((m = re.exec(content))) uuids.add(m[1]);
+            }
+        }
+
+        if (parsed) {
+            const visit = (node: any) => {
+                if (!node) return;
+                if (Array.isArray(node)) {
+                    for (const it of node) visit(it);
+                    return;
+                }
+                if (typeof node === 'object') {
+                    for (const [k, v] of Object.entries(node)) {
+                        // 匹配 _spriteFrame / spriteFrame / _N$spriteFrame
+                        if ((/(\b|_|\$)spriteFrame\b/i).test(String(k)) && v && typeof v === 'object') {
+                            const id = (v as any)['__uuid__'] || (v as any)['uuid'];
+                            if (typeof id === 'string' && id) uuids.add(id);
+                        }
+                        visit(v);
+                    }
+                }
+            };
+            visit(parsed);
+        }
+
+        // 使用相对于 assets 目录的路径
+        const prefabRelToAssets = rel.replace(/\\/g, '/');
+        for (const id of uuids) {
+            addGlobalPair(prefabRelToAssets, id);
+        }
+    }
+    
+    // 4. 更新 spriteFrameMaps_name 和 path2info
+    console.log('开始更新图片引用信息...');
+    
+    // 重新构建全局的 spriteFrameMaps_name
+    const updatedSpriteFrameMaps_name: Record<string, string[]> = {};
+    
+    for (const [uuid, prefabSet] of Object.entries(globalSpriteFrameToPrefabs)) {
+        const info = uuid2info[uuid];
+        if (!info) continue; // 如果没有对应的图片信息，跳过
+        
+        const imgPath = info.path;
+        const globalPrefabList = Array.from(prefabSet).sort();
+        
+        // 更新 spriteFrameMaps_name
+        updatedSpriteFrameMaps_name[imgPath] = globalPrefabList;
+        
+        // 更新 path2info 中的引用次数
+        if (path2info[imgPath]) {
+            const oldCount = path2info[imgPath].count;
+            const newCount = globalPrefabList.length;
+            path2info[imgPath].count = newCount;
+            
+            if (oldCount !== newCount) {
+                console.log(`图片 ${imgPath} 引用次数更新: ${oldCount} -> ${newCount}`);
+            }
+        }
+    }
+    
+    // 5. 更新 spriteFrameMaps_name 的数据
+    for (const imgPath of Object.keys(spriteFrameMaps_name)) {
+        if (updatedSpriteFrameMaps_name[imgPath]) {
+            spriteFrameMaps_name[imgPath] = updatedSpriteFrameMaps_name[imgPath];
+        }
+    }
+    
+    console.log(`全局更新完成: 共更新了 ${Object.keys(updatedSpriteFrameMaps_name).length} 张图片的引用信息`);
+    console.log(`全局预制体总数: ${globalFiles.length}, 有图片引用的预制体: ${new Set(Object.values(globalSpriteFrameToPrefabs).flatMap(set => Array.from(set))).size}`);
+    
+    return {
+        updatedSpriteFrameMaps_name,
+        globalPrefabCount: globalFiles.length,
+        updatedImageCount: Object.keys(updatedSpriteFrameMaps_name).length
     };
 }
 
